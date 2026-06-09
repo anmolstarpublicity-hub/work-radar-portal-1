@@ -26,20 +26,34 @@ jobs:
           echo "--- Building client files ---"
           npm run build
 
-      # Step 4: Securely copy files with Debug & Custom Timeout configurations
-      - name: Deploy to Hostinger via SCP
+      # Step 4: Securely copy ONLY the compiled frontend files directly to target
+      - name: Deploy Frontend Files via SCP
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          timeout: 60s  # <--- Forced timeout scaling to allow slower handshakes
-          source: "client/dist, server"
-          target: ${{ secrets.PROJECT_PATH }}
+          timeout: 90s
+          source: "client/dist/*"
+          strip_components: 2  # <--- Essential: Copies content of dist, not the folders
+          target: "${{ secrets.PROJECT_PATH }}/client/dist"
           rm: true
 
-      # Step 5: SSH Commands run execution
+      # Step 5: Copy Backend Server files safely
+      - name: Deploy Backend Files via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          timeout: 90s
+          source: "server/*"
+          strip_components: 1
+          target: "${{ secrets.PROJECT_PATH }}/server"
+
+      # Step 6: SSH Execution & Server Reload
       - name: Install Dependencies and Restart Server
         uses: appleboy/ssh-action@master
         with:
@@ -47,15 +61,15 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          timeout: 60s
+          timeout: 90s
           script: |
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             
-            echo "--- Navigating to project directory on server ---"
+            echo "--- Navigating to backend directory ---"
             cd ${{ secrets.PROJECT_PATH }}/server
             
-            echo "--- Installing backend dependencies ---"
+            echo "--- Installing production dependencies ---"
             npm ci --production
             
             echo "--- Reloading application with PM2 ---"
