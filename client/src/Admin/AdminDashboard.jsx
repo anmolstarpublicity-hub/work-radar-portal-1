@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  HomeIcon, UsersIcon, ClipboardDocumentCheckIcon, UserGroupIcon, CalendarDaysIcon, ClipboardDocumentListIcon, EyeIcon, ListBulletIcon, CheckBadgeIcon, ChartBarIcon, TrophyIcon, TrashIcon, MegaphoneIcon, ChevronDoubleLeftIcon, ArrowLeftIcon, BuildingOffice2Icon, BuildingLibraryIcon, ExclamationTriangleIcon, ArrowDownTrayIcon, BriefcaseIcon
+  HomeIcon, UsersIcon, ClipboardDocumentCheckIcon, UserGroupIcon, CalendarDaysIcon, ClipboardDocumentListIcon, EyeIcon, ListBulletIcon, CheckBadgeIcon, ChartBarIcon, TrophyIcon, TrashIcon, MegaphoneIcon, ChevronDoubleLeftIcon, ArrowLeftIcon, BuildingOffice2Icon, BuildingLibraryIcon, ExclamationTriangleIcon, ArrowDownTrayIcon, BriefcaseIcon, CalendarIcon, DocumentTextIcon, Cog8ToothIcon, ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import EmployeeManagement from './EmployeeManagement';
@@ -18,15 +18,18 @@ import TaskApprovals from './TaskApprovals';
 import AssignTask from './AssignTask';
 import SeniorAssignTask from '../Senior/AssignTask';
 import EmployeeOfTheMonth from './EmployeeOfTheMonth'; // New import
+import Sidebar from '../components/Sidebar.jsx';
 import HallOfFame from './HallOfFame';
 import AdminProfile from './AdminProfile'; 
 import AppHeader from '../app/AppHeader.jsx';
+import AttendanceManagement from './AttendanceManagement.jsx';
 import ManageAnnouncements from './ManageAnnouncements';
 import AllEmployeeAttendance from './AllEmployeeAttendance';
 import GooglePieChart from './GooglePieChart.jsx';
 import { TaskDetailsModal } from './TaskOverview.jsx';
 import * as XLSX from 'xlsx'; 
-import { Analytics, StatCard } from '../Employee/EmployeDashboard.jsx';
+import { Analytics } from '../Employee/EmployeDashboard.jsx';
+import { useLogoutMutation } from '../services/apiSlice';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
 const DeleteReportModal = ({ isOpen, onClose, onConfirm, report, isDeleting }) => {
@@ -76,13 +79,14 @@ export const TeamReports = ({ seniorId }) => {
     // If a seniorId is provided (Manager/Team Lead view), filter for their subordinates
     if (seniorId) {
       const getAllSubordinates = (managerId, allEmps) => {
+        const getTeamLeadId = (emp) => emp.teamLead?._id || emp.teamLead;
         const subordinates = [];
-        const queue = allEmps.filter(emp => emp.teamLead?._id === managerId);
+        const queue = allEmps.filter(emp => getTeamLeadId(emp) === managerId);
         const visited = new Set(queue.map(e => e._id));
         while (queue.length > 0) {
           const currentEmployee = queue.shift();
           subordinates.push(currentEmployee);
-          const directReports = allEmps.filter(emp => emp.teamLead?._id === currentEmployee._id);
+          const directReports = allEmps.filter(emp => getTeamLeadId(emp) === currentEmployee._id);
           for (const report of directReports) {
             if (!visited.has(report._id)) {
               visited.add(report._id);
@@ -108,7 +112,7 @@ export const TeamReports = ({ seniorId }) => {
 
     const dataForSheet = [];
     const headers = [
-      'Employee Name', 'Employee ID', 'Report Date', 'Report Status', 'Task Title', 'Task Description', 'Completion %'
+      'Employee Name', 'Employee ID', 'Report Date', 'Report Status', 'Employee Notes', 'Task Title', 'Task Description', 'Completion %'
     ];
 
     dataForSheet.push(headers);
@@ -119,7 +123,7 @@ export const TeamReports = ({ seniorId }) => {
 
       const reportDate = new Date(report.reportDate).toLocaleDateString();
       const baseRow = [
-        selectedEmployee.name, selectedEmployee.employeeId, reportDate, report.status,
+        selectedEmployee.name, selectedEmployee.employeeId, reportDate, report.status, data.reportNote || 'N/A'
       ];
 
       if (data.taskUpdates && data.taskUpdates.length > 0) {
@@ -146,7 +150,7 @@ export const TeamReports = ({ seniorId }) => {
 
     // 1. Set column widths
     const columnWidths = [
-      { wch: 22 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, // Employee, ID, Date, Status
+      { wch: 22 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 30 }, // Employee, ID, Date, Status, Notes
       { wch: 40 }, { wch: 55 }, { wch: 15 }  // Task Title, Description, Completion
     ];
     ws['!cols'] = columnWidths;
@@ -182,7 +186,7 @@ export const TeamReports = ({ seniorId }) => {
         } else { // Data rows
           const isAltRow = R % 2 === 0;
           // Center align specific columns
-          if ([2, 3, 6].includes(C)) { // Date, Status, Completion %
+          if ([2, 3, 7].includes(C)) { // Date, Status, Completion %
             ws[address].s = centeredCellStyle(isAltRow);
           } else {
             ws[address].s = cellStyle(isAltRow);
@@ -204,19 +208,32 @@ export const TeamReports = ({ seniorId }) => {
       if (data.taskUpdates) { // Handle new progress-based reports
         return (
           <div className="space-y-3">
+            {data.reportNote && (
+              <div className="mb-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+                <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Employee Notes</h4>
+                <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{data.reportNote}</p>
+              </div>
+            )}
             {data.taskUpdates.map((update, i) => (
-              <div key={i} className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex justify-between items-center">
-                <div>
-                  <p className="font-semibold text-slate-800">
-                    Task {i + 1}: {update.taskId?.title || 'Unknown Task'}
-                  </p>
-                  <p className="text-sm text-slate-600">Progress Submitted: <span className="font-bold text-blue-600">{update.completion}%</span></p>
+              <div key={i} className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-semibold text-slate-800 dark:text-white">
+                      Task {i + 1}: {update.taskId?.title || 'Unknown Task'}
+                    </p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Progress Submitted: <span className="font-bold text-blue-600 dark:text-blue-400">{update.completion}%</span></p>
+                  </div>
+                  {update.taskId && (
+                    <button onClick={() => {
+                      setViewingTask(update.taskId);
+                      setViewingTaskNumber(i + 1);
+                    }} className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mt-1">Details</button>
+                  )}
                 </div>
-                {update.taskId && (
-                  <button onClick={() => {
-                    setViewingTask(update.taskId);
-                    setViewingTaskNumber(i + 1);
-                  }} className="text-xs font-semibold text-blue-600 hover:text-blue-700">Details</button>
+                {update.note && (
+                  <div className="mt-3 bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <p className="text-sm text-slate-600 dark:text-slate-400"><span className="font-semibold text-slate-700 dark:text-slate-300">Note:</span> {update.note}</p>
+                  </div>
                 )}
               </div>
             ))}
@@ -307,7 +324,7 @@ export const TeamReports = ({ seniorId }) => {
                   }`}>{report.status}</span>
                 </h3>
                 <div className="mb-4">{renderReportContent(report.content)}</div>
-                {user?.role === 'Admin' && (
+                {(user?.role === 'Admin' || user?.role === 'Super Admin') && (
                   <div className="pt-4 border-t border-slate-200 dark:border-slate-800 text-right">
                     <button onClick={() => setDeletingReport(report)} className="inline-flex items-center gap-2 text-xs font-semibold text-red-600 hover:text-red-700"><TrashIcon className="h-4 w-4" /> Delete Report</button>
                   </div>
@@ -336,77 +353,6 @@ export const TeamReports = ({ seniorId }) => {
         report={deletingReport}
         isDeleting={isDeleting}
       />
-    </div>
-  );
-};
-
-const Sidebar = ({ activeComponent, setActiveComponent, sidebarOpen, setSidebarOpen, isCollapsed, setIsCollapsed }) => {
-  const user = useSelector(selectCurrentUser);
-  const [isHovering, setIsHovering] = useState(false);
-  const isExpanded = !isCollapsed || isHovering;
-  const navItems = [ 
-    { id: 'dashboard', icon: HomeIcon, label: 'Dashboard' },
-    { id: 'employees', icon: UsersIcon, label: 'Manage Employees' },
-    { id: 'assign', icon: ClipboardDocumentCheckIcon, label: 'Assign Employee' },
-    { id: 'team-reports', icon: UserGroupIcon, label: 'Team Reports' },
-    { id: 'holidays', icon: CalendarDaysIcon, label: 'Holidays' }, { id: 'assign-task', icon: ClipboardDocumentListIcon, label: 'Assign Task' },
-    { id: 'assign-to-managers', icon: BriefcaseIcon, label: 'Assign to Managers' },
-    { id: 'all-attendance', icon: CalendarDaysIcon, label: 'All Attendance' },
-    { id: 'view-tasks', icon: EyeIcon, label: 'View All Tasks' },
-    { id: 'task-overview', icon: ListBulletIcon, label: 'Task Overview' },
-    { id: 'task-approvals', icon: CheckBadgeIcon, label: 'Task Approvals' },
-    { id: 'employee-of-the-month', icon: TrophyIcon, label: 'Employee of the Month' },
-    { id: 'analytics', icon: ChartBarIcon, label: 'Analytics' },
-    { id: 'hall-of-fame', icon: BuildingLibraryIcon, label: 'Hall of Fame' },
-    { id: 'announcements', icon: MegaphoneIcon, label: 'Announcements' },
-  ];
-  // My Profile is in the header dropdown, so it's removed from the main nav to avoid duplication.
-
-  return (
-    <div 
-      className={`fixed md:sticky top-0 z-50 h-screen flex-shrink-0 transition-all duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 ${isExpanded ? 'w-64' : 'w-20'}`}
-      onMouseEnter={() => isCollapsed && setIsHovering(true)}
-      onMouseLeave={() => isCollapsed && setIsHovering(false)}
-    >
-      <aside className="h-full w-full bg-white/95 backdrop-blur-lg text-gray-800 flex flex-col border-r border-gray-200 shadow-xl dark:bg-black/95 dark:border-slate-700">
-        <div className={`h-16 flex items-center border-b border-gray-200 dark:border-slate-700 flex-shrink-0 ${isExpanded ? 'px-4 gap-3' : 'justify-center'}`}>
-        {user?.company === 'Volga Infosys' ? (
-          <img src={volgaInfosysLogo} alt="Logo" className={`transition-all ${isExpanded ? 'h-10 w-auto' : 'h-12 w-12'}`} />
-        ) : (
-          <img src={starPublicityLogo} alt="Logo" className={`transition-all ${isExpanded ? 'h-10 w-auto' : 'h-12 w-12'}`} />
-        )}
-        {isExpanded && (
-          <span className="text-lg font-bold text-blue-800 dark:text-white truncate" title={user?.company}>{user?.company || 'Company Portal'}</span>
-        )}
-      </div>
-      <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-        {navItems.map(item => (
-          <button
-            key={item.id}
-            onClick={() => { setActiveComponent(item.id); setSidebarOpen(false); }}
-            className={`w-full flex items-center gap-3 px-4 py-2 rounded-xl transition-all duration-200 text-left relative ${!isExpanded && 'justify-center'} ${
-              activeComponent === item.id
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700 dark:text-white dark:hover:bg-slate-700'
-            }`}
-          >
-            <item.icon className="h-6 w-6 flex-shrink-0" />
-            {isExpanded && <span>{item.label}</span>}
-            {activeComponent === item.id && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 bg-indigo-500 rounded-r-xl"></span>
-            )}
-          </button>
-        ))}
-      </nav>
-      <div className="p-4 mt-auto border-t border-gray-200 dark:border-slate-700">
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="w-full flex items-center justify-center gap-3 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 dark:text-white dark:hover:bg-slate-700"
-          title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-        >
-          <ChevronDoubleLeftIcon className={`h-6 w-6 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} />
-        </button>      </div>
-      </aside>
     </div>
   );
 };
@@ -546,19 +492,20 @@ export default function AdminPageLayout() {
 
   const pageTitles = {
     dashboard: 'Dashboard',
-    employees: 'Manage Employees',
-    assign: 'Assign Employee',
+    employees: 'Employee Management',
+    assign: 'Employee Assignment',
+    'attendance-management': 'Attendance Management',
     'team-reports': 'Team Reports',
-    'assign-task': 'Assign Task',
+    'assign-task': 'Assign Task to Employee',
+    'assign-to-managers': 'Assign to Managers',
     holidays: 'Holiday Management',
-    'assign-to-managers': 'Assign Tasks to Managers',
     profile: 'My Profile',
-    'view-tasks': 'All Tasks Overview',
-    'task-overview': 'Task Status Overview',
-    'task-approvals': 'Task Completion Approvals',
-    'employee-of-the-month': 'Employee of the Month', // New item
+    'view-tasks': 'View Employee Tasks',
+    'task-overview': 'Task Overview',
+    'task-approvals': 'Pending Approvals',
+    'employee-of-the-month': 'Employee of the Month',
     'hall-of-fame': 'Hall of Fame',
-    'analytics': 'Team Analytics',
+    'analytics': 'Performance Analytics',
     'all-attendance': 'All Employee Attendance',
     'announcements': 'Manage Announcements',
   };
@@ -576,6 +523,7 @@ export default function AdminPageLayout() {
       case 'dashboard': return <Dashboard onNavigate={handleNavigation} />;
       case 'employees': return <EmployeeManagement />;
       case 'assign': return <AssignEmployee />;
+      case 'attendance-management': return <AttendanceManagement />;
       case 'team-reports': return <TeamReports />;
       case 'holidays': return <HolidayManagement />; 
       case 'assign-task': return <AssignTask />;

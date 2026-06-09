@@ -176,9 +176,8 @@ const AssignTask = () => {
   const [selectedManager, setSelectedManager] = useState(null);
 
   const managers = useMemo(() => {
-    return employees.filter(emp => 
-      emp.dashboardAccess === 'Manager Dashboard' || emp.dashboardAccess === 'Admin Dashboard'
-    );
+    // Strictly count users as a manager ONLY if they have manager dashboard access
+    return employees.filter(emp => emp.dashboardAccess === 'Manager Dashboard');
   }, [employees]);
 
   const teamMembers = useMemo(() => {

@@ -163,8 +163,8 @@ const AssignTask = ({ teamLeadId, assignToManagers = false }) => { // Added assi
 
   const teamMembers = useMemo(() => {
     if (assignToManagers) {
-      // Filter employees who have manager dashboard access (canViewTeam is true), excluding Admins
-      return employees.filter(emp => emp.canViewTeam && emp.role !== 'Admin');
+      // Strictly count users as a manager ONLY if they have manager dashboard access
+      return employees.filter(emp => emp.dashboardAccess === 'Manager Dashboard');
     }
     // This logic finds all direct and indirect reports for the given team lead.
     const getAllSubordinates = (managerId, allEmployees) => {

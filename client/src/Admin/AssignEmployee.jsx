@@ -154,7 +154,7 @@ const AssignEmployee = () => {
             <MagnifyingGlassIcon className="h-5 w-5 text-slate-400 absolute top-1/2 left-3 -translate-y-1/2" />
             <input type="text" placeholder="Search employees..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 pr-4 py-2.5 w-full md:w-80 text-sm border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
           </div>
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+          <div className="flex flex-wrap items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
             <button onClick={() => setFilter('all')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors ${filter === 'all' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow' : 'text-slate-600 dark:text-slate-300'}`}>All</button>
             <button onClick={() => setFilter('assigned')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors ${filter === 'assigned' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow' : 'text-slate-600 dark:text-slate-300'}`}>Assigned</button>
             <button onClick={() => setFilter('unassigned')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors ${filter === 'unassigned' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow' : 'text-slate-600 dark:text-slate-300'}`}>Unassigned</button>

@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 
-const GooglePieChart = ({ data, title, colors, is3D = true, pieHole }) => {
+const GooglePieChart = memo(({ data, title, colors, is3D = true, pieHole, hideLegend = false }) => {
   const chartRef = useRef(null);
   const isDarkMode = document.documentElement.classList.contains('dark');
 
@@ -20,10 +20,12 @@ const GooglePieChart = ({ data, title, colors, is3D = true, pieHole }) => {
         is3D: is3D,
         pieHole: pieHole,
         backgroundColor: 'transparent',
-        legend: {
+        legend: hideLegend ? 'none' : {
+          position: 'right',
+          alignment: 'center',
           textStyle: { color: isDarkMode ? '#FFFFFF' : '#334155' }
         },
-        chartArea: { left: 10, top: 20, width: '90%', height: '90%' },
+        chartArea: hideLegend ? { left: '5%', top: '5%', width: '90%', height: '90%' } : { left: 10, top: 20, width: '90%', height: '90%' },
         titleTextStyle: { color: isDarkMode ? '#FFFFFF' : '#334155' },
         colors: colors ? data.map(item => colors[item.name]) : undefined,
       };
@@ -40,6 +42,7 @@ const GooglePieChart = ({ data, title, colors, is3D = true, pieHole }) => {
   }, [data, title, colors, is3D, pieHole, isDarkMode]);
 
   return <div ref={chartRef} style={{ width: '100%', height: '100%' }}></div>;
-};
+});
 
+GooglePieChart.displayName = 'GooglePieChart';
 export default GooglePieChart;

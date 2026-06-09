@@ -70,6 +70,14 @@ class ReportController {
                 task.progress = completion;
                 // Clear rejection reason so the task is eligible for auto-submission if it becomes overdue
                 task.rejectionReason = '';
+                
+                // Extract optional progress note and add it directly to the task's comment feed
+                if (update.note && typeof update.note === 'string' && update.note.trim() !== '') {
+                  task.comments.push({
+                    text: `Progress update (${completion}%): ${update.note.trim()}`,
+                    author: employeeId,
+                  });
+                }
 
                 // Check if the task is already in a state that shouldn't be changed by simple progress updates
                 const isFinalizedState = ['Pending Verification', 'Completed', 'Not Completed'].includes(task.status);

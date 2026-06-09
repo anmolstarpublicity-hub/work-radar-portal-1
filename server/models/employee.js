@@ -138,6 +138,19 @@ const employeeSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  hasAttendancePower: {
+    type: Boolean,
+    default: false,
+  },
+  manualAttendanceStatus: {
+    type: String,
+    enum: ['Present', 'Absent', ''],
+    default: '',
+  },
+  manualAttendanceDate: {
+    type: String,
+    default: '',
+  },
   passwordResetToken: String,
   passwordResetExpires: Date,
 }, { timestamps: true });

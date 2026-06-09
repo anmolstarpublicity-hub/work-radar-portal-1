@@ -178,7 +178,10 @@ const TaskOverview = () => {
     }
 
     // Filter tasks for the selected employee
-    const employeeTasks = allTasks.filter(task => task.assignedTo?._id === selectedEmployee._id);
+    const employeeTasks = allTasks.filter(task => {
+      const id = task.assignedTo?._id || task.assignedTo;
+      return id && String(id) === String(selectedEmployee._id);
+    });
 
     const now = new Date();
     const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
@@ -308,7 +311,7 @@ const TaskOverview = () => {
 
       <div className="bg-white dark:bg-black rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg p-4 sm:p-8 mb-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          <div className="relative h-[400px]">
+          <div className="relative h-[300px] sm:h-[400px]">
             <div className="w-full h-full">
               <GooglePieChart data={overviewData.chartData} title="" colors={TASK_COLORS} is3D={true} />
             </div>

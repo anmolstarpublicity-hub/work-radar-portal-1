@@ -6,7 +6,8 @@ import {
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
   ArrowPathIcon,
-  Bars3Icon
+  Bars3Icon,
+  MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { selectCurrentUser } from './authSlice';
@@ -57,7 +58,7 @@ const AppHeader = ({ pageTitle, onMenuClick, setActiveComponent }) => {
     const message = notification.message?.toLowerCase() || '';
  
     // Priority 1: Task Approvals (specific type)
-    if (notification.type === 'task_approval' && (user.role === 'Admin' || user.canApproveTask)) {
+    if (notification.type === 'task_approval' && (user.role === 'Admin' || user.role === 'Super Admin' || user.canApproveTask)) {
       setActiveComponent('task-approvals');
       return;
     }
@@ -72,14 +73,14 @@ const AppHeader = ({ pageTitle, onMenuClick, setActiveComponent }) => {
     // Priority 3: Announcements
     if (message.includes('announcement')) {
       // Admins go to management page, others to dashboard to see the widget
-      setActiveComponent(user.role === 'Admin' ? 'announcements' : 'dashboard');
+      setActiveComponent((user.role === 'Admin' || user.role === 'Super Admin') ? 'announcements' : 'dashboard');
       return;
     }
  
     // Priority 4: Report-related
     if (message.includes('report')) {
       // Both admins and managers should see team reports
-      if (user.role === 'Admin' || user.canViewTeam) {
+      if (user.role === 'Admin' || user.role === 'Super Admin' || user.canViewTeam) {
         setActiveComponent('team-reports');
       } else {
         // An employee getting a report notification is likely about their own report.
@@ -89,7 +90,7 @@ const AppHeader = ({ pageTitle, onMenuClick, setActiveComponent }) => {
     }
  
     // Fallback for any other info notifications
-    setActiveComponent(user.role === 'Admin' ? 'view-tasks' : 'my-tasks');
+    setActiveComponent((user.role === 'Admin' || user.role === 'Super Admin') ? 'view-tasks' : 'my-tasks');
   };
 
   const handleRefresh = () => {
@@ -107,24 +108,29 @@ const AppHeader = ({ pageTitle, onMenuClick, setActiveComponent }) => {
   };
 
   return (
-    <header className="sticky md:relative top-0 left-0 right-0 z-30 h-16 bg-white/80 backdrop-blur-lg border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between px-4 sm:px-6 flex-shrink-0 shadow dark:bg-black/80">
+    <header className="sticky md:relative top-0 left-0 right-0 z-30 h-[72px] bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-8 flex-shrink-0 transition-colors">
       <div className="flex items-center gap-2">
-        <button onClick={onMenuClick} className="md:hidden text-indigo-500 hover:text-indigo-700 p-2 rounded-full hover:bg-indigo-50 dark:text-white dark:hover:bg-slate-700">
+        <button onClick={onMenuClick} className="md:hidden text-slate-500 hover:text-indigo-600 p-2 rounded-full hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors">
           <Bars3Icon className="h-6 w-6" />
         </button>
-        <h1 className="hidden md:block text-lg sm:text-xl font-semibold text-indigo-900 drop-shadow dark:text-white truncate">{pageTitle}</h1>
+        <h1 className="hidden md:block text-xl font-bold text-slate-800 dark:text-white tracking-tight truncate mr-6">{pageTitle}</h1>
+      </div>
+      <div className="flex-1 max-w-xl hidden lg:block px-6">
+        <div className="relative w-full">
+          <MagnifyingGlassIcon className="h-5 w-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input type="text" placeholder="Search anything..." className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl pl-11 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-slate-700 dark:text-slate-200 placeholder-slate-400 transition-all" />
+        </div>
       </div>
       <div className="flex items-center gap-4">
         <ThemeToggle />
         <div className="w-px h-6 bg-gray-200 dark:bg-slate-600"></div>
-        <button onClick={handleRefresh} className="text-indigo-500 hover:text-indigo-700 p-2 rounded-full hover:bg-indigo-50 dark:text-white dark:hover:bg-slate-700" title="Refresh Data">
+        <button onClick={handleRefresh} className="text-slate-500 hover:text-indigo-600 p-2 rounded-full hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors" title="Refresh Data">
           <ArrowPathIcon className="h-6 w-6" />
         </button>
-        <div className="w-px h-6 bg-gray-200 dark:bg-slate-600"></div>
         <div className="relative" ref={notificationRef}>
-          <button onClick={handleBellClick} className="text-indigo-500 hover:text-indigo-700 p-2 rounded-full hover:bg-indigo-50 dark:text-white dark:hover:bg-slate-700 relative group">
+          <button onClick={handleBellClick} className="text-slate-500 hover:text-indigo-600 p-2 rounded-full hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors relative group">
             <BellIcon className="h-6 w-6" />
-            {unreadCount > 0 && <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>}
+            {unreadCount > 0 && <span className="absolute top-1 right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900"></span>}
           </button>
           {isNotificationOpen && (
             <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-black rounded-md shadow-lg border border-gray-200 dark:border-slate-700 z-50">
@@ -134,17 +140,19 @@ const AppHeader = ({ pageTitle, onMenuClick, setActiveComponent }) => {
             </div>
           )}
         </div>
-        <div className="w-px h-6 bg-gray-200 dark:bg-slate-600"></div>
         <div className="relative" ref={profileRef}>
-          <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-3 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+          <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-3 pl-1 pr-3 py-1 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm ml-2">
             <img 
               src={user?.profilePicture || `https://ui-avatars.com/api/?name=${user?.name || 'A'}&background=random`} 
               alt="User" 
               onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${user?.name || 'A'}&background=random`; }}
-              className="h-9 w-9 rounded-full object-cover" 
+              className="h-8 w-8 rounded-full object-cover" 
             />
-            <div className="text-left hidden sm:block"><div className="text-sm font-semibold text-gray-900 dark:text-white">{user?.name || 'User'}</div><div className="text-xs text-gray-500 dark:text-slate-300">{user?.role || 'Role'}</div></div>
-            <ChevronDownIcon className={`h-5 w-5 text-gray-500 dark:text-white transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
+            <div className="text-left hidden sm:block pr-1">
+              <div className="text-sm font-bold text-slate-800 dark:text-white leading-tight">{user?.name || 'Super Admin'}</div>
+              <div className="text-xs font-medium text-slate-500 dark:text-slate-400 leading-tight">{user?.role || 'Super Administrator'}</div>
+            </div>
+            <ChevronDownIcon className={`h-4 w-4 text-slate-400 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
           </button>
           {isProfileOpen && (<div className="absolute right-0 mt-2 w-48 bg-white dark:bg-black rounded-md shadow-lg py-1 z-50 border border-gray-200 dark:border-slate-700"><button onClick={() => { setActiveComponent('profile'); setIsProfileOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-800"><UserCircleIcon className="h-5 w-5" />My Profile</button><button onClick={logout} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"><ArrowRightOnRectangleIcon className="h-5 w-5" />Logout</button></div>)}
         </div>

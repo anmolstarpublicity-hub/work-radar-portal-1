@@ -659,8 +659,8 @@ export default function EmployeeManagement() {
             <h2 className="text-3xl font-extrabold text-blue-900 dark:text-white tracking-tight mb-1">Employee Management</h2>
             <p className="text-blue-500 dark:text-white text-sm">Browse, search, and manage your team in a visually engaging way.</p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="relative">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
+          <div className="relative w-full sm:w-auto">
               <MagnifyingGlassIcon className="h-5 w-5 text-blue-400 absolute top-1/2 left-3 -translate-y-1/2" />
               <input
                 type="text"
@@ -672,7 +672,7 @@ export default function EmployeeManagement() {
             </div>
             <button 
               onClick={handleOpenAddModal}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 text-sm shadow"
+            className="w-full sm:w-auto justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 text-sm shadow"
             >
               <UserPlusIcon className="h-5 w-5"/>
               <span>Add Employee</span>
