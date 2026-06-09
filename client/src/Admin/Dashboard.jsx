@@ -4,7 +4,7 @@ import { ArrowTrendingUpIcon } from '@heroicons/react/24/solid';
 import { useGetDashboardStatsQuery, useGetAllTasksQuery, useGetEmployeeOfTheMonthCandidatesQuery, useGetActiveAnnouncementQuery, useGetTasksForApprovalQuery, useGetEmployeesQuery } from '../services/EmployeApi';
 import GooglePieChart from './GooglePieChart.jsx';
 import GoogleAreaChart from './GoogleAreaChart.jsx';
-import StatCard from '../components/StatCard.jsx';
+import StatCard from '../shared/StatCard.jsx';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../app/authSlice';
 import { CalendarIcon } from '@heroicons/react/24/outline';

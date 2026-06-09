@@ -24,8 +24,8 @@ import volgaInfosysLogo from '../assets/volgainfosys.png';
 import GooglePieChart from '../Admin/GooglePieChart.jsx';
 import GoogleAreaChart from '../Admin/GoogleAreaChart.jsx';
 import AppHeader from '../app/AppHeader.jsx';
-import StatCard from '../components/StatCard.jsx';
-import Sidebar from '../components/Sidebar.jsx';
+import StatCard from '../shared/StatCard.jsx';
+import Sidebar from '../shared/Sidebar.jsx';
 
 const safeDate = (dateVal) => {
   if (!dateVal) return new Date();

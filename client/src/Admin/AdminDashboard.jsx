@@ -18,7 +18,7 @@ import TaskApprovals from './TaskApprovals';
 import AssignTask from './AssignTask';
 import SeniorAssignTask from '../Senior/AssignTask';
 import EmployeeOfTheMonth from './EmployeeOfTheMonth'; // New import
-import Sidebar from '../components/Sidebar.jsx';
+import Sidebar from '../shared/Sidebar.jsx';
 import HallOfFame from './HallOfFame';
 import AdminProfile from './AdminProfile'; 
 import AppHeader from '../app/AppHeader.jsx';
