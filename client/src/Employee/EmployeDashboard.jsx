@@ -1467,25 +1467,43 @@ export const EmployeeProfile = ({ user }) => {
   };
 
   const handleSave = async () => {
+    // Validate required fields
+    if (!formData.name || !formData.name.trim()) {
+      toast.error('Name is required.');
+      return;
+    }
+    if (!formData.email || !formData.email.trim()) {
+      toast.error('Email is required.');
+      return;
+    }
+
     const profileData = new FormData();
-    Object.keys(formData).forEach(key => {
-      if (key === 'profilePicture' && formData.profilePicture) {
-        profileData.append(key, formData.profilePicture);
-      } else if (formData[key] != null) {
-        profileData.append(key, formData[key]);
-      }
-    });
+    profileData.append('name', formData.name.trim());
+    profileData.append('email', formData.email.trim());
+    
+    if (formData.profilePicture) {
+      profileData.append('profilePicture', formData.profilePicture);
+    }
+    
+    // Only append optional fields if they have values
+    if (formData.address) profileData.append('address', formData.address.trim());
+    if (formData.gender) profileData.append('gender', formData.gender);
+    if (formData.country) profileData.append('country', formData.country.trim());
+    if (formData.city) profileData.append('city', formData.city.trim());
+    if (formData.qualification) profileData.append('qualification', formData.qualification.trim());
 
     try {
+      const toastId = toast.loading('Updating profile...');
       const updatedData = await updateProfile({ id: user._id, formData: profileData }).unwrap();
-      toast.success('Profile updated successfully!', { icon: <CheckCircleIcon className="h-6 w-6 text-green-500" /> });
+      toast.success('Profile updated successfully!', { id: toastId, icon: <CheckCircleIcon className="h-6 w-6 text-green-500" /> });
       if (updatedData.employee) {
         dispatch(setCredentials({ user: updatedData.employee, token }));
       }
       setIsEditMode(false);
     } catch (err) {
-      toast.error(err.data?.message || 'Failed to update profile.');
       console.error('Failed to update profile:', err);
+      const errorMessage = err.data?.message || err.message || 'Failed to update profile. Please try again.';
+      toast.error(errorMessage);
     }
   };
 

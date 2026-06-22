@@ -72,15 +72,35 @@ class ManageEmployeeController {
     // Iterate over the fields and add them to updateData if they exist in the request body
     fieldsToUpdate.forEach(field => {
       if (Object.prototype.hasOwnProperty.call(req.body, field)) {
-        updateData[field] = req.body[field];
+        const value = req.body[field];
+        
+        // Skip empty strings for optional fields (except required fields)
+        const requiredFields = ['name', 'email', 'company'];
+        if (requiredFields.includes(field)) {
+          // Required fields: trim and validate
+          if (value && typeof value === 'string' && value.trim()) {
+            updateData[field] = field === 'email' ? value.toLowerCase().trim() : value.trim();
+          }
+        } else {
+          // Optional fields: include if not empty
+          if (value !== '' && value !== null && value !== undefined) {
+            updateData[field] = value;
+          }
+        }
       }
     });
 
-    if (updateData.hasAttendancePower === 'true') {
-      updateData.hasAttendancePower = true;
-    } else if (updateData.hasAttendancePower === 'false') {
-      updateData.hasAttendancePower = false;
-    }
+    // Handle boolean fields that come as strings from FormData
+    const booleanFields = ['hasAttendancePower', 'canEditProfile', 'canViewTeam', 'canUpdateTask', 'canApproveTask', 'canAssignTask', 'canDeleteTask', 'canViewAnalytics'];
+    booleanFields.forEach(field => {
+      if (updateData.hasOwnProperty(field)) {
+        if (updateData[field] === 'true' || updateData[field] === true) {
+          updateData[field] = true;
+        } else if (updateData[field] === 'false' || updateData[field] === false) {
+          updateData[field] = false;
+        }
+      }
+    });
 
     // If a new profile picture is being uploaded, delete the old one first.
     if (req.file) {
@@ -91,12 +111,18 @@ class ManageEmployeeController {
           // Example URL: http://res.cloudinary.com/cloud_name/image/upload/v12345/employee-profiles/profile-123.png
           const publicIdMatch = employee.profilePicture.match(/employee-profiles\/([^\.]+)/);
           const publicId = publicIdMatch ? `employee-profiles/${publicIdMatch[1]}` : null;
-          if (publicId)
-          await cloudinary.uploader.destroy(publicId);
+          if (publicId) {
+            try {
+              await cloudinary.uploader.destroy(publicId);
+            } catch (deleteError) {
+              console.error("Error deleting old profile picture from Cloudinary:", deleteError);
+              // Don't block the update if deletion fails
+            }
+          }
         }
       } catch (e) {
-        console.error("Error deleting old profile picture from Cloudinary:", e);
-        // Don't block the update if deletion fails, just log it.
+        console.error("Error processing old profile picture:", e);
+        // Don't block the update if processing fails
       }
     }
 
@@ -105,16 +131,35 @@ class ManageEmployeeController {
     }
 
     // If a new password is provided, hash it before updating.
-    if (req.body.password) {
-      updateData.password = await bcrypt.hash(req.body.password, 10);
+    if (req.body.password && req.body.password.trim()) {
+      if (req.body.password.length < 6) {
+        return res.status(400).json({ message: 'Password must be at least 6 characters long.' });
+      }
+      try {
+        updateData.password = await bcrypt.hash(req.body.password, 10);
+      } catch (hashError) {
+        console.error('Error hashing password:', hashError);
+        return res.status(500).json({ message: 'Error processing password.' });
+      }
     }
 
     try {
+      // Check if the email is already in use by another employee
+      if (updateData.email) {
+        const existingEmployee = await Employee.findOne({ 
+          email: updateData.email,
+          _id: { $ne: id } // Exclude the current employee
+        });
+        if (existingEmployee) {
+          return res.status(409).json({ message: 'An employee with this email already exists.' });
+        }
+      }
+
       const updatedEmployee = await Employee.findByIdAndUpdate(
         id,
         updateData,
         { new: true, runValidators: true } // Return the updated document and run validators
-      );
+      ).select('-password');
 
       if (!updatedEmployee) {
         return res.status(404).json({ message: 'Employee not found.' });
@@ -123,10 +168,17 @@ class ManageEmployeeController {
       res.status(200).json({ message: 'Employee updated successfully', employee: updatedEmployee });
     } catch (error) {
       console.error('Error updating employee:', error);
+      
       if (error.code === 11000) { // MongoDB duplicate key error code
         const field = Object.keys(error.keyValue)[0];
         return res.status(409).json({ message: `An employee with this ${field} already exists.` });
       }
+      
+      if (error.name === 'ValidationError') {
+        const messages = Object.values(error.errors).map(e => e.message);
+        return res.status(400).json({ message: `Validation error: ${messages.join(', ')}` });
+      }
+      
       res.status(500).json({ message: 'Server error while updating employee.' });
     }
   };

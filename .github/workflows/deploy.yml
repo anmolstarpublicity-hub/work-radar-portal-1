@@ -64,7 +64,7 @@ jobs:
           timeout: 90s
           script: |
             export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" 
             
             echo "--- Navigating to backend directory ---"
             cd ${{ secrets.PROJECT_PATH }}/server

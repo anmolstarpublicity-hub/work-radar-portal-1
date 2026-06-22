@@ -42,8 +42,13 @@ class AuthController {
    */
   static forgotPassword = async (req, res) => {
     const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ message: 'Please provide an email address.' });
+    }
+
     try {
-      const user = await Employee.findOne({ email });
+      const user = await Employee.findOne({ email: email.toLowerCase().trim() });
       if (!user) {
         // Send a generic success message to prevent user enumeration
         return res.status(200).json({ message: 'If an account with that email exists, a reset link has been sent.' });
@@ -59,17 +64,23 @@ class AuthController {
 
       // Construct the reset URL pointing to your frontend application
       // Use the UNHASHED token for the URL
-      const resetUrl = `${process.env.FRONTEND_URLS.split(',')[0]}/workradar/reset-password/${resetToken}`;
+      const frontendUrls = process.env.FRONTEND_URLS ? process.env.FRONTEND_URLS.split(',') : [];
+      const baseUrl = frontendUrls.length > 0 ? frontendUrls[0].trim() : 'http://localhost:5173';
+      const resetUrl = `${baseUrl}/workradar/reset-password/${resetToken}`;
       
       const message = `You are receiving this email because you (or someone else) have requested the reset of the password for your account.\n\nPlease click on the following link, or paste it into your browser to complete the process:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.\nThis link is valid for 15 minutes.`;
 
-      await sendEmail({
-        email: user.email,
-        subject: 'Your Work Radar Password Reset Token',
-        message,
-      });
-
-      console.log(`Password Reset Link Sent to: ${user.email}`);
+      try {
+        await sendEmail({
+          email: user.email,
+          subject: 'Your Work Radar Password Reset Token',
+          message,
+        });
+        console.log(`Password Reset Link Sent to: ${user.email}`);
+      } catch (emailError) {
+        console.error('Email sending failed:', emailError);
+        // Still return success to prevent user enumeration, but log the error
+      }
 
       res.status(200).json({ message: 'If an account with that email exists, a reset link has been sent.' });
     } catch (error) {

@@ -68,38 +68,60 @@ const AdminProfile = ({ user }) => {
   };
 
   const handleSave = async () => {
+    // Validate required fields
+    if (!formData.name || !formData.name.trim()) {
+      toast.error('Name is required.');
+      return;
+    }
+    if (!formData.email || !formData.email.trim()) {
+      toast.error('Email is required.');
+      return;
+    }
+
     const profileData = new FormData();
-    profileData.append('name', formData.name);
-    profileData.append('email', formData.email);
+    profileData.append('name', formData.name.trim());
+    profileData.append('email', formData.email.trim());
+    
     if (formData.profilePicture) {
       profileData.append('profilePicture', formData.profilePicture);
     }
-    profileData.append('address', formData.address);
-    profileData.append('gender', formData.gender);
-    profileData.append('country', formData.country);
-    profileData.append('city', formData.city);
-    profileData.append('qualification', formData.qualification);
+    
+    // Only append optional fields if they have values
+    if (formData.address) profileData.append('address', formData.address.trim());
+    if (formData.gender) profileData.append('gender', formData.gender);
+    if (formData.country) profileData.append('country', formData.country.trim());
+    if (formData.city) profileData.append('city', formData.city.trim());
+    if (formData.qualification) profileData.append('qualification', formData.qualification.trim());
 
     try {
+      const toastId = toast.loading('Updating profile...');
       const updatedData = await updateProfile({ id: user._id, formData: profileData }).unwrap();
-      toast.success('Profile updated successfully!', { icon: <CheckCircleIcon className="h-6 w-6 text-green-500" /> });
+      toast.success('Profile updated successfully!', { id: toastId, icon: <CheckCircleIcon className="h-6 w-6 text-green-500" /> });
       if (updatedData.employee) {
         dispatch(setCredentials({ user: updatedData.employee, token: token }));
       }
       setIsEditMode(false);
     } catch (err) {
-      toast.error(err.data?.message || 'Failed to update profile.');
       console.error('Failed to update profile:', err);
+      const errorMessage = err.data?.message || err.message || 'Failed to update profile. Please try again.';
+      toast.error(errorMessage);
     }
   };
 
   const handleRequestPasswordReset = async () => {
+    if (!user.email) {
+      toast.error('Email is not available for this account.');
+      return;
+    }
+    
     const toastId = toast.loading('Sending password reset email...');
     try {
-      await forgotPassword({ email: user.email }).unwrap();
-      toast.success('Password reset email sent successfully!', { id: toastId });
+      const result = await forgotPassword({ email: user.email }).unwrap();
+      toast.success(result.message || 'Password reset email sent successfully!', { id: toastId });
     } catch (err) {
-      toast.error(err.data?.message || 'Failed to send reset email.', { id: toastId });
+      console.error('Forgot password error:', err);
+      const errorMessage = err.data?.message || err.message || 'Failed to send reset email. Please try again.';
+      toast.error(errorMessage, { id: toastId });
     }
   };
 
