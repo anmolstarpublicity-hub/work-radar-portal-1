@@ -14,14 +14,14 @@ const InfoField = ({ label, value }) => (
   
 const EditField = ({ label, name, value, onChange, type = 'text' }) => (
   <div>
-    <label htmlFor={name} className="block text-sm font-medium text-gray-700">{label}</label>
+    <label htmlFor={name} className="block text-sm font-medium text-gray-700 dark:text-slate-300">{label}</label>
     <input
       type={type}
       name={name}
       id={name}
       value={value}
       onChange={onChange}
-      className="mt-1 w-full text-sm border border-gray-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500"
+      className="mt-1 w-full text-sm border border-gray-300 dark:border-slate-600 rounded-lg p-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition"
     />
   </div>
 );
