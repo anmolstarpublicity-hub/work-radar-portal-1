@@ -7,8 +7,8 @@ import { CheckCircleIcon, KeyIcon, ArrowPathIcon } from '@heroicons/react/24/out
 
 const InfoField = ({ label, value }) => (
   <div>
-    <p className="text-sm text-gray-500">{label}</p>
-    <p className="text-md font-semibold text-gray-800">{value || 'N/A'}</p>
+    <p className="text-sm text-gray-500 dark:text-slate-400">{label}</p>
+    <p className="text-md font-semibold text-gray-800 dark:text-slate-200">{value || 'N/A'}</p>
   </div>
 );
   
@@ -46,18 +46,21 @@ const AdminProfile = ({ user }) => {
     qualification: user.qualification || '',
   });
 
-  // This effect ensures that if the user prop changes (e.g., after a Redux store update),
-  // the form data is reset to reflect the new user data.
+  // When entering edit mode, ensure form is populated with current user data
   useEffect(() => {
-    if (user) {
+    if (isEditMode) {
       setFormData({
         name: user.name || '',
         email: user.email || '',
         profilePicture: null,
-        ...Object.fromEntries(['address', 'gender', 'country', 'city', 'qualification'].map(key => [key, user[key] || ''])),
+        address: user.address || '',
+        gender: user.gender || '',
+        country: user.country || '',
+        city: user.city || '',
+        qualification: user.qualification || '',
       });
     }
-  }, [user]);
+  }, [isEditMode]);
 
   const handleChange = (e) => {
     if (e.target.type === 'file') {
@@ -127,8 +130,8 @@ const AdminProfile = ({ user }) => {
 
   return (
     <div className="p-8">
-      <div className="bg-white/80 backdrop-blur-lg rounded-2xl border border-gray-200 shadow-xl p-8">
-        <div className="flex justify-between items-start mb-8 pb-8 border-b border-gray-200">
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg rounded-2xl border border-gray-200 dark:border-slate-700 shadow-xl p-8">
+        <div className="flex justify-between items-start mb-8 pb-8 border-b border-gray-200 dark:border-slate-700">
           <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-8">
             <img
               src={user.profilePicture || `https://ui-avatars.com/api/?name=${user.name}&background=random`}
@@ -137,9 +140,9 @@ const AdminProfile = ({ user }) => {
               className="h-32 w-32 rounded-full object-cover border-4 border-blue-200 shadow-lg"
             />
             <div>
-              <h2 className="text-3xl font-bold text-blue-800">{user.name}</h2>
-              <p className="text-gray-600">{user.role}</p>
-              <p className="text-sm text-gray-500 font-mono mt-1">{user.employeeId}</p>
+              <h2 className="text-3xl font-bold text-blue-800 dark:text-slate-200">{user.name}</h2>
+              <p className="text-gray-600 dark:text-slate-400">{user.role}</p>
+              <p className="text-sm text-gray-500 dark:text-slate-500 font-mono mt-1">{user.employeeId}</p>
             </div>
           </div>
           <div className="flex flex-col gap-2 items-end">
@@ -158,8 +161,14 @@ const AdminProfile = ({ user }) => {
               <EditField label="Full Name" name="name" value={formData.name} onChange={handleChange} />
               <EditField label="Email" name="email" value={formData.email} onChange={handleChange} type="email" />
               <div>
-                <label htmlFor="gender" className="block text-sm font-medium text-gray-700">Gender</label>
-                <select name="gender" id="gender" value={formData.gender} onChange={handleChange} className="mt-1 w-full text-sm border border-gray-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500">
+                <label htmlFor="gender" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Gender</label>
+                <select 
+                  name="gender" 
+                  id="gender" 
+                  value={formData.gender} 
+                  onChange={handleChange} 
+                  className="mt-1 w-full text-sm border border-gray-300 dark:border-slate-600 rounded-lg p-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition"
+                >
                   <option value="">Select...</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
@@ -171,8 +180,14 @@ const AdminProfile = ({ user }) => {
               <EditField label="Country" name="country" value={formData.country} onChange={handleChange} />
               <EditField label="Qualification" name="qualification" value={formData.qualification} onChange={handleChange} />
               <div>
-                <label htmlFor="profilePicture" className="block text-sm font-medium text-gray-700">Profile Picture</label>
-                <input type="file" name="profilePicture" id="profilePicture" onChange={handleChange} className="mt-1 w-full text-sm border border-gray-300 rounded-lg p-2" />
+                <label htmlFor="profilePicture" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Profile Picture</label>
+                <input 
+                  type="file" 
+                  name="profilePicture" 
+                  id="profilePicture" 
+                  onChange={handleChange} 
+                  className="mt-1 w-full text-sm border border-gray-300 dark:border-slate-600 rounded-lg p-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 file:bg-blue-500 file:text-white file:border-0 file:rounded file:px-4 file:py-2 file:cursor-pointer file:hover:bg-blue-600 outline-none transition"
+                />
               </div>
             </div>
             <div className="flex justify-end">

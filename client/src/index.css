@@ -140,3 +140,42 @@
 .custom-calendar .react-calendar__tile--active .tile-label {
   @apply text-slate-600 dark:text-slate-300;
 }
+
+/* ==========================================================================
+   Dark Mode Form Elements
+   ========================================================================== */
+
+/* Select and Input Dark Mode Styling */
+select {
+  color-scheme: light dark;
+}
+
+select option {
+  color: black;
+  background-color: white;
+}
+
+@media (prefers-color-scheme: dark) {
+  select option {
+    color: #e2e8f0;
+    background-color: #1e293b;
+  }
+}
+
+/* Input field styling */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea {
+  color-scheme: light dark;
+}
+
+/* File input styling */
+input[type="file"] {
+  color-scheme: light dark;
+}
+
+/* Ensure cursor is visible in all input fields */
+input, select, textarea {
+  caret-color: currentColor;
+}

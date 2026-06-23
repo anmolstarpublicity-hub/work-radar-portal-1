@@ -1444,7 +1444,7 @@ export const EmployeeProfile = ({ user }) => {
 
   // When edit mode is toggled, reset the form data to the current user prop
   useEffect(() => {
-    if (user && isEditMode) {
+    if (isEditMode && user) {
       setFormData({
         name: user.name || '',
         email: user.email || '',
@@ -1456,7 +1456,7 @@ export const EmployeeProfile = ({ user }) => {
         qualification: user.qualification || '',
       });
     }
-  }, [user, isEditMode]);
+  }, [isEditMode]);
 
   const handleChange = (e) => {
     if (e.target.type === 'file') {
@@ -1509,8 +1509,8 @@ export const EmployeeProfile = ({ user }) => {
 
   const InfoField = ({ label, value }) => (
     <div>
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-md font-semibold text-gray-800">{value || 'N/A'}</p>
+      <p className="text-sm text-gray-500 dark:text-slate-400">{label}</p>
+      <p className="text-md font-semibold text-gray-800 dark:text-slate-200">{value || 'N/A'}</p>
     </div>
   );
 
@@ -1570,8 +1570,14 @@ export const EmployeeProfile = ({ user }) => {
             <EditField label="Full Name" name="name" value={formData.name} onChange={handleChange} />
             <EditField label="Email" name="email" value={formData.email} onChange={handleChange} type="email" />
             <div>
-              <label htmlFor="gender" className="block text-sm font-medium text-gray-700">Gender</label>
-              <select name="gender" id="gender" value={formData.gender} onChange={handleChange} className="mt-1 w-full text-sm border border-gray-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500">
+              <label htmlFor="gender" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Gender</label>
+              <select 
+                name="gender" 
+                id="gender" 
+                value={formData.gender} 
+                onChange={handleChange} 
+                className="mt-1 w-full text-sm border border-gray-300 dark:border-slate-600 rounded-lg p-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition"
+              >
                 <option value="">Select...</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
@@ -1583,8 +1589,14 @@ export const EmployeeProfile = ({ user }) => {
             <EditField label="Country" name="country" value={formData.country} onChange={handleChange} />
             <EditField label="Qualification" name="qualification" value={formData.qualification} onChange={handleChange} />
             <div>
-              <label htmlFor="profilePicture" className="block text-sm font-medium text-gray-700">Profile Picture</label>
-              <input type="file" name="profilePicture" id="profilePicture" onChange={handleChange} className="mt-1 w-full text-sm border border-gray-300 rounded-lg p-2" />
+              <label htmlFor="profilePicture" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Profile Picture</label>
+              <input 
+                type="file" 
+                name="profilePicture" 
+                id="profilePicture" 
+                onChange={handleChange} 
+                className="mt-1 w-full text-sm border border-gray-300 dark:border-slate-600 rounded-lg p-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 file:bg-blue-500 file:text-white file:border-0 file:rounded file:px-4 file:py-2 file:cursor-pointer file:hover:bg-blue-600 outline-none transition"
+              />
             </div>
           </div>
           <div className="flex justify-end">
