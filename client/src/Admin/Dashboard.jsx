@@ -76,6 +76,7 @@ const Countdown = ({ toDate }) => {
 
 const Dashboard = ({ onNavigate }) => {
   const user = useSelector(selectCurrentUser);
+  const isAuthenticated = !!user?._id;
 
   const [filterType, setFilterType] = useState('week'); // 'week', 'month', 'custom'
   const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
@@ -100,15 +101,15 @@ const Dashboard = ({ onNavigate }) => {
     }
   }, [filterType]);
 
-  const { data: stats, isLoading: isLoadingStats } = useGetDashboardStatsQuery();
-  const { data: allTasks = [], isLoading: isLoadingTasks } = useGetAllTasksQuery();
+  const { data: stats, isLoading: isLoadingStats } = useGetDashboardStatsQuery(undefined, { skip: !isAuthenticated });
+  const { data: allTasks = [], isLoading: isLoadingTasks } = useGetAllTasksQuery(undefined, { skip: !isAuthenticated });
   const { data: eomCandidates = [], isLoading: isLoadingEOM } = useGetEmployeeOfTheMonthCandidatesQuery({
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
-  });
-  const { data: announcement, isLoading: isLoadingAnnouncement } = useGetActiveAnnouncementQuery();
-  const { data: approvalTasks = [] } = useGetTasksForApprovalQuery();
-  const { data: allEmployees = [] } = useGetEmployeesQuery();
+  }, { skip: !isAuthenticated });
+  const { data: announcement, isLoading: isLoadingAnnouncement } = useGetActiveAnnouncementQuery(undefined, { skip: !isAuthenticated });
+  const { data: approvalTasks = [] } = useGetTasksForApprovalQuery(undefined, { skip: !isAuthenticated });
+  const { data: allEmployees = [] } = useGetEmployeesQuery(undefined, { skip: !isAuthenticated });
 
   const isLoading = isLoadingStats || isLoadingTasks || isLoadingEOM || isLoadingAnnouncement;
 

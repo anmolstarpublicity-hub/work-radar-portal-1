@@ -37,8 +37,10 @@ const isSameDay = (date1, date2) => {
 };
 
 export const Dashboard = ({ user, onNavigate }) => {
-  const { data: tasks = [], isLoading } = useGetMyTasksQuery(undefined, { pollingInterval: 30000 });
-  const { data: announcement } = useGetActiveAnnouncementQuery();
+  // Skip queries if user is not authenticated
+  const isAuthenticated = !!user?._id;
+  const { data: tasks = [], isLoading } = useGetMyTasksQuery(undefined, { pollingInterval: 30000, skip: !isAuthenticated });
+  const { data: announcement } = useGetActiveAnnouncementQuery(undefined, { skip: !isAuthenticated });
 
   const [filterType, setFilterType] = useState('week');
   const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
@@ -1421,7 +1423,7 @@ export const MyAttendance = ({ employeeId }) => {
   );
 };
 
-export const EmployeeProfile = ({ user }) => {
+const EmployeeProfileContent = ({ user }) => {
   const dispatch = useDispatch();
   const [isEditMode, setIsEditMode] = useState(false);
   const [updateProfile, { isLoading: isUpdating }] = useUpdateEmployeeMutation();
@@ -1458,13 +1460,14 @@ export const EmployeeProfile = ({ user }) => {
     }
   }, [isEditMode]);
 
-  const handleChange = (e) => {
+  // Use useCallback to ensure handleChange is stable across re-renders
+  const handleChange = useCallback((e) => {
     if (e.target.type === 'file') {
-      setFormData({ ...formData, profilePicture: e.target.files[0] });
+      setFormData(prev => ({ ...prev, profilePicture: e.target.files[0] }));
     } else {
-      setFormData({ ...formData, [e.target.name]: e.target.value });
+      setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     }
-  };
+  }, []);
 
   const handleSave = async () => {
     // Validate required fields
@@ -1628,6 +1631,15 @@ export const EmployeeProfile = ({ user }) => {
   );
 };
 
+// Memoize EmployeeProfile to prevent re-renders from parent component changes
+// This fixes the cursor jumping issue when typing in form fields
+export const EmployeeProfile = React.memo(EmployeeProfileContent, (prevProps, nextProps) => {
+  // Custom comparison: only re-render if user ID actually changes
+  return prevProps.user?._id === nextProps.user?._id;
+});
+
+EmployeeProfile.displayName = 'EmployeeProfile';
+
 const EmployeeDashboard = () => {
   const user = useSelector(selectCurrentUser);
   const dispatch = useDispatch();
@@ -1637,14 +1649,19 @@ const EmployeeDashboard = () => {
   const [processPastDueTasks] = useProcessPastDueTasksMutation();
   const [logout] = useLogoutMutation();
 
+  // Skip queries if user is not authenticated
+  const isAuthenticated = !!user?._id;
+
   useEffect(() => {
     // When the employee's dashboard loads, trigger the backend to process any past-due tasks.
     // This automatically moves tasks to 'Pending Verification' after their due date has passed.
-    processPastDueTasks();
-  }, [processPastDueTasks]);
+    if (isAuthenticated) {
+      processPastDueTasks();
+    }
+  }, [processPastDueTasks, isAuthenticated]);
 
 
-  const { data: allEmployees = [] } = useGetEmployeesQuery();
+  const { data: allEmployees = [] } = useGetEmployeesQuery(undefined, { skip: !isAuthenticated });
   const pageTitles = {
     dashboard: 'Dashboard',
     'my-report': "Today's Progress Report",

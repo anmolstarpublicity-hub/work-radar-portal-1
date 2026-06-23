@@ -58,14 +58,16 @@ const DeleteReportModal = ({ isOpen, onClose, onConfirm, report, isDeleting }) =
 };
 
 export const TeamReports = ({ seniorId }) => {
-  const { data: employees, isLoading: isLoadingEmployees, isError: isErrorEmployees } = useGetEmployeesQuery();
+  const user = useSelector(selectCurrentUser);
+  const isAuthenticated = !!user?._id;
+  
+  const { data: employees, isLoading: isLoadingEmployees, isError: isErrorEmployees } = useGetEmployeesQuery(undefined, { skip: !isAuthenticated });
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [viewingTask, setViewingTask] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [deletingReport, setDeletingReport] = useState(null);
   const [viewingTaskNumber, setViewingTaskNumber] = useState(null);
   const [deleteReport, { isLoading: isDeleting }] = useDeleteReportMutation();
-  const user = useSelector(selectCurrentUser);
 
   const { data: reports, isLoading: isLoadingReports } = useGetReportsByEmployeeQuery(selectedEmployee?._id, {
     skip: !selectedEmployee,
@@ -477,6 +479,7 @@ const ManagePermissionsModal = ({ isOpen, onClose, employee, permissions, onChan
 export default function AdminPageLayout() {
   const [activeView, setActiveView] = useState({ component: 'dashboard', props: {} });
   const user = useSelector(selectCurrentUser);
+  const isAuthenticated = !!user?._id;
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [processPastDueTasks] = useProcessPastDueTasksMutation();
@@ -484,11 +487,13 @@ export default function AdminPageLayout() {
   useEffect(() => {
     // When the admin's dashboard loads, trigger the backend to process any past-due tasks.
     // This automatically moves tasks to 'Pending Verification' after their due date has passed.
-    const processTasks = async () => {
-      await processPastDueTasks();
-    };
-    processTasks();
-  }, [processPastDueTasks]);
+    if (isAuthenticated) {
+      const processTasks = async () => {
+        await processPastDueTasks();
+      };
+      processTasks();
+    }
+  }, [processPastDueTasks, isAuthenticated]);
 
   const pageTitles = {
     dashboard: 'Dashboard',

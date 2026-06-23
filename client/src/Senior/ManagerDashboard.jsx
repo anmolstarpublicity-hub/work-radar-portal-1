@@ -55,10 +55,12 @@ const isSameDay = (date1, date2) => {
 
 
 const ManagerDashboardContent = ({ user, onNavigate }) => {
-  const { data: allTasks = [], isLoading: isLoadingTasks } = useGetAllTasksQuery();
-  const { data: allEmployees = [], isLoading: isLoadingEmployees } = useGetEmployeesQuery();
-  const { data: tasksForApproval = [], isLoading: isLoadingApprovals } = useGetTasksForApprovalQuery(undefined, { pollingInterval: 30000 });
-  const { data: announcement } = useGetActiveAnnouncementQuery();
+  // Skip queries if user is not authenticated
+  const isAuthenticated = !!user?._id;
+  const { data: allTasks = [], isLoading: isLoadingTasks } = useGetAllTasksQuery(undefined, { skip: !isAuthenticated });
+  const { data: allEmployees = [], isLoading: isLoadingEmployees } = useGetEmployeesQuery(undefined, { skip: !isAuthenticated });
+  const { data: tasksForApproval = [], isLoading: isLoadingApprovals } = useGetTasksForApprovalQuery(undefined, { pollingInterval: 30000, skip: !isAuthenticated });
+  const { data: announcement } = useGetActiveAnnouncementQuery(undefined, { skip: !isAuthenticated });
 
   const [filterType, setFilterType] = useState('week');
   const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });

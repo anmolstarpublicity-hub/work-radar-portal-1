@@ -18,6 +18,7 @@ import ThemeToggle from '../ThemeToggle';
 
 const AppHeader = ({ pageTitle, onMenuClick, setActiveComponent }) => {
   const user = useSelector(selectCurrentUser);
+  const isAuthenticated = !!user?._id;
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const profileRef = useRef(null);
@@ -25,7 +26,7 @@ const AppHeader = ({ pageTitle, onMenuClick, setActiveComponent }) => {
   const [logout] = useLogoutMutation();
   const dispatch = useDispatch();
 
-  const { data: notifications = [] } = useGetNotificationsQuery(undefined, { pollingInterval: 30000 });
+  const { data: notifications = [] } = useGetNotificationsQuery(undefined, { pollingInterval: 30000, skip: !isAuthenticated });
   const [markNotificationsAsRead] = useMarkNotificationsAsReadMutation();
   const [deleteReadNotifications] = useDeleteReadNotificationsMutation();
 
