@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useGetTodaysReportQuery, useUpdateTodaysReportMutation, useGetEmployeesQuery, useGetHolidaysQuery, useGetMyTasksQuery, useGetAllTasksQuery, useGetAllMyReportsQuery, useGetActiveAnnouncementQuery, useGetEmployeeEOMHistoryQuery, useProcessPastDueTasksMutation, useUpdateEmployeeMutation } from '../services/EmployeApi';
 import { apiSlice, useLogoutMutation } from '../services/apiSlice';
 import toast from 'react-hot-toast';
@@ -1444,13 +1444,29 @@ const EmployeeProfileContent = ({ user }) => {
     qualification: user.qualification || '',
   });
 
-  // When edit mode is toggled, reset the form data to the current user prop
+  // Sync form data when user prop changes but only if NOT in edit mode
+  useEffect(() => {
+    if (!isEditMode && user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        profilePicture: null,
+        address: user.address || '',
+        gender: user.gender || '',
+        country: user.country || '',
+        city: user.city || '',
+        qualification: user.qualification || '',
+      });
+    }
+  }, [user._id, isEditMode]);
+
+  // When edit mode is toggled ON, reset the form data to the current user prop
   useEffect(() => {
     if (isEditMode && user) {
       setFormData({
         name: user.name || '',
         email: user.email || '',
-        profilePicture: null, // Don't try to pre-fill file input
+        profilePicture: null,
         address: user.address || '',
         gender: user.gender || '',
         country: user.country || '',
@@ -1460,14 +1476,14 @@ const EmployeeProfileContent = ({ user }) => {
     }
   }, [isEditMode]);
 
-  // Use useCallback to ensure handleChange is stable across re-renders
-  const handleChange = useCallback((e) => {
+  // Simple handleChange without useCallback - directly update formData
+  const handleChange = (e) => {
     if (e.target.type === 'file') {
       setFormData(prev => ({ ...prev, profilePicture: e.target.files[0] }));
     } else {
       setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     }
-  }, []);
+  };
 
   const handleSave = async () => {
     // Validate required fields
@@ -1631,14 +1647,9 @@ const EmployeeProfileContent = ({ user }) => {
   );
 };
 
-// Memoize EmployeeProfile to prevent re-renders from parent component changes
-// This fixes the cursor jumping issue when typing in form fields
-export const EmployeeProfile = React.memo(EmployeeProfileContent, (prevProps, nextProps) => {
-  // Custom comparison: only re-render if user ID actually changes
-  return prevProps.user?._id === nextProps.user?._id;
-});
-
-EmployeeProfile.displayName = 'EmployeeProfile';
+// Export the component without complex memoization
+// The skip conditions in parent queries prevent re-renders
+export const EmployeeProfile = EmployeeProfileContent;
 
 const EmployeeDashboard = () => {
   const user = useSelector(selectCurrentUser);

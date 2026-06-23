@@ -46,6 +46,22 @@ const AdminProfile = ({ user }) => {
     qualification: user.qualification || '',
   });
 
+  // Sync form data when user prop changes but only if NOT in edit mode
+  useEffect(() => {
+    if (!isEditMode) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        profilePicture: null,
+        address: user.address || '',
+        gender: user.gender || '',
+        country: user.country || '',
+        city: user.city || '',
+        qualification: user.qualification || '',
+      });
+    }
+  }, [user._id, isEditMode]);
+
   // When entering edit mode, ensure form is populated with current user data
   useEffect(() => {
     if (isEditMode) {
@@ -64,9 +80,9 @@ const AdminProfile = ({ user }) => {
 
   const handleChange = (e) => {
     if (e.target.type === 'file') {
-      setFormData({ ...formData, profilePicture: e.target.files[0] });
+      setFormData(prev => ({ ...prev, profilePicture: e.target.files[0] }));
     } else {
-      setFormData({ ...formData, [e.target.name]: e.target.value });
+      setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     }
   };
 
