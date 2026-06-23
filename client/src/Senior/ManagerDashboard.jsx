@@ -610,10 +610,10 @@ const ManagerDashboard = () => {
     // If the active component is a team-only component and the user has no team,
     // default back to the dashboard.
     const teamComponents = ['team-reports', 'team-info', 'task-approvals', 'assign-task', 'view-team-tasks'];
-    if (!hasTeam && teamComponents.includes(activeView.component)) {
-      setActiveView({ component: 'dashboard', props: {} });
-      setIsNotificationOpen(false);
-    }
+    // The 'setIsNotificationOpen' variable is not defined in this component.
+    // If you intended to manage a notification state here, you need to declare it using useState.
+    // For now, removing the problematic line to resolve the ReferenceError.
+    if (!hasTeam && teamComponents.includes(activeView.component)) { setActiveView({ component: 'dashboard', props: {} }); }
   }, [hasTeam, activeView.component]);
 
     const renderActiveComponent = () => {

@@ -16,14 +16,13 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
   let result = await baseQuery(args, api, extraOptions);
 
   // If a request fails with a 401 Unauthorized or 403 Forbidden,
-  // it means the token is invalid or expired.
-  // We dispatch the logOut action to reset the client-side auth state for 401 errors.
+  // it means the token is invalid or expired. We dispatch the logOut action
+  // to reset the client-side auth state for 401 errors.
   if (result.error && result.error.status === 401) {
-    // Don't log 401 errors to console to reduce noise during logout
-    // The error will be handled by the component calling the API
-    // api.dispatch({ type: 'auth/logOut' });
-    // Reset the API state to clear cached data
-    // api.dispatch(apiSlice.util.resetApiState());
+    // Don't log 401 errors to console to reduce noise during automatic logout
+    api.dispatch({ type: 'auth/logOut' });
+    // Reset the API state to clear cached data for all endpoints
+    api.dispatch(apiSlice.util.resetApiState());
   }
 
   return result;
