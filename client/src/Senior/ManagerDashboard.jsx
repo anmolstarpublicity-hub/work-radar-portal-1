@@ -444,10 +444,11 @@ const ManagerDashboardContent = ({ user, onNavigate }) => {
       {/* 3-Column Lower Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* My Team Overview */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm flex flex-col">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-base font-bold text-slate-800 dark:text-white">My Team Overview</h3>
             <button onClick={() => onNavigate('employees')} className="text-xs font-bold text-indigo-600 hover:underline">View All</button>
+            <button onClick={() => onNavigate('team-info')} className="text-xs font-bold text-indigo-600 hover:underline">View All</button>
           </div>
           <div className="space-y-4">
             {topTeamMembers?.map((member, i) => (
@@ -469,9 +470,9 @@ const ManagerDashboardContent = ({ user, onNavigate }) => {
             ))}
             {(!topTeamMembers || topTeamMembers.length === 0) && <p className="text-sm text-slate-500">No team data available.</p>}
             <button onClick={() => onNavigate('team-info')} className="w-full text-center text-xs font-bold text-indigo-600 dark:text-indigo-400 mt-4 hover:underline">View Full Team</button>
+            <button onClick={() => onNavigate('team-info')} className="w-full text-center text-xs font-bold text-indigo-600 dark:text-indigo-400 mt-auto pt-4 border-t border-slate-100 dark:border-slate-700 hover:underline">View Full Team</button>
           </div>
         </div>
-
         {/* Tasks Due This Period */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
           <div className="flex justify-between items-center mb-4">
