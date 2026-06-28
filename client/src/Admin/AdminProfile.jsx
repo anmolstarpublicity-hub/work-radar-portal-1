@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useDispatch, useSelector } from 'react-redux'; // Removed useMemo as it's not directly used here
 import toast from 'react-hot-toast';
 import { useUpdateEmployeeMutation } from '../services/EmployeApi';
-import { setCredentials, useForgotPasswordMutation } from '../app/authSlice';
+import { setCredentials, useForgotPasswordMutation, selectCurrentToken } from '../app/authSlice';
 import { CheckCircleIcon, KeyIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
 const InfoField = ({ label, value }) => (
@@ -31,60 +31,24 @@ const AdminProfile = ({ user }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [updateProfile, { isLoading: isUpdating }] = useUpdateEmployeeMutation();
   const [forgotPassword, { isLoading: isSendingReset }] = useForgotPasswordMutation();
-  const token = useSelector(state => state.auth.token);
+  const token = useSelector(selectCurrentToken);
 
-  // Initialize state directly from the user prop.
-  // This runs only on the initial render of this component instance.
-  const [formData, setFormData] = useState({
-    name: user.name || '',
-    email: user.email || '',
-    profilePicture: null,
-    address: user.address || '',
-    gender: user.gender || '',
-    country: user.country || '',
-    city: user.city || '',
-    qualification: user.qualification || '',
-  });
+  // Initialize formData with user data when entering edit mode
+  const [formData, setFormData] = useState(() => ({
+    name: user.name || '', email: user.email || '', profilePicture: null,
+    address: user.address || '', gender: user.gender || '', country: user.country || '',
+    city: user.city || '', qualification: user.qualification || '',
+  }));
 
-  // Sync form data when user prop changes but only if NOT in edit mode
+  // This effect ensures formData is always in sync with the user prop
+  // when not editing, and correctly initialized when editing starts.
   useEffect(() => {
-    if (!isEditMode) {
-      setFormData({
-        name: user.name || '',
-        email: user.email || '',
-        profilePicture: null,
-        address: user.address || '',
-        gender: user.gender || '',
-        country: user.country || '',
-        city: user.city || '',
-        qualification: user.qualification || '',
-      });
-    }
-  }, [user._id, isEditMode]);
-
-  // When entering edit mode, ensure form is populated with current user data
-  useEffect(() => {
-    if (isEditMode) {
-      setFormData({
-        name: user.name || '',
-        email: user.email || '',
-        profilePicture: null,
-        address: user.address || '',
-        gender: user.gender || '',
-        country: user.country || '',
-        city: user.city || '',
-        qualification: user.qualification || '',
-      });
-    }
-  }, [isEditMode]);
-
-  const handleChange = (e) => {
-    if (e.target.type === 'file') {
-      setFormData(prev => ({ ...prev, profilePicture: e.target.files[0] }));
-    } else {
-      setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    }
-  };
+    setFormData(prev => ({
+      ...prev, // Keep any existing profilePicture if it was set by user but not yet saved
+      name: user.name || '', email: user.email || '', profilePicture: null, address: user.address || '',
+      gender: user.gender || '', country: user.country || '', city: user.city || '', qualification: user.qualification || '',
+    }));
+  }, [user, isEditMode]); // Depend on both user and isEditMode
 
   const handleSave = async () => {
     // Validate required fields
@@ -117,7 +81,7 @@ const AdminProfile = ({ user }) => {
       const updatedData = await updateProfile({ id: user._id, formData: profileData }).unwrap();
       toast.success('Profile updated successfully!', { id: toastId, icon: <CheckCircleIcon className="h-6 w-6 text-green-500" /> });
       if (updatedData.employee) {
-        dispatch(setCredentials({ user: updatedData.employee, token: token }));
+        dispatch(setCredentials({ user: updatedData.employee, token: updatedData.token || token })); // Use the token from Redux state
       }
       setIsEditMode(false);
     } catch (err) {

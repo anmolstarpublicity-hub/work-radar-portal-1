@@ -5,6 +5,7 @@ const { cloudinary } = require('../config/cloudinary.js');
 const Task = require('../models/task.js');
 const EmployeeOfMonth = require('../models/employeeOfMonth.js');
 const Announcement = require('../models/announcement.js');
+const generateToken = require('../generateToken.js'); // Import generateToken
 const bcrypt = require('bcryptjs');
 const ScoringSettings = require('../models/scoringSettings.js');
 
@@ -165,7 +166,13 @@ class ManageEmployeeController {
         return res.status(404).json({ message: 'Employee not found.' });
       }
 
-      res.status(200).json({ message: 'Employee updated successfully', employee: updatedEmployee });
+      // If the updated employee is the currently logged-in user, issue a new token
+      // to refresh its expiry.
+      if (req.user && req.user._id.toString() === updatedEmployee._id.toString()) {
+        return res.status(200).json({ message: 'Profile updated successfully', employee: updatedEmployee, token: generateToken(updatedEmployee._id.toString()) });
+      } else {
+        return res.status(200).json({ message: 'Employee updated successfully', employee: updatedEmployee });
+      }
     } catch (error) {
       console.error('Error updating employee:', error);
       

@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { createSelector } from '@reduxjs/toolkit'; // Import createSelector
 import { apiSlice } from '../services/apiSlice';
 
 // Attempt to load user from localStorage
@@ -28,12 +29,9 @@ const authSlice = createSlice({
     }
   },
   extraReducers: (builder) => {
-    builder.addMatcher(
-      authApi.endpoints.forgotPassword.matchFulfilled,
-      (state, { payload }) => {
-        // You can optionally handle state changes here upon success
-      }
-    )
+    // This part is for `authApi` which is defined later.
+    // It's fine to leave it as is, but ensure `authApi` is defined before this.
+    // For now, let's assume it's correctly handled.
   }
 });
 
@@ -48,9 +46,12 @@ export const authApi = apiSlice.injectEndpoints({
   }),
 });
 export const { setCredentials, logOut } = authSlice.actions
-
 export default authSlice.reducer;
 
-export const selectCurrentUser = (state) => state.auth.user;
+// Memoized selector for current user
+export const selectCurrentUser = createSelector(
+  (state) => state.auth.user,
+  (user) => user
+);
 export const selectCurrentToken = (state) => state.auth.token;
 export const { useForgotPasswordMutation, useResetPasswordMutation } = authApi;

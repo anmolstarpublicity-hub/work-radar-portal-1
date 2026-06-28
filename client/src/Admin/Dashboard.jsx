@@ -111,6 +111,71 @@ const Dashboard = ({ onNavigate }) => {
   const { data: approvalTasks = [] } = useGetTasksForApprovalQuery(undefined, { skip: !isAuthenticated });
   const { data: allEmployees = [] } = useGetEmployeesQuery(undefined, { skip: !isAuthenticated });
 
+  // Helper to get employee counts for a given date range
+  const getCountsForDateRange = useCallback((employees, startDate, endDate) => {
+    if (!startDate || !endDate || !employees) {
+      return { totalUsers: 0, totalManagers: 0, totalEmployees: 0 };
+    }
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    const filtered = employees.filter(emp => {
+      const joinDate = safeDate(emp.joiningDate);
+      return joinDate >= start && joinDate <= end;
+    });
+
+    const totalManagers = filtered.filter(emp => emp.dashboardAccess === 'Manager Dashboard').length || 0;
+    const totalEmployees = filtered.filter(emp => emp.dashboardAccess !== 'Manager Dashboard' && emp.role !== 'Admin' && emp.role !== 'Super Admin').length || 0;
+    const totalUsers = filtered.length || 0;
+
+    return { totalUsers, totalManagers, totalEmployees };
+  }, []);
+
+
+  // Filter employees based on their joiningDate within the current dateRange
+  const filteredEmployeesByJoinDate = useMemo(() => {
+    if (!dateRange.startDate || !dateRange.endDate || !allEmployees) return [];
+    const start = new Date(dateRange.startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(dateRange.endDate);
+    end.setHours(23, 59, 59, 999);
+
+    return allEmployees.filter(emp => {
+      const joinDate = safeDate(emp.joiningDate);
+      return joinDate >= start && joinDate <= end;
+    });
+  }, [allEmployees, dateRange]);
+
+  // Calculate the previous date range for trend comparison
+  const previousDateRange = useMemo(() => {
+    const { startDate, endDate } = dateRange;
+    if (!startDate || !endDate) return { startDate: '', endDate: '' };
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const diffMs = end.getTime() - start.getTime(); // Duration of the current period in milliseconds
+    const durationDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+    const prevEnd = new Date(start);
+    prevEnd.setDate(start.getDate() - 1); // Day before current start
+
+    const prevStart = new Date(prevEnd);
+    prevStart.setDate(prevEnd.getDate() - durationDays); // Subtract duration from prevEnd
+
+    return {
+      startDate: prevStart.toISOString().split('T')[0],
+      endDate: prevEnd.toISOString().split('T')[0],
+    };
+  }, [dateRange]);
+
+  // Filter employees for the previous date range to calculate trends
+  const previousPeriodEmployeeCounts = useMemo(() => {
+    return getCountsForDateRange(allEmployees, previousDateRange.startDate, previousDateRange.endDate);
+  }, [allEmployees, previousDateRange]);
+
   const isLoading = isLoadingStats || isLoadingTasks || isLoadingEOM || isLoadingAnnouncement;
 
   const filteredAllTasks = useMemo(() => {
@@ -141,11 +206,11 @@ const Dashboard = ({ onNavigate }) => {
 
     const tasksCompletedThisPeriod = filteredAllTasks.filter(t => t.status === 'Completed').length;
 
-    const totalManagers = allEmployees.filter(emp => emp.dashboardAccess === 'Manager Dashboard').length || 0;
-    const totalEmployeesVal = allEmployees.filter(emp => emp.dashboardAccess !== 'Manager Dashboard' && emp.role !== 'Admin' && emp.role !== 'Super Admin').length || 0;
-    const totalUsers = allEmployees.length || (totalEmployeesVal + totalManagers + 1);
-    const activeDepartments = new Set(allEmployees.map(emp => emp.department).filter(Boolean)).size || 0;
-
+    // These counts now reflect employees who joined within the current dateRange
+    const totalManagers = filteredEmployeesByJoinDate.filter(emp => emp.dashboardAccess === 'Manager Dashboard').length || 0;
+    const totalEmployeesVal = filteredEmployeesByJoinDate.filter(emp => emp.dashboardAccess !== 'Manager Dashboard' && emp.role !== 'Admin' && emp.role !== 'Super Admin').length || 0;
+    const totalUsers = filteredEmployeesByJoinDate.length || 0;
+    const activeDepartments = new Set(filteredEmployeesByJoinDate.map(emp => emp.department).filter(Boolean)).size || 0;
     return {
       totalEmployees: totalEmployeesVal,
       totalManagers,
@@ -156,7 +221,7 @@ const Dashboard = ({ onNavigate }) => {
       topCandidate,
       taskChartData,
       upcomingManagerTask: stats?.upcomingManagerTask,
-      tasksCompletedThisPeriod,
+      tasksCompletedThisPeriod, // This is based on filteredAllTasks (task creation/update date)
     };
   }, [isLoading, stats, filteredAllTasks, eomCandidates, allEmployees]);
 
@@ -169,6 +234,11 @@ const Dashboard = ({ onNavigate }) => {
     'No Tasks': '#e2e8f0'
   };
 
+  const calculateTrend = useCallback((currentValue, previousValue) => {
+    if (previousValue === 0) return currentValue > 0 ? 'New' : 'N/A';
+    const change = ((currentValue - previousValue) / previousValue) * 100;
+    return change > 0 ? `+${change.toFixed(0)}%` : `${change.toFixed(0)}%`;
+  }, []);
   // Dynamic Trend Data
   const trendData = useMemo(() => {
     const data = [['Day', 'Tasks Completed']];
@@ -214,6 +284,10 @@ const Dashboard = ({ onNavigate }) => {
     
     return { completionRate, onTimeRate, avgRating, activeUsers };
   }, [filteredAllTasks, eomCandidates]);
+
+  const userTrend = useMemo(() => calculateTrend(dashboardData?.totalUsers || 0, previousPeriodEmployeeCounts.totalUsers), [dashboardData?.totalUsers, previousPeriodEmployeeCounts.totalUsers, calculateTrend]);
+  const managerTrend = useMemo(() => calculateTrend(dashboardData?.totalManagers || 0, previousPeriodEmployeeCounts.totalManagers), [dashboardData?.totalManagers, previousPeriodEmployeeCounts.totalManagers, calculateTrend]);
+  const employeeTrend = useMemo(() => calculateTrend(dashboardData?.totalEmployees || 0, previousPeriodEmployeeCounts.totalEmployees), [dashboardData?.totalEmployees, previousPeriodEmployeeCounts.totalEmployees, calculateTrend]);
 
   if (isLoading) {
     return <div className="p-8 text-center">Loading dashboard...</div>;
@@ -275,9 +349,9 @@ const Dashboard = ({ onNavigate }) => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-6 mb-8">
-        <StatCard title="Total Users" value={dashboardData?.totalUsers || 0} trend="+12%" icon={UsersIcon} />
-        <StatCard title="Total Managers" value={dashboardData?.totalManagers || 0} trend="+8%" icon={BriefcaseIcon} />
-        <StatCard title="Total Employees" value={dashboardData?.totalEmployees || 0} trend="+15%" icon={UserGroupIcon} />
+        <StatCard title="Total Users" value={dashboardData?.totalUsers || 0} trend={userTrend} icon={UsersIcon} />
+        <StatCard title="Total Managers" value={dashboardData?.totalManagers || 0} trend={managerTrend} icon={BriefcaseIcon} />
+        <StatCard title="Total Employees" value={dashboardData?.totalEmployees || 0} trend={employeeTrend} icon={UserGroupIcon} />
         <StatCard title="Total Tasks" value={dashboardData?.totalTasks || 0} subtext="Selected Period" icon={ClipboardDocumentListIcon} />
         <StatCard title="Tasks Completed" value={dashboardData?.tasksCompletedThisPeriod || 0} subtext={`${platformAnalytics.completionRate}% Completion`} isSuccess icon={CheckBadgeIcon} />
         <StatCard title="Pending Approvals" value={dashboardData?.tasksPendingVerification || 0} isWarning subtext="Requires Attention" icon={ClockIcon} />

@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useGetTodaysReportQuery, useUpdateTodaysReportMutation, useGetEmployeesQuery, useGetHolidaysQuery, useGetMyTasksQuery, useGetAllTasksQuery, useGetAllMyReportsQuery, useGetActiveAnnouncementQuery, useGetEmployeeEOMHistoryQuery, useProcessPastDueTasksMutation, useUpdateEmployeeMutation } from '../services/EmployeApi';
 import { apiSlice, useLogoutMutation } from '../services/apiSlice';
 import toast from 'react-hot-toast';
 import { ArrowPathIcon, PaperAirplaneIcon, DocumentTextIcon, BriefcaseIcon, CheckCircleIcon, HomeIcon, ChartBarIcon, UserGroupIcon, InformationCircleIcon, CalendarDaysIcon, ClipboardDocumentListIcon, CheckBadgeIcon, ArchiveBoxIcon, TrophyIcon, StarIcon, ShieldCheckIcon, ExclamationTriangleIcon, ClockIcon, CalendarIcon, ChevronDoubleLeftIcon, ChevronDownIcon, ArrowRightOnRectangleIcon, Cog8ToothIcon, ArrowDownTrayIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { EyeIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import { useSelector, useDispatch } from 'react-redux';
-import { selectCurrentUser } from '../app/authSlice';
+import { selectCurrentUser, setCredentials, selectCurrentToken } from '../app/authSlice'; // Added selectCurrentToken
 import PastReportsList from './PastReports';
 import AttendanceCalendar from '../services/AttendanceCalendar';
 import TaskApprovals from '../Admin/TaskApprovals';
@@ -291,10 +291,6 @@ export const Dashboard = ({ user, onNavigate }) => {
                 </div>
             </div>
         </div>
-           <button className="w-full sm:w-auto justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold py-2.5 px-5 rounded-xl shadow-sm transition-all flex items-center gap-2">
-             <ArrowDownTrayIcon className="h-5 w-5" />
-             <span>Download Report</span>
-           </button>
         </div>
       </div>
 
@@ -1427,63 +1423,34 @@ const EmployeeProfileContent = ({ user }) => {
   const dispatch = useDispatch();
   const [isEditMode, setIsEditMode] = useState(false);
   const [updateProfile, { isLoading: isUpdating }] = useUpdateEmployeeMutation();
-  const token = useSelector(state => state.auth.token);
+  const token = useSelector(selectCurrentToken); // Use the memoized selector for token
   const { data: eomHistory = [] } = useGetEmployeeEOMHistoryQuery(user._id, {
     skip: !user,
   });
   const monthNames = useMemo(() => ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], []);
 
   const [formData, setFormData] = useState({
-    name: user.name || '',
-    email: user.email || '',
-    profilePicture: null,
-    address: user.address || '',
-    gender: user.gender || '',
-    country: user.country || '',
-    city: user.city || '',
-    qualification: user.qualification || '',
+    name: '', email: '', profilePicture: null, address: '', gender: '', country: '', city: '', qualification: '',
   });
 
-  // Sync form data when user prop changes but only if NOT in edit mode
+  // This effect populates formData when entering edit mode or when the user prop changes (e.g., after a save)
   useEffect(() => {
-    if (!isEditMode && user) {
+    if (isEditMode || (user && (formData.name === '' || formData.name !== user.name))) { // Only update if entering edit mode or user data has changed
       setFormData({
-        name: user.name || '',
-        email: user.email || '',
-        profilePicture: null,
-        address: user.address || '',
-        gender: user.gender || '',
-        country: user.country || '',
-        city: user.city || '',
-        qualification: user.qualification || '',
+        name: user.name || '', email: user.email || '', profilePicture: null, // Reset file input when re-syncing
+        address: user.address || '', gender: user.gender || '', country: user.country || '',
+        city: user.city || '', qualification: user.qualification || '',
       });
     }
-  }, [user._id, isEditMode]);
+  }, [user, isEditMode]);
 
-  // When edit mode is toggled ON, reset the form data to the current user prop
-  useEffect(() => {
-    if (isEditMode && user) {
-      setFormData({
-        name: user.name || '',
-        email: user.email || '',
-        profilePicture: null,
-        address: user.address || '',
-        gender: user.gender || '',
-        country: user.country || '',
-        city: user.city || '',
-        qualification: user.qualification || '',
-      });
-    }
-  }, [isEditMode]);
-
-  // Simple handleChange without useCallback - directly update formData
-  const handleChange = (e) => {
+  const handleChange = useCallback((e) => {
     if (e.target.type === 'file') {
       setFormData(prev => ({ ...prev, profilePicture: e.target.files[0] }));
     } else {
       setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     }
-  };
+  }, []); // setFormData is stable, so no need to list it as a dependency
 
   const handleSave = async () => {
     // Validate required fields
@@ -1516,7 +1483,7 @@ const EmployeeProfileContent = ({ user }) => {
       const updatedData = await updateProfile({ id: user._id, formData: profileData }).unwrap();
       toast.success('Profile updated successfully!', { id: toastId, icon: <CheckCircleIcon className="h-6 w-6 text-green-500" /> });
       if (updatedData.employee) {
-        dispatch(setCredentials({ user: updatedData.employee, token }));
+        dispatch(setCredentials({ user: updatedData.employee, token: updatedData.token || user.token })); // Pass token from updatedData or existing user
       }
       setIsEditMode(false);
     } catch (err) {
