@@ -8,8 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { setCredentials } from "../app/authSlice";
 import portalLogo from "../assets/portal_logo.png";
 
-import starPublicityLogo from "../assets/starpublicity.png";
-import volgaInfosysLogo from "../assets/volgainfosys.png";
+// Unused legacy logo imports removed to satisfy lint rules
 const wishes = [
   "Let's make today productive!",
   "Ready to achieve great things?",
@@ -37,7 +36,7 @@ const Login = () => {
   const isMounted = useRef(true);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { data: companyInfo } = useGetCompanyInfoQuery();
+  // companyInfo not currently used in the login screen
 
   const [wish, setWish] = useState('');
 

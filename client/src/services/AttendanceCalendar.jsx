@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
-import { useGetAttendanceQuery } from '../services/EmployeApi';
+import { useGetAttendanceForMonthQuery } from '../services/EmployeApi';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
 
 const AttendanceCalendar = ({ employeeId }) => {
@@ -10,7 +10,7 @@ const AttendanceCalendar = ({ employeeId }) => {
   const year = activeStartDate.getUTCFullYear();
   const month = activeStartDate.getUTCMonth() + 1;
 
-  const { data: attendanceData = [], isLoading } = useGetAttendanceQuery(
+  const { data: attendanceData = [], isLoading } = useGetAttendanceForMonthQuery(
     { employeeId, year, month },
     { skip: !employeeId }
   );

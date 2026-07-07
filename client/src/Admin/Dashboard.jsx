@@ -15,20 +15,6 @@ const safeDate = (dateVal) => {
   return isNaN(d.getTime()) ? new Date() : d;
 };
 
-const formatDueDate = (dateString) => {
-  if (!dateString) return 'N/A';
-  // Create dates in a way that ignores time and timezone for comparison
-  const today = new Date();
-  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-
-  const dateObj = new Date(dateString);
-  const dateObjStart = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
-
-  if (dateObjStart.getTime() === todayStart.getTime()) {
-    return 'Today';
-  }
-  return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};
 
 const isSameDay = (date1, date2) => {
   if (!date1 || !date2) return false;
@@ -74,9 +60,9 @@ const Countdown = ({ toDate }) => {
   );
 };
 
-const Dashboard = ({ onNavigate }) => {
-  const user = useSelector(selectCurrentUser);
-  const isAuthenticated = !!user?._id;
+const Dashboard = () => {
+  const _user = useSelector(selectCurrentUser); // unused variable kept for future use
+  const isAuthenticated = !!_user?._id;
 
   const [filterType, setFilterType] = useState('week'); // 'week', 'month', 'custom'
   const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
@@ -107,7 +93,7 @@ const Dashboard = ({ onNavigate }) => {
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
   }, { skip: !isAuthenticated });
-  const { data: announcement, isLoading: isLoadingAnnouncement } = useGetActiveAnnouncementQuery(undefined, { skip: !isAuthenticated });
+  const { data: _announcement, isLoading: isLoadingAnnouncement } = useGetActiveAnnouncementQuery(undefined, { skip: !isAuthenticated });
   const { data: approvalTasks = [] } = useGetTasksForApprovalQuery(undefined, { skip: !isAuthenticated });
   const { data: allEmployees = [] } = useGetEmployeesQuery(undefined, { skip: !isAuthenticated });
 
@@ -305,7 +291,7 @@ const Dashboard = ({ onNavigate }) => {
       {/* Blueprint Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white">Welcome back, {user?.name?.split(' ')[0] || 'Admin'}! 👋</h1>
+          <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white">Welcome back, {_user?.name?.split(' ')[0] || 'Admin'}! 👋</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Here's your system overview for the selected period.</p>
         </div>
         <div className="mt-4 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
@@ -336,11 +322,11 @@ const Dashboard = ({ onNavigate }) => {
           <div className="text-right hidden sm:block mr-3 border-l border-slate-200 dark:border-slate-700 pl-4">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-700 dark:text-indigo-400 font-bold border border-indigo-200 dark:border-indigo-800">
-                {user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'SA'}
+                {_user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'SA'}
               </div>
               <div className="text-left">
-                <p className="text-sm font-bold text-slate-800 dark:text-white">{user?.name || 'Super Administrator'}</p>
-                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">{user?.role || 'System Admin'}</p>
+                <p className="text-sm font-bold text-slate-800 dark:text-white">{_user?.name || 'Super Administrator'}</p>
+                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">{_user?.role || 'System Admin'}</p>
               </div>
             </div>
           </div>

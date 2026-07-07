@@ -113,6 +113,7 @@ const AttendanceManagement = () => {
         throw new Error('Backend update failed');
       }
     } catch (err) {
+      console.error('Failed to toggle attendance power:', err);
       // Rollback optimistic update on failure
       setLocalOverrides(prev => ({
         ...prev,
@@ -142,6 +143,7 @@ const AttendanceManagement = () => {
         throw new Error('Backend update failed');
       }
     } catch (err) {
+      console.error('Failed to manual override attendance:', err);
       // Rollback optimistic update on failure
       setLocalOverrides(prev => ({
         ...prev,

@@ -1,6 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { createSelector } from '@reduxjs/toolkit'; // Import createSelector
-import { apiSlice } from '../services/apiSlice';
+// createSelector not needed for simple pass-through selectors
 
 // Attempt to load user from localStorage
 const storedAuthData = localStorage.getItem('user');
@@ -26,6 +25,20 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       localStorage.removeItem('user');
+      // Clear any session-scoped announcement dismissals so announcements reappear on next login
+      try {
+        // Remove array-based session dismissal key
+        sessionStorage.removeItem('dismissedAnnouncements_session');
+        // Remove any per-announcement session keys like 'announcementDismissed_session_<id>'
+        const keysToRemove = [];
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const k = sessionStorage.key(i);
+          if (k && k.startsWith('announcementDismissed_session_')) keysToRemove.push(k);
+        }
+        keysToRemove.forEach(k => sessionStorage.removeItem(k));
+      } catch {
+        // ignore sessionStorage cleanup errors
+      }
     }
   },
   extraReducers: (builder) => {
@@ -35,23 +48,11 @@ const authSlice = createSlice({
   }
 });
 
-export const authApi = apiSlice.injectEndpoints({
-  endpoints: (builder) => ({
-    forgotPassword: builder.mutation({
-      query: (credentials) => ({ url: 'auth/forgot-password', method: 'POST', body: credentials }),
-    }),
-    resetPassword: builder.mutation({
-      query: ({ token, password }) => ({ url: `auth/reset-password/${token}`, method: 'POST', body: { password } }),
-    }),
-  }),
-});
 export const { setCredentials, logOut } = authSlice.actions
 export default authSlice.reducer;
 
-// Memoized selector for current user
-export const selectCurrentUser = createSelector(
-  (state) => state.auth.user,
-  (user) => user
-);
+// Simple selectors for current user and token
+export const selectCurrentUser = (state) => state.auth.user;
 export const selectCurrentToken = (state) => state.auth.token;
-export const { useForgotPasswordMutation, useResetPasswordMutation } = authApi;
+// Note: RTK Query hooks (forgot/reset password) are defined in services/EmployeApi.js
+// and should be imported from there where needed. Do not export them from the auth slice.

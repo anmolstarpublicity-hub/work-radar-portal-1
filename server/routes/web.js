@@ -87,5 +87,7 @@ router.get('/announcements/active', protect, AnnouncementController.getActiveAnn
 router.get('/announcements', protect, AnnouncementController.getAllAnnouncements);
 router.post('/announcements', protect, AnnouncementController.createAnnouncement);
 router.delete('/announcements/:id', protect, AnnouncementController.deleteAnnouncement);
+// per-user dismiss
+router.post('/announcements/:id/dismiss', protect, AnnouncementController.dismissAnnouncement);
 
 module.exports = router;

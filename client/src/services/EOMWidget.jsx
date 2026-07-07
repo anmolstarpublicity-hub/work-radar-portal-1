@@ -4,19 +4,19 @@ import { MegaphoneIcon, XMarkIcon } from '@heroicons/react/24/solid';
 
 const AnnouncementWidget = () => {
   const { data: announcement, isLoading } = useGetActiveAnnouncementQuery();
-  const storageKey = useMemo(() => announcement ? `announcementDismissed_${announcement._id}` : null, [announcement]);
+  const storageKey = useMemo(() => announcement ? `announcementDismissed_session_${announcement._id}` : null, [announcement]);
 
   const [isVisible, setIsVisible] = useState(true);
   
   React.useEffect(() => {
     if (storageKey) {
-      setIsVisible(!localStorage.getItem(storageKey));
+      setIsVisible(!sessionStorage.getItem(storageKey));
     }
   }, [storageKey]);
 
   const handleDismiss = () => {
     if (storageKey) {
-      localStorage.setItem(storageKey, 'true');
+      sessionStorage.setItem(storageKey, 'true');
     }
     setIsVisible(false);
   };

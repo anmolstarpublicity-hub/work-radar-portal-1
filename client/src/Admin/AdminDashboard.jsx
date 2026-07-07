@@ -10,8 +10,7 @@ import AssignEmployee from './AssignEmployee';
 import { useGetEmployeesQuery, useGetReportsByEmployeeQuery, useDeleteReportMutation, useProcessPastDueTasksMutation } from '../services/EmployeApi';
 import Dashboard from './Dashboard.jsx';
 import HolidayManagement from './HolidayManagement';
-import volgaInfosysLogo from '../assets/volgainfosys.png';
-import starPublicityLogo from '../assets/starpublicity.png';
+// logos imported previously but unused; removed to satisfy lint
 import ViewAllTasks from './ViewAllTasks';
 import TaskOverview from './TaskOverview';
 import TaskApprovals from './TaskApprovals';
@@ -29,7 +28,7 @@ import GooglePieChart from './GooglePieChart.jsx';
 import { TaskDetailsModal } from './TaskOverview.jsx';
 import * as XLSX from 'xlsx'; 
 import { Analytics } from '../Employee/EmployeDashboard.jsx';
-import { useLogoutMutation } from '../services/apiSlice';
+// useLogoutMutation removed (unused)
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
 const DeleteReportModal = ({ isOpen, onClose, onConfirm, report, isDeleting }) => {
@@ -121,7 +120,7 @@ export const TeamReports = ({ seniorId }) => {
 
     reports.forEach(report => {
       let data = {};
-      try { data = JSON.parse(report.content); } catch (e) { /* ignore */ }
+      try { data = JSON.parse(report.content); } catch { /* ignore */ }
 
       const reportDate = new Date(report.reportDate).toLocaleDateString();
       const baseRow = [
@@ -245,7 +244,7 @@ export const TeamReports = ({ seniorId }) => {
       return (
         <p className="whitespace-pre-line break-words">{JSON.stringify(data, null, 2)}</p>
       );
-    } catch (e) {
+    } catch {
       return <p className="whitespace-pre-line break-words">{content}</p>;
     }
   };

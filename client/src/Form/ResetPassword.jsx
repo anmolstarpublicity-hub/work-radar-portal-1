@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useResetPasswordMutation } from '../app/authSlice';
+import { useResetPasswordMutation } from '../services/EmployeApi'; // Changed import source
 import toast from 'react-hot-toast';
 import { ArrowPathIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 

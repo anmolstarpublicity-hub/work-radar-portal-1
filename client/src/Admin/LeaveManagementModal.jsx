@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
-import { useGetLeavesQuery, useAddLeaveMutation, useRemoveLeaveMutation, useGetHolidaysQuery } from '../services/EmployeApi';
+import { useGetLeavesForEmployeeQuery, useAddLeaveMutation, useRemoveLeaveMutation, useGetHolidaysQuery } from '../services/EmployeApi';
 import toast from 'react-hot-toast';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
 const LeaveManagementModal = ({ isOpen, onClose, employee }) => {
   const [date, setDate] = useState(new Date());
-  const { data: leaves = [], isLoading } = useGetLeavesQuery(employee?._id, { skip: !isOpen || !employee?._id });
+  const { data: leaves = [], isLoading } = useGetLeavesForEmployeeQuery(employee?._id, { skip: !isOpen || !employee?._id });
   const { data: holidays = [] } = useGetHolidaysQuery();
   const [addLeave] = useAddLeaveMutation();
   const [removeLeave] = useRemoveLeaveMutation();
@@ -52,6 +52,7 @@ const LeaveManagementModal = ({ isOpen, onClose, employee }) => {
         await removeLeave(existingLeave._id).unwrap();
         toast.success('Leave day removed.');
       } catch (err) {
+        console.error('Failed to remove leave:', err);
         toast.error('Failed to remove leave.');
       }
     } else {
@@ -61,6 +62,7 @@ const LeaveManagementModal = ({ isOpen, onClose, employee }) => {
         await addLeave({ employeeId: employee._id, date: utcDate.toISOString() }).unwrap();
         toast.success('Leave day added.');
       } catch (err) {
+        console.error('Failed to add leave:', err);
         toast.error(err.data?.message || 'Failed to add leave.');
       }
     }

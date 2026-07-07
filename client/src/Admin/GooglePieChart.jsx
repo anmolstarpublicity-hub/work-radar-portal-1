@@ -7,10 +7,10 @@ const GooglePieChart = memo(({ data, title, colors, is3D = true, pieHole, hideLe
   useEffect(() => {
     const drawChart = () => {
       if (!window.google || !window.google.visualization) {
-        console.error("Google Charts library not loaded.");
+        console.error('Google Charts library not loaded.');
         return;
       }
-      const chartData = google.visualization.arrayToDataTable([
+      const chartData = window.google.visualization.arrayToDataTable([
         ['Task Status', 'Count'],
         ...data.map(item => [item.name, item.value])
       ]);
@@ -31,14 +31,14 @@ const GooglePieChart = memo(({ data, title, colors, is3D = true, pieHole, hideLe
       };
 
       if (chartRef.current) {
-        const chart = new google.visualization.PieChart(chartRef.current);
+        const chart = new window.google.visualization.PieChart(chartRef.current);
         chart.draw(chartData, options);
       }
     };
 
     // Assuming the script is loaded in index.html
-    google.charts.load('current', { packages: ['corechart'] });
-    google.charts.setOnLoadCallback(drawChart);
+    window.google?.charts?.load?.('current', { packages: ['corechart'] });
+    if (window.google?.charts?.setOnLoadCallback) window.google.charts.setOnLoadCallback(drawChart);
   }, [data, title, colors, is3D, pieHole, isDarkMode]);
 
   return <div ref={chartRef} style={{ width: '100%', height: '100%' }}></div>;

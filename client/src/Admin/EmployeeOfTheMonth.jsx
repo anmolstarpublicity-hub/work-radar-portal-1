@@ -65,6 +65,7 @@ const EmployeeOfTheMonth = () => {
       }).unwrap();
       toast.success(`${candidate.employee.name} is now Employee of the Month!`);
     } catch (err) {
+      console.error('Failed to set winner:', err);
       toast.error('Failed to set winner.');
     }
   };

@@ -33,6 +33,7 @@ export const TaskDetailsModal = ({ isOpen, onClose, task, taskNumber }) => {
       setComment('');
       toast.success('Comment added!');
     } catch (err) {
+      console.error('Failed to add comment:', err);
       toast.error('Failed to add comment.');
     }
   };
@@ -203,7 +204,7 @@ const TaskOverview = () => {
     };
 
     employeeTasks.forEach(task => {
-      if (statusCounts.hasOwnProperty(task.status)) {
+      if (Object.prototype.hasOwnProperty.call(statusCounts, task.status)) {
         statusCounts[task.status]++;
       }
     });

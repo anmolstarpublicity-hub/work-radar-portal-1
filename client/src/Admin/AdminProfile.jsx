@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux'; // Removed useMemo as it's not directly used here
 import toast from 'react-hot-toast';
-import { useUpdateEmployeeMutation } from '../services/EmployeApi';
-import { setCredentials, useForgotPasswordMutation, selectCurrentToken } from '../app/authSlice';
+import { useUpdateEmployeeMutation, useForgotPasswordMutation } from '../services/EmployeApi';
+import { setCredentials, selectCurrentToken } from '../app/authSlice';
 import { CheckCircleIcon, KeyIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
 const InfoField = ({ label, value }) => (
@@ -26,7 +26,7 @@ const EditField = ({ label, name, value, onChange, type = 'text' }) => (
   </div>
 );
 
-const AdminProfile = ({ user }) => {
+const AdminProfile = ({ user = {} }) => {
   const dispatch = useDispatch();
   const [isEditMode, setIsEditMode] = useState(false);
   const [updateProfile, { isLoading: isUpdating }] = useUpdateEmployeeMutation();
@@ -34,7 +34,7 @@ const AdminProfile = ({ user }) => {
   const token = useSelector(selectCurrentToken);
 
   // Initialize formData with user data when entering edit mode
-  const [formData, setFormData] = useState(() => ({
+  const [formData, setFormData] = useState(() => ({ // Use functional update for initial state for performance
     name: user.name || '', email: user.email || '', profilePicture: null,
     address: user.address || '', gender: user.gender || '', country: user.country || '',
     city: user.city || '', qualification: user.qualification || '',
@@ -43,31 +43,30 @@ const AdminProfile = ({ user }) => {
   // This effect ensures formData is always in sync with the user prop
   // when not editing, and correctly initialized when editing starts.
   useEffect(() => {
-    setFormData(prev => ({
-      ...prev, // Keep any existing profilePicture if it was set by user but not yet saved
+    setFormData({ // Directly set formData from user prop to reflect latest user data
       name: user.name || '', email: user.email || '', profilePicture: null, address: user.address || '',
       gender: user.gender || '', country: user.country || '', city: user.city || '', qualification: user.qualification || '',
-    }));
+    });
   }, [user, isEditMode]); // Depend on both user and isEditMode
+
+  const handleChange = useCallback((e) => {
+    if (e.target.type === 'file') {
+      setFormData(prev => ({ ...prev, profilePicture: e.target.files[0] }));
+    } else {
+      setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    }
+  }, []); // setFormData is stable, so no need to list it as a dependency
 
   const handleSave = async () => {
     // Validate required fields
-    if (!formData.name || !formData.name.trim()) {
-      toast.error('Name is required.');
-      return;
-    }
-    if (!formData.email || !formData.email.trim()) {
-      toast.error('Email is required.');
-      return;
-    }
+    if (!formData.name || !formData.name.trim()) { toast.error('Name is required.'); return; }
+    if (!formData.email || !formData.email.trim()) { toast.error('Email is required.'); return; }
 
     const profileData = new FormData();
     profileData.append('name', formData.name.trim());
     profileData.append('email', formData.email.trim());
     
-    if (formData.profilePicture) {
-      profileData.append('profilePicture', formData.profilePicture);
-    }
+    if (formData.profilePicture) { profileData.append('profilePicture', formData.profilePicture); }
     
     // Only append optional fields if they have values
     if (formData.address) profileData.append('address', formData.address.trim());
@@ -84,10 +83,9 @@ const AdminProfile = ({ user }) => {
         dispatch(setCredentials({ user: updatedData.employee, token: updatedData.token || token })); // Use the token from Redux state
       }
       setIsEditMode(false);
-    } catch (err) {
-      console.error('Failed to update profile:', err);
-      const errorMessage = err.data?.message || err.message || 'Failed to update profile. Please try again.';
-      toast.error(errorMessage);
+    } catch {
+      console.error('Failed to update profile.');
+      toast.error('Failed to update profile. Please try again.');
     }
   };
 

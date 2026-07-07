@@ -8,6 +8,11 @@ const path = require('path');
 const app = express();
 
 const allowedOrigins = process.env.FRONTEND_URLS ? process.env.FRONTEND_URLS.split(',') : [];
+// During local development, allow common Vite dev server origins so the browser
+// can call the API directly (client runs on :5173 or :5174 by default).
+if (process.env.NODE_ENV === 'development') {
+  allowedOrigins.push('http://localhost:5173', 'http://localhost:5174');
+}
 
 // --- Middleware ---
 app.use(cors({

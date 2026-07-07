@@ -13,7 +13,7 @@ import toast from 'react-hot-toast';
 import { selectCurrentUser } from './authSlice';
 import { useLogoutMutation } from '../services/apiSlice';
 import { apiSlice } from '../services/apiSlice';
-import { useGetNotificationsQuery, useMarkNotificationsAsReadMutation, useDeleteReadNotificationsMutation } from '../services/EmployeApi';
+import { useGetMyNotificationsQuery, useMarkNotificationsAsReadMutation, useDeleteReadNotificationsMutation } from '../services/EmployeApi';
 import ThemeToggle from '../ThemeToggle';
 
 const AppHeader = ({ pageTitle, onMenuClick, setActiveComponent }) => {
@@ -24,9 +24,9 @@ const AppHeader = ({ pageTitle, onMenuClick, setActiveComponent }) => {
   const profileRef = useRef(null);
   const notificationRef = useRef(null);
   const [logout] = useLogoutMutation();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch(); // Ensure dispatch is imported and used
 
-  const { data: notifications = [] } = useGetNotificationsQuery(undefined, { pollingInterval: 30000, skip: !isAuthenticated });
+  const { data: notifications = [] } = useGetMyNotificationsQuery(undefined, { pollingInterval: 30000, skip: !isAuthenticated });
   const [markNotificationsAsRead] = useMarkNotificationsAsReadMutation();
   const [deleteReadNotifications] = useDeleteReadNotificationsMutation();
 

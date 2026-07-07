@@ -21,6 +21,7 @@ const ManageAnnouncements = () => {
       toast.success('New announcement is now active!');
       setNewAnnouncement({ title: '', content: '' });
     } catch (err) {
+      console.error('Failed to create announcement:', err);
       toast.error('Failed to create announcement.');
     }
   };
@@ -30,6 +31,7 @@ const ManageAnnouncements = () => {
       await deleteAnnouncement(id).unwrap();
       toast.success('Announcement deleted.');
     } catch (err) {
+      console.error('Failed to delete announcement:', err);
       toast.error('Failed to delete announcement.');
     }
   };

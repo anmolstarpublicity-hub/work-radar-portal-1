@@ -5,15 +5,14 @@ import toast from 'react-hot-toast';
 import { ArrowPathIcon, PaperAirplaneIcon, DocumentTextIcon, BriefcaseIcon, CheckCircleIcon, HomeIcon, ChartBarIcon, UserGroupIcon, InformationCircleIcon, CalendarDaysIcon, ClipboardDocumentListIcon, CheckBadgeIcon, ArchiveBoxIcon, TrophyIcon, StarIcon, ShieldCheckIcon, ExclamationTriangleIcon, ClockIcon, CalendarIcon, ChevronDoubleLeftIcon, ChevronDownIcon, ArrowRightOnRectangleIcon, Cog8ToothIcon, ArrowDownTrayIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { EyeIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import { useSelector, useDispatch } from 'react-redux';
-import { selectCurrentUser, setCredentials, selectCurrentToken } from '../app/authSlice'; // Added selectCurrentToken
+import { selectCurrentUser, setCredentials, selectCurrentToken } from '../app/authSlice'; // Removed useForgotPasswordMutation as it's not used here
 import PastReportsList from './PastReports';
 import AttendanceCalendar from '../services/AttendanceCalendar';
 import TaskApprovals from '../Admin/TaskApprovals';
 import ThemeToggle from '../ThemeToggle.jsx';
 import AssignTask from '../Senior/AssignTask.jsx'; 
 import AnnouncementWidget from '../services/AnnouncementWidget.jsx';
-import starPublicityLogo from '../assets/starpublicity.png';
-import volgaInfosysLogo from '../assets/volgainfosys.png';
+// removed unused logo imports to satisfy lint
 import ViewTeamTasks from '../Senior/ViewTeamTasks.jsx';
 import { TaskDetailsModal } from '../Admin/TaskOverview.jsx';
 import { TeamReports } from '../Admin/AdminDashboard.jsx';
@@ -36,11 +35,34 @@ const isSameDay = (date1, date2) => {
          date1.getDate() === date2.getDate();
 };
 
+// Reusable display and edit field components at module scope to avoid
+// recreating component types on every render (prevents input remounts).
+const InfoField = ({ label, value }) => (
+  <div>
+    <p className="text-sm text-gray-500 dark:text-slate-400">{label}</p>
+    <p className="text-md font-semibold text-gray-800 dark:text-slate-200">{value || 'N/A'}</p>
+  </div>
+);
+
+const EditField = ({ label, name, value, onChange, type = 'text' }) => (
+  <div>
+    <label htmlFor={name} className="block text-sm font-medium text-gray-700 dark:text-slate-300">{label}</label>
+    <input
+      type={type}
+      name={name}
+      id={name}
+      value={value}
+      onChange={onChange}
+      className="mt-1 w-full text-sm border border-gray-300 dark:border-slate-600 rounded-lg p-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition"
+    />
+  </div>
+);
+
 export const Dashboard = ({ user, onNavigate }) => {
   // Skip queries if user is not authenticated
   const isAuthenticated = !!user?._id;
   const { data: tasks = [], isLoading } = useGetMyTasksQuery(undefined, { pollingInterval: 30000, skip: !isAuthenticated });
-  const { data: announcement } = useGetActiveAnnouncementQuery(undefined, { skip: !isAuthenticated });
+  const { data: _announcement } = useGetActiveAnnouncementQuery(undefined, { skip: !isAuthenticated });
 
   const [filterType, setFilterType] = useState('week');
   const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
@@ -66,7 +88,7 @@ export const Dashboard = ({ user, onNavigate }) => {
   }, [filterType]);
 
   // Find next due date for user's own tasks
-  const nextMyTaskDueDate = useMemo(() => {
+  const _nextMyTaskDueDate = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Set to midnight for date-only comparison
     const upcoming = tasks
@@ -142,7 +164,7 @@ export const Dashboard = ({ user, onNavigate }) => {
   }, [filteredTasks]);
 
   // Dynamic Productivity Trend (Last 7 Days)
-  const productivityTrend = useMemo(() => {
+  const _productivityTrend = useMemo(() => {
     const data = [['Day', 'Tasks Completed']];
     if (!dateRange.startDate || !dateRange.endDate) return data;
     
@@ -336,7 +358,7 @@ export const Dashboard = ({ user, onNavigate }) => {
           <div className="flex justify-between items-center mb-4"><h3 className="text-base font-bold text-slate-800 dark:text-white">My Tasks</h3><button onClick={() => onNavigate('my-tasks')} className="text-xs font-bold text-indigo-600 hover:underline">View All</button></div>
           <div className="space-y-3 overflow-y-auto flex-1 pr-2"> 
             {stats?.activeTaskList?.length > 0 ? (
-              stats?.activeTaskList?.map((task, index) => (
+              stats?.activeTaskList?.map((task, _index) => (
                 <div key={task._id} className="p-3 border border-slate-100 dark:border-slate-700/50 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                   <div className="flex justify-between items-center gap-3">
                     <div className="flex-1 min-w-0 pr-3">
@@ -362,7 +384,7 @@ export const Dashboard = ({ user, onNavigate }) => {
         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 flex flex-col">
           <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">Upcoming Deadlines</h3>
           <div className="space-y-4">
-            {upcomingTasks?.map((task, i) => {
+            {upcomingTasks?.map((task, _index) => {
               const target = safeDate(task.dueDate);
               target.setHours(0,0,0,0);
               const todayD = new Date();
@@ -833,7 +855,7 @@ export const MyTasks = () => {
     return <div className="p-8 text-center">Loading tasks...</div>;
   }
 
-  const StatCard = ({ title, value, icon: Icon, color }) => (
+  const StatCard = React.useMemo(() => ({ title, value, icon: Icon, color }) => (
     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 border border-slate-100 dark:border-slate-700 flex items-center gap-5 transition-all duration-300 group">
       <div className={`p-4 rounded-full bg-gradient-to-br ${color.bg} ${color.text} shadow-sm group-hover:scale-110 transition-transform duration-300`}>
         <Icon className="h-7 w-7" />
@@ -843,8 +865,7 @@ export const MyTasks = () => {
         <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">{title}</p>
       </div>
     </div>
-  );
-
+  ), []);
   return (
     <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-slate-50/80 dark:bg-slate-900/50">
       <div className="mb-8 text-center sm:text-left">
@@ -1015,7 +1036,7 @@ export const MyReportHistory = ({ employeeId }) => {
         );
       }
       return <p className="whitespace-pre-wrap text-sm text-slate-600">{JSON.stringify(data, null, 2)}</p>;
-    } catch (e) {
+    } catch {
       return <p className="whitespace-pre-wrap text-sm text-slate-600">{content}</p>;
     }
   };
@@ -1199,7 +1220,7 @@ export const MyDailyReport = ({ employeeId }) => {
         if (content.reportNote) {
           setReportNote(content.reportNote);
         }
-      } catch (e) { /* ignore parsing errors */ }
+      } catch { /* ignore parsing errors */ }
     } else {
       // If not submitted or reopened, initialize from the task's last known progress
       assignedTasks.forEach(task => {
@@ -1497,20 +1518,6 @@ const EmployeeProfileContent = ({ user }) => {
     <div>
       <p className="text-sm text-gray-500 dark:text-slate-400">{label}</p>
       <p className="text-md font-semibold text-gray-800 dark:text-slate-200">{value || 'N/A'}</p>
-    </div>
-  );
-
-  const EditField = ({ label, name, value, onChange, type = 'text' }) => (
-    <div>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700 dark:text-slate-300">{label}</label>
-      <input
-        type={type}
-        name={name}
-        id={name}
-        value={value}
-        onChange={onChange}
-        className="mt-1 w-full text-sm border border-gray-300 dark:border-slate-600 rounded-lg p-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition"
-      />
     </div>
   );
 

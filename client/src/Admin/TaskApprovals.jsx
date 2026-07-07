@@ -147,7 +147,7 @@ const TaskApprovals = () => {
   const { data: tasksForApproval = [], isLoading: isLoadingTasks } = useGetTasksForApprovalQuery(undefined, { pollingInterval: 30000 });
   const [approveTask, { isLoading: isApproving }] = useApproveTaskMutation();
   const [rejectTask, { isLoading: isRejecting }] = useRejectTaskMutation();
-  const currentUser = useSelector(selectCurrentUser);
+  const _currentUser = useSelector(selectCurrentUser); // currently unused
   const [rejectingTask, setRejectingTask] = useState(null);
   const [viewingTask, setViewingTask] = useState(null);
   const [approvingTask, setApprovingTask] = useState(null);
@@ -183,6 +183,7 @@ const pendingApprovalsByEmployee = useMemo(() => {
       toast.success('Task approved!');
       setApprovingTask(null);
     } catch (err) {
+      console.error('Failed to approve task:', err);
       toast.error('Failed to approve task.');
     }
   };
@@ -197,6 +198,7 @@ const pendingApprovalsByEmployee = useMemo(() => {
       toast.success('Task rejected and feedback sent.');
       setRejectingTask(null);
     } catch (err) {
+      console.error('Failed to reject task:', err);
       toast.error(err.data?.message || 'Failed to reject task.');
     }
   };

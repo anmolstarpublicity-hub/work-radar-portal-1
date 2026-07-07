@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useGetAllTasksQuery, useGetEmployeesQuery, useUpdateTaskMutation, useDeleteTaskMutation, useAddTaskCommentMutation } from '../services/EmployeApi';
+import { useGetAllTasksQuery, useGetEmployeesQuery, useUpdateTaskMutation, useDeleteTaskMutation } from '../services/EmployeApi';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../app/authSlice';
 import toast from 'react-hot-toast';
@@ -191,6 +191,7 @@ const ViewAllTasks = ({ initialFilters = {} }) => {
       toast.success('Task deleted successfully!');
       setDeletingTask(null);
     } catch (err) {
+      console.error('Failed to delete task:', err);
       toast.error(err.data?.message || 'Failed to delete task.');
     }
   };
@@ -208,12 +209,7 @@ const ViewAllTasks = ({ initialFilters = {} }) => {
     Completed: 'bg-emerald-100 text-emerald-800',
   };
 
-  const completionCategoryStyles = {
-    Pending: 'bg-red-100 text-red-800',
-    Low: 'bg-yellow-100 text-yellow-800',
-    Moderate: 'bg-blue-100 text-blue-800',
-    Completed: 'bg-emerald-100 text-emerald-800',
-  };
+  // completionCategoryStyles removed (unused)
 
   if (isLoading) return <div className="p-8 text-center">Loading...</div>;
 

@@ -1,275 +1,80 @@
-import { apiSlice } from "./apiSlice";
-import { setCredentials } from "../app/authSlice";
+import { apiSlice } from './apiSlice'; // Assuming apiSlice is defined here
 
-export const employeApi = apiSlice.injectEndpoints({
+export const extendedApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    // Query to get dashboard stats
-    getDashboardStats: builder.query({
-      query: () => "/stats",
-      providesTags: (result, error, arg) => [{ type: "Employee", id: "LIST" }],
-      pollingInterval: 30000,
-    }),
-    // Query to get manager dashboard stats
-    getManagerDashboardStats: builder.query({
-      query: (managerId) => `/manager-stats/${managerId}`,
-      providesTags: ["Report", { type: "Employee", id: "LIST" }],
-      pollingInterval: 30000,
-    }),
-    // Query to get all employees
-    getEmployees: builder.query({
-      query: () => "/employees",
-      // Provides a tag for the list of employees.
-      // This is used for caching and automatic re-fetching.
-      providesTags: (result = []) =>
-        result
-          ? [
-              ...result.map(({ _id }) => ({ type: "Employee", id: _id })),
-              { type: "Employee", id: "LIST" },
-            ]
-          : [{ type: "Employee", id: "LIST" }],
-      pollingInterval: 30000, // Poll every 30 seconds for real-time updates
-    }),
-
-    // Mutation to add a new employee
-    addEmployee: builder.mutation({
-      query: (newEmployee) => ({
-        url: "/employees",
-        method: "POST",
-        body: newEmployee, // Body is now FormData
-      }),
-      // When an employee is added, invalidate the 'Employee' list tag to trigger a refetch.
-      invalidatesTags: [{ type: "Employee", id: "LIST" }],
-    }),
-    // Mutation to update an employee
-    updateEmployee: builder.mutation({
-      query: ({ id, formData }) => ({
-        url: `/employees/${id}`,
-        method: "PUT",
-        body: formData, // Body is now FormData
-      }),
-      // Invalidates the 'Employee' list tag to trigger a refetch.
-      invalidatesTags: (result, error, { id }) => [
-        { type: "Employee", id },
-        { type: "Employee", id: "LIST" },
-      ],
-      async onQueryStarted({ id }, { dispatch, queryFulfilled, getState }) {
-        try {
-          const { data: updatedData } = await queryFulfilled;
-          const loggedInUser = getState().auth.user;
-          const token = getState().auth.token;
-
-          // If the updated employee is the currently logged-in user,
-          // update their credentials in the Redux store to reflect permission changes instantly.
-          if (loggedInUser && loggedInUser._id === id && updatedData.employee) {
-            dispatch(setCredentials({ user: updatedData.employee, token }));
-          }
-        } catch (err) { /* The error is already handled by the component */ }
-      },
-    }),
-    // Mutation to delete an employee
-    deleteEmployee: builder.mutation({
-      query: (id) => ({
-        url: `/employees/${id}`,
-        method: "DELETE",
-      }),
-      // Invalidates the 'Employee' list tag to trigger a refetch.
-      invalidatesTags: (result, error, id) => [
-        { type: "Employee", id },
-        { type: "Employee", id: "LIST" },
-      ],
-    }),
-    // Mutation to assign an employee
-    assignEmployee: builder.mutation({
-      query: ({ employeeId, department, teamLeadId }) => ({
-        url: `/employees/${employeeId}/assign`,
-        method: "PUT",
-        body: { department, teamLeadId },
-      }),
-      invalidatesTags: (result, error, { employeeId, teamLeadId }) => [
-        { type: "Employee", id: employeeId },
-        { type: "Employee", id: teamLeadId },
-        { type: "Employee", id: "LIST" },
-        'User', // Invalidate the general User tag to force refetch of 'getMe'
-      ],
-    }),
-    // Mutation to unassign an employee
-    unassignEmployee: builder.mutation({
-      query: (employeeId) => ({
-        url: `/employees/${employeeId}/unassign`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: (result, error, employeeId) => [
-        { type: 'Employee', id: employeeId },
-        { type: 'Employee', id: 'LIST' },
-      ],
-    }),
-
-    // Mutation for user login
+    // Auth Endpoints (moved from authSlice to here for consistency with other RTK Query hooks)
+    // Note: These are typically defined in a separate authApiSlice if they don't directly
+    // interact with 'Employee' tags, but for consolidation, they are placed here.
     login: builder.mutation({
       query: (credentials) => ({
         url: '/login',
         method: 'POST',
         body: credentials,
       }),
+      // Does not invalidate tags, as login typically just sets credentials
     }),
-
-    getMe: builder.query({
-      query: () => '/auth/me',
-      providesTags: ['User'],
-      // Automatically refetch the user's data every 30 seconds
-      // to ensure permissions are always up-to-date.
-      pollingInterval: 30000, 
+    // Employee Management
+    getEmployees: builder.query({
+      query: () => '/employees',
+      providesTags: ['Employee'],
     }),
-    
-    // Setup endpoints
-    checkAdminSetup: builder.query({
-      query: () => '/setup/check',
+    getEmployeeById: builder.query({
+      query: (id) => `/employees/${id}`,
+      providesTags: (result, error, id) => [{ type: 'Employee', id }],
     }),
-
-    createAdmin: builder.mutation({
-      query: (adminData) => ({
-        url: '/setup/create-admin',
+    addEmployee: builder.mutation({
+      query: (employeeData) => ({
+        url: '/employees',
         method: 'POST',
-        body: adminData,
+        body: employeeData,
       }),
+      invalidatesTags: ['Employee'],
     }),
-
-    getCompanyInfo: builder.query({
-      query: () => '/setup/company-info',
-      providesTags: ['CompanyInfo'],
-    }),
-
-    // Query to get today's report for an employee
-    getTodaysReport: builder.query({
-      query: (employeeId) => `/reports/my-today/${employeeId}`,
-      providesTags: (result, error, employeeId) => [
-        { type: "Report", id: employeeId },
-      ],
-    }),
-
-    getAllMyReports: builder.query({
-      query: (employeeId) => `/reports/my-all/${employeeId}`,
-      providesTags: (result = [], error, arg) => [
-        'Report',
-        ...result.map(({ id }) => ({ type: 'Report', id })),
-      ],
-    }),
-
-    // Admin endpoint to get reports for a specific employee
-    getReportsByEmployee: builder.query({
-      query: (employeeId) => `/reports/employee/${employeeId}`,
-      providesTags: (result, error, arg) =>
-        result
-          ? [
-              ...result.map(({ _id }) => ({ type: 'Report', id: _id })),
-              { type: 'Report', id: 'LIST' },
-            ]
-          : [{ type: 'Report', id: 'LIST' }],
-    }),
-    // Mutation to update today's report
-    updateTodaysReport: builder.mutation({
-      query: ({ employeeId, ...patch }) => ({
-        url: `/reports/my-today/${employeeId}`,
-        method: "POST",
-        body: patch,
-      }),
-      invalidatesTags: (result, error, { employeeId }) => [
-        { type: "Report", id: employeeId }, 'Task',
-        { type: 'Report', id: 'LIST' }
-      ],
-    }),
-
-    deleteReport: builder.mutation({
-      query: (id) => ({
-        url: `/reports/${id}`,
-        method: 'DELETE',
-      }),
-      // Invalidate the general 'Report' tag to force a refetch of any queries that provide it.
-      invalidatesTags: ['Report'],
-    }),
-
-
-    // Notification endpoints
-    getNotifications: builder.query({
-      query: () => '/notifications',
-      providesTags: ['Notification'],
-      pollingInterval: 30000, // Poll every 30 seconds
-    }),
-
-    markNotificationsAsRead: builder.mutation({
-      query: () => ({
-        url: '/notifications/mark-read',
+    updateEmployee: builder.mutation({
+      query: ({ id, formData }) => ({
+        url: `/employees/${id}`,
         method: 'PUT',
+        body: formData,
       }),
-      // When notifications are marked as read, invalidate the 'Notification' tag to refetch.
-      invalidatesTags: ['Notification'],
+      invalidatesTags: (result, error, { id }) => ['Employee', { type: 'Employee', id }],
     }),
-
-    deleteReadNotifications: builder.mutation({
-      query: () => ({
-        url: '/notifications/read',
+    deleteEmployee: builder.mutation({
+      query: (id) => ({
+        url: `/employees/${id}`,
         method: 'DELETE',
       }),
-      // When read notifications are deleted, invalidate the 'Notification' tag to refetch.
-      invalidatesTags: ['Notification'],
+      invalidatesTags: ['Employee'],
     }),
-
-    // Holiday endpoints
-    getHolidays: builder.query({
-      query: () => '/holidays',
-      providesTags: (result = []) => [
-        ...result.map(({ _id }) => ({ type: 'Holiday', id: _id })),
-        { type: 'Holiday', id: 'LIST' },
-      ],
+    getDashboardStats: builder.query({
+      query: () => '/stats',
+      providesTags: ['DashboardStats'],
     }),
-
-    addHoliday: builder.mutation({
-      query: (holiday) => ({
-        url: '/holidays',
+    getEmployeeOfTheMonthCandidates: builder.query({
+      query: ({ month, year }) => `/employees/employee-of-the-month?month=${month}&year=${year}`,
+      providesTags: ['EOMCandidates'],
+    }),
+    getEmployeeEOMHistory: builder.query({
+      query: (employeeId) => `/employees/${employeeId}/eom-history`,
+      providesTags: (result, error, employeeId) => [{ type: 'EOMHistory', id: employeeId }],
+    }),
+    getOfficialEOM: builder.query({
+      query: ({ month, year }) => `/employees/official-eom?month=${month}&year=${year}`,
+      providesTags: ['EOMOfficial'],
+    }),
+    setEmployeeOfTheMonth: builder.mutation({
+      query: (eomData) => ({
+        url: '/employees/employee-of-the-month',
         method: 'POST',
-        body: holiday,
+        body: eomData,
       }),
-      invalidatesTags: [{ type: 'Holiday', id: 'LIST' }],
+      invalidatesTags: ['EOMCandidates', 'EOMOfficial', 'Announcement'], // Invalidate relevant tags
+    }),
+    getHallOfFame: builder.query({
+      query: () => '/employees/hall-of-fame',
+      providesTags: ['EOMOfficial'], // Assuming Hall of Fame data relates to EOM
     }),
 
-    deleteHoliday: builder.mutation({
-      query: (id) => ({ url: `/holidays/${id}`, method: 'DELETE' }),
-      invalidatesTags: (result, error, id) => [{ type: 'Holiday', id }, { type: 'Holiday', id: 'LIST' }],
-    }),
-
-    // Leave endpoints
-    getLeaves: builder.query({
-      query: (employeeId) => `/leaves/${employeeId}`,
-      providesTags: (result = [], error, employeeId) => [
-        ...result.map(({ _id }) => ({ type: 'Leave', id: _id })),
-        { type: 'Leave', id: 'LIST', employeeId },
-      ],
-      pollingInterval: 30000,
-    }),
-
-    addLeave: builder.mutation({
-      query: ({ employeeId, date }) => ({
-        url: `/leaves/${employeeId}`,
-        method: 'POST',
-        body: { date },
-      }),
-      invalidatesTags: (result, error, { employeeId }) => [{ type: 'Leave', id: 'LIST', employeeId }],
-    }),
-
-    removeLeave: builder.mutation({
-      query: (leaveId) => ({ url: `/leaves/${leaveId}`, method: 'DELETE' }),
-      invalidatesTags: (result, error, leaveId) => [
-        { type: 'Leave', id: leaveId }, { type: 'Leave', id: 'LIST' }
-      ],
-    }),
-
-    // Attendance endpoint
-    getAttendance: builder.query({
-      query: ({ employeeId, year, month }) => `/attendance/${employeeId}?year=${year}&month=${month}`,
-      providesTags: ['Report', 'Leave', 'Holiday'],
-    }),
-
-    // Task endpoints
+    // Task Management
     createTask: builder.mutation({
       query: (taskData) => ({
         url: '/tasks',
@@ -278,202 +83,240 @@ export const employeApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Task'],
     }),
-
     createMultipleTasks: builder.mutation({
-      query: (body) => ({
+      query: (tasksData) => ({
         url: '/tasks/multiple',
         method: 'POST',
-        body,
+        body: tasksData,
       }),
       invalidatesTags: ['Task'],
     }),
-
     getMyTasks: builder.query({
-      query: () => '/tasks/my-tasks',
+      query: () => '/tasks/my',
       providesTags: ['Task'],
-      pollingInterval: 30000, // Poll every 30 seconds
     }),
-
     getAllTasks: builder.query({
       query: () => '/tasks/all',
       providesTags: ['Task'],
-      pollingInterval: 30000, // Poll every 30 seconds
     }),
-
     updateTask: builder.mutation({
       query: ({ id, ...patch }) => ({
         url: `/tasks/${id}`,
         method: 'PUT',
         body: patch,
       }),
-      invalidatesTags: ['Task', 'Notification'],
-    }),
-
-    approveTask: builder.mutation({
-      query: ({ id, finalPercentage, comment }) => ({
-        url: `/tasks/${id}/approve`,
-        method: 'PUT',
-        body: { finalPercentage, comment },
-      }),
-      invalidatesTags: ['Task', 'Notification'],
-    }),
-
-    rejectTask: builder.mutation({
-      query: ({ id, reason, finalPercentage }) => ({
-        url: `/tasks/${id}/reject`,
-        method: 'PUT',
-        body: { reason, finalPercentage },
-      }),
-      invalidatesTags: ['Task', 'Notification'],
-    }),
-
-    addTaskComment: builder.mutation({
-      query: ({ taskId, text }) => ({
-        url: `/tasks/${taskId}/comments`,
-        method: 'POST',
-        body: { text },
-      }),
-      invalidatesTags: (result, error, { taskId }) => [{ type: 'Task', id: taskId }],
-    }),
-
-    deleteTask: builder.mutation({
-      query: (id) => ({
-        url: `/tasks/${id}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['Task', 'Notification'],
+      invalidatesTags: (result, error, { id }) => ['Task', { type: 'Task', id }],
     }),
     processPastDueTasks: builder.mutation({
       query: () => ({
         url: '/tasks/process-due-tasks',
         method: 'POST',
       }),
-      invalidatesTags: ['Task', 'Notification'],
+      invalidatesTags: ['Task'],
     }),
-
     getTasksForApproval: builder.query({
       query: () => '/tasks/for-approval',
-      providesTags: ['Task'],
-      pollingInterval: 30000,
+      providesTags: ['Task', 'Notification'],
     }),
 
-    getEmployeeOfTheMonthCandidates: builder.query({
-      query: ({ month, year }) => `/employees/employee-of-the-month?month=${month}&year=${year}`,
-      providesTags: (result, error, { month, year }) => [
-        { type: 'Employee', id: `EOM-${month}-${year}` }
-      ],
-      pollingInterval: 30000,
+    // Report Management
+    getTodaysReport: builder.query({
+      query: (employeeId) => `/reports/my-today/${employeeId}`,
+      providesTags: ['Report'],
     }),
-
-    setEmployeeOfTheMonth: builder.mutation({
-      query: (body) => ({
-        url: '/employees/employee-of-the-month',
+    updateTodaysReport: builder.mutation({
+      query: ({ employeeId, ...patch }) => ({
+        url: `/reports/my-today/${employeeId}`,
         method: 'POST',
-        body,
+        body: patch,
       }),
-      invalidatesTags: (result, error, { month, year }) => [
-        { type: 'EOMOfficial', id: `${month}-${year}` },
-        'Announcement', // Invalidate announcement to show the new EOM winner
-      ],
+      invalidatesTags: ['Report', 'Notification'],
+    }),
+    getAllMyReports: builder.query({
+      query: (employeeId) => `/reports/my-all/${employeeId}`,
+      providesTags: ['Report'],
     }),
 
-    getOfficialEOM: builder.query({
-      query: ({ month, year }) => `/employees/official-eom?month=${month}&year=${year}`,
-      providesTags: (result, error, { month, year }) => [{ type: 'EOMOfficial', id: `${month}-${year}` }],
-      refetchOnMountOrArgChange: true,
-      pollingInterval: 30000,
-    }),
-
-    getHallOfFame: builder.query({
-      query: () => '/employees/hall-of-fame',
-      providesTags: ['EOMOfficial'],
-    }),
-
-    getEmployeeEOMHistory: builder.query({
-      query: (employeeId) => `/employees/${employeeId}/eom-history`,
-      providesTags: (result, error, employeeId) => [{ type: 'EOMHistory', id: employeeId }],
-    }),
-
-    // Announcement Endpoints
+    // Announcement Management
+    // Active announcement for the current user (server route: /announcements/active)
     getActiveAnnouncement: builder.query({
       query: () => '/announcements/active',
       providesTags: ['Announcement'],
-      pollingInterval: 30000,
     }),
-
+    // Admin: fetch all announcements (server route: /announcements)
     getAllAnnouncements: builder.query({
       query: () => '/announcements',
-      providesTags: (result = []) => [
-        ...result.map(({ _id }) => ({ type: 'Announcement', id: _id })),
-        { type: 'Announcement', id: 'LIST' },
-      ],
+      providesTags: ['Announcement'],
     }),
-
     createAnnouncement: builder.mutation({
-      query: (announcement) => ({
-        url: '/announcements',
-        method: 'POST',
-        body: announcement,
-      }),
-      invalidatesTags: [{ type: 'Announcement', id: 'LIST' }, 'Announcement'],
+      query: (announcementData) => ({ url: '/announcements', method: 'POST', body: announcementData }),
+      invalidatesTags: ['Announcement'],
     }),
-
     deleteAnnouncement: builder.mutation({
       query: (id) => ({ url: `/announcements/${id}`, method: 'DELETE' }),
-      invalidatesTags: (result, error, id) => [{ type: 'Announcement', id }, { type: 'Announcement', id: 'LIST' }],
+      invalidatesTags: ['Announcement'],
+    }),
+    dismissAnnouncement: builder.mutation({
+      query: (id) => ({
+        url: `/announcements/${id}/dismiss`,
+        method: 'POST',
+      }),
+      invalidatesTags: (result, error, id) => ['Announcement', { type: 'Announcement', id }],
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          apiSlice.util.updateQueryData('getActiveAnnouncement', undefined, (draft) => {
+            if (draft && draft._id === id) return undefined;
+            return draft;
+          })
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+        }
+      },
+    }),
+
+    // Holiday Management
+    getHolidays: builder.query({
+      query: () => '/holidays',
+      providesTags: ['Holiday'],
+    }),
+
+    // Attendance Management
+    getAttendanceForMonth: builder.query({
+      query: ({ employeeId, year, month }) => `/attendance/${employeeId}?year=${year}&month=${month}`,
+      providesTags: ['Attendance'],
+    }),
+    addHoliday: builder.mutation({
+      query: (holidayData) => ({
+        url: '/holidays',
+        method: 'POST',
+        body: holidayData,
+      }),
+      invalidatesTags: ['Holiday'],
+    }),
+    deleteHoliday: builder.mutation({
+      query: (id) => ({
+        url: `/holidays/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Holiday'],
+    }),
+
+    // Setup Endpoints
+    checkAdminSetup: builder.query({
+      query: () => '/setup/check',
+      providesTags: ['Setup'],
+    }),
+    createAdmin: builder.mutation({
+      query: (adminData) => ({
+        url: '/setup/create-admin',
+        method: 'POST',
+        body: adminData,
+      }),
+      invalidatesTags: ['Setup', 'Employee'],
+    }),
+    getMe: builder.query({
+      query: () => '/auth/me',
+      providesTags: ['Employee'],
+    }),
+
+    // Settings Endpoints
+    getScoringSettings: builder.query({
+      query: () => '/settings/scoring',
+      providesTags: ['ScoringSettings'],
+    }),
+    updateScoringSettings: builder.mutation({
+      query: (settingsData) => ({
+        url: '/settings/scoring',
+        method: 'PUT',
+        body: settingsData,
+      }),
+      invalidatesTags: ['ScoringSettings'],
+    }),
+    // Company Info
+    forgotPassword: builder.mutation({
+      query: (credentials) => ({ url: '/auth/forgot-password', method: 'POST', body: credentials }),
+    }),
+    resetPassword: builder.mutation({
+      query: ({ token, password }) => ({ url: `/auth/reset-password/${token}`, method: 'POST', body: { password } }),
+    }),
+
+    // Company Info
+    getCompanyInfo: builder.query({
+      query: () => '/setup/company-info',
+      providesTags: ['CompanyInfo'],
+    }),
+
+    // Notifications
+    getMyNotifications: builder.query({
+      query: () => '/notifications',
+      providesTags: ['Notification'],
+    }),
+    markNotificationsAsRead: builder.mutation({
+      query: () => ({ url: '/notifications/mark-read', method: 'PUT' }),
+      invalidatesTags: ['Notification'],
+    }),
+    deleteReadNotifications: builder.mutation({
+      query: () => ({ url: '/notifications/read', method: 'DELETE' }),
+      invalidatesTags: ['Notification'],
     }),
   }),
 });
 
-// Export hooks for usage in functional components, which are
-// auto-generated based on the defined endpoints
 export const {
-  useGetDashboardStatsQuery,
-  useGetManagerDashboardStatsQuery,
+  useLoginMutation, // Exported
   useGetEmployeesQuery,
+  useGetEmployeeByIdQuery,
   useAddEmployeeMutation,
   useUpdateEmployeeMutation,
   useDeleteEmployeeMutation,
-  useAssignEmployeeMutation,
-  useUnassignEmployeeMutation,
-  useGetTodaysReportQuery,
-  useUpdateTodaysReportMutation,
-  useLoginMutation,
-  useGetAllMyReportsQuery,
-  useGetReportsByEmployeeQuery,
-  useDeleteReportMutation,
-  useCheckAdminSetupQuery,
-  useCreateAdminMutation,
-  useGetCompanyInfoQuery,
-  useGetNotificationsQuery,
-  useMarkNotificationsAsReadMutation,
-  useDeleteReadNotificationsMutation,
-  useGetHolidaysQuery,
-  useAddHolidayMutation,
-  useDeleteHolidayMutation,
-  useGetLeavesQuery,
-  useAddLeaveMutation,
-  useRemoveLeaveMutation,
-  useGetAttendanceQuery,
-  useGetMeQuery,
+  useGetDashboardStatsQuery,
+  useGetEmployeeOfTheMonthCandidatesQuery,
+  useGetEmployeeEOMHistoryQuery,
+  useSetEmployeeOfTheMonthMutation, // Exported
+  useGetHallOfFameQuery, // Exported
+  useGetOfficialEOMQuery, // Exported
   useCreateTaskMutation,
-  useGetMyTasksQuery,
   useCreateMultipleTasksMutation,
+  useGetMyTasksQuery,
   useGetAllTasksQuery,
   useUpdateTaskMutation,
-  useApproveTaskMutation,
-  useRejectTaskMutation,
+  useProcessPastDueTasksMutation,
+  useDeleteTaskMutation, // Exported
+  useAddTaskCommentMutation, // Export the new mutation
+  useApproveTaskMutation, // Exported
+  useRejectTaskMutation, // Exported
   useGetTasksForApprovalQuery,
-  useAddTaskCommentMutation,
-  useDeleteTaskMutation,
-  useGetEmployeeOfTheMonthCandidatesQuery,
+  useGetTodaysReportQuery,
+  useUpdateTodaysReportMutation,
+  useGetAllMyReportsQuery,
+  useGetReportsByEmployeeQuery, // Exported
+  useDeleteReportMutation, // Exported
   useGetActiveAnnouncementQuery,
-  useSetEmployeeOfTheMonthMutation,
-  useGetOfficialEOMQuery,
-  useGetHallOfFameQuery,
-  useGetEmployeeEOMHistoryQuery,
-  useGetAllAnnouncementsQuery,
-  useCreateAnnouncementMutation,
-  useDeleteAnnouncementMutation,
-} = employeApi;
-export const { useProcessPastDueTasksMutation } = employeApi;
+  useGetAllAnnouncementsQuery, // Exported
+  useCreateAnnouncementMutation, // Exported
+  useDeleteAnnouncementMutation, // Exported
+  useDismissAnnouncementMutation,
+  useGetMyNotificationsQuery, // Exported
+  useMarkNotificationsAsReadMutation, // Exported
+  useDeleteReadNotificationsMutation, // Exported
+  useAddHolidayMutation, // Export the new mutation
+  useDeleteHolidayMutation, // Export the new mutation
+  useCheckAdminSetupQuery, // Exported
+  useCreateAdminMutation, // Exported
+  useGetMeQuery, // Exported
+  useGetScoringSettingsQuery, // Exported
+  useForgotPasswordMutation, // Exported (from authSlice)
+  useResetPasswordMutation, // Exported (from authSlice)
+  useUpdateScoringSettingsMutation, // Exported,
+  useAssignEmployeeMutation,
+  useUnassignEmployeeMutation, // Export the new mutation
+  useAddLeaveMutation, // Export the new mutation
+  useRemoveLeaveMutation,
+  useGetLeavesForEmployeeQuery,
+  useGetAttendanceForMonthQuery, // Exported
+  useGetHolidaysQuery,
+  useGetCompanyInfoQuery,
+} = extendedApi;

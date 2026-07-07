@@ -132,6 +132,7 @@ const HolidayManagement = () => {
       setIsAddModalOpen(false);
       setSelectedDateForModal(null);
     } catch (err) {
+      console.error('Failed to add holiday:', err);
       toast.error(err.data?.message || 'Failed to add holiday.');
     }
   };
@@ -142,6 +143,7 @@ const HolidayManagement = () => {
       toast.success('Holiday removed successfully!');
       setDeletingHoliday(null);
     } catch (err) {
+      console.error('Failed to remove holiday:', err);
       toast.error('Failed to remove holiday.');
     }
   };

@@ -5,6 +5,11 @@ import { MegaphoneIcon, XMarkIcon } from '@heroicons/react/24/outline';
 const AnnouncementBanner = () => {
   const { data: announcement, isLoading } = useGetActiveAnnouncementQuery();
   const [isVisible, setIsVisible] = useState(true);
+  React.useEffect(() => {
+    if (!announcement) return;
+    const key = `announcementDismissed_session_${announcement._id}`;
+    setIsVisible(!sessionStorage.getItem(key));
+  }, [announcement]);
 
   const showBanner = !isLoading && announcement && isVisible;
 
@@ -26,7 +31,13 @@ const AnnouncementBanner = () => {
             </p>
           </div>
           <div className="order-3 mt-2 w-full flex-shrink-0 sm:order-2 sm:mt-0 sm:w-auto">
-            <button onClick={() => setIsVisible(false)} className="flex items-center justify-center rounded-md border border-transparent bg-white/10 px-4 py-2 text-sm font-medium hover:bg-white/20">
+            <button onClick={() => {
+                if (announcement && announcement._id) {
+                  const key = `announcementDismissed_session_${announcement._id}`;
+                  sessionStorage.setItem(key, 'true');
+                }
+                setIsVisible(false);
+              }} className="flex items-center justify-center rounded-md border border-transparent bg-white/10 px-4 py-2 text-sm font-medium hover:bg-white/20">
               Dismiss
             </button>
           </div>

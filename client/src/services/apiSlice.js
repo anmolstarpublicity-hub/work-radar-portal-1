@@ -1,8 +1,14 @@
 // src/services/apiSlice.js
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
  
+// During development the frontend is served by Vite (usually on :5173/5174)
+// while the API runs on a separate Express server (default port 2000).
+// Use the backend origin in DEV so requests go to the API server, and use
+// the relative path in production where Nginx proxies `/workradar/api`.
+const resolvedBaseUrl = import.meta.env.DEV ? 'http://localhost:2000/workradar/api' : '/workradar/api';
+
 const baseQuery = fetchBaseQuery({
-  baseUrl: '/workradar/api',
+  baseUrl: resolvedBaseUrl,
   prepareHeaders: (headers, { getState }) => {
     const token = getState().auth.token;
     if (token) {
@@ -36,7 +42,7 @@ export const apiSlice = createApi({
   endpoints: (builder) => ({
     logout: builder.mutation({
       query: () => ({ url: '/logout', method: 'POST' }),
-      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+      async onQueryStarted(arg, { dispatch }) {
         dispatch({ type: 'auth/logOut' });
         // Reset the entire API state to clear out any cached data
         dispatch(apiSlice.util.resetApiState());
