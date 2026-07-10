@@ -44,8 +44,8 @@ const ManageAnnouncements = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1">
-          <form onSubmit={handleCreate} className="bg-white dark:bg-black rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg p-6 space-y-4">
+        <div className="lg:col-span-1"> {/* Changed form background */}
+          <form onSubmit={handleCreate} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg p-6 space-y-4">
             <h3 className="text-lg font-bold text-slate-800 dark:text-white">Create New Announcement</h3>
             <input
               type="text"
@@ -68,8 +68,8 @@ const ManageAnnouncements = () => {
           </form>
         </div>
 
-        <div className="lg:col-span-2">
-          <div className="bg-white dark:bg-black rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg p-6">
+        <div className="lg:col-span-2"> {/* Changed history background */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg p-6">
             <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Announcement History</h3>
             <div className="space-y-4 max-h-[60vh] overflow-y-auto">
               {isLoading ? <p>Loading...</p> : announcements.map(ann => (

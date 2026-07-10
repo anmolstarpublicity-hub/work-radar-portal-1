@@ -285,21 +285,21 @@ const Dashboard = () => {
   ].filter(x => x.value > 0);
 
   // --- Clean Executive Layout ---
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-manrope text-slate-800 dark:text-slate-200 p-6 lg:p-8">
+  return ( // Changed main background and text color variables to direct Tailwind classes
+    <div className="min-h-screen bg-slate-50 p-6 font-manrope text-slate-800 dark:bg-slate-900 dark:text-white lg:p-8">
 
       {/* Blueprint Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white">Welcome back, {_user?.name?.split(' ')[0] || 'Admin'}! 👋</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Here's your system overview for the selected period.</p>
+      <div className="mb-8 flex flex-col flex-wrap items-start justify-between gap-6 rounded-[24px] border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 p-6 shadow-sm text-white md:flex-row md:items-center dark:border-slate-700">
+        <div className="w-full md:w-3/4"> {/* Adjusted welcome message for Admin Dashboard */}
+          <h1 className="text-2xl font-extrabold">Welcome back, {_user?.name?.split(' ')[0] || 'Admin'}! 👋</h1>
+          <p className="text-sm mt-1">Here's what's happening across the platform for the selected period.</p>
         </div>
         <div className="mt-4 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
           <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto md:mr-2">
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="w-full sm:w-auto bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 outline-none cursor-pointer shadow-sm"
+              className="w-full sm:w-auto bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-600 outline-none cursor-pointer shadow-sm dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"
             >
               <option value="week">This Week</option>
               <option value="month">This Month</option>
@@ -319,9 +319,9 @@ const Dashboard = () => {
               </div>
             )}
           </div>
-          <div className="text-right hidden sm:block mr-3 border-l border-slate-200 dark:border-slate-700 pl-4">
+          <div className="text-right hidden sm:block mr-3 border-l border-slate-200 pl-4 dark:border-slate-700">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-700 dark:text-indigo-400 font-bold border border-indigo-200 dark:border-indigo-800">
+              <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center text-slate-800 font-bold border border-slate-200 dark:bg-slate-700 dark:text-white dark:border-slate-600">
                 {_user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'SA'}
               </div>
               <div className="text-left">
@@ -347,7 +347,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         
         {/* Task Overview Donut */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm flex flex-col justify-center">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-center dark:bg-slate-800 dark:border-slate-700">
           <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">Platform Task Overview</h3>
           <div className="flex-1 flex flex-col sm:flex-row items-center gap-4 sm:gap-0">
             <div className="relative h-48 w-48 flex-shrink-0 mx-auto sm:mx-0">
@@ -376,7 +376,7 @@ const Dashboard = () => {
         </div>
 
         {/* Task Completion Trend (Area Chart) */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm lg:col-span-1">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm lg:col-span-1 dark:bg-slate-800 dark:border-slate-700">
           <h3 className="text-base font-bold text-slate-800 dark:text-white mb-2">Task Completion Trend</h3>
           <div className="relative h-60 -ml-4 -mb-2">
             <GoogleAreaChart data={trendData} colors={['#6366f1']} />
@@ -384,7 +384,7 @@ const Dashboard = () => {
         </div>
 
         {/* User Distribution Donut */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm flex flex-col justify-center">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-center dark:bg-slate-800 dark:border-slate-700">
           <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">User Distribution</h3>
           <div className="flex-1 flex flex-col sm:flex-row items-center gap-4 sm:gap-0">
             <div className="relative h-48 w-48 flex-shrink-0 mx-auto sm:mx-0">
@@ -410,8 +410,8 @@ const Dashboard = () => {
       {/* Bottom Grid Rows */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         
-        {/* Top Performing Managers / Employees */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+        {/* Top Performing Managers / Employees - Adjusted background */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm dark:bg-slate-800 dark:border-slate-700">
           <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">Top Performing Managers</h3>
           <div className="space-y-4">
             {eomCandidates.filter(c => c.employee && c.employee.dashboardAccess === 'Manager Dashboard').slice(0, 4).map((candidate, i) => (
@@ -436,7 +436,7 @@ const Dashboard = () => {
         </div>
 
         {/* Recent System Activities */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm dark:bg-slate-800 dark:border-slate-700">
           <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">Recent System Activities</h3>
           <div className="relative border-l-2 border-slate-100 dark:border-slate-700 ml-3 space-y-5">
             {dynamicSystemActivities?.map(activity => (
@@ -454,7 +454,7 @@ const Dashboard = () => {
         </div>
 
         {/* Tasks Due for Approval */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm dark:bg-slate-800 dark:border-slate-700">
           <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">Tasks Due for Approval</h3>
           <div className="space-y-3">
             {approvalTasks?.slice(0, 4).map((task, i) => (
@@ -474,10 +474,10 @@ const Dashboard = () => {
       </div>
 
       {/* Lower Metrics Bar */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6"> {/* Adjusted background for consistency */}
+        <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm dark:bg-slate-800 dark:border-slate-700">
           <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-4">Overall Platform Analytics</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 divide-x divide-slate-100 dark:divide-slate-700">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 divide-x divide-slate-100 dark:divide-slate-700"> {/* Adjusted divider color */}
             <div className="px-4 first:pl-0"><p className="text-2xl font-black text-slate-800 dark:text-white">{platformAnalytics.completionRate}%</p><p className="text-xs font-semibold text-slate-500 mt-1">Task Completion</p></div>
             <div className="px-4"><p className="text-2xl font-black text-slate-800 dark:text-white">{platformAnalytics.onTimeRate}%</p><p className="text-xs font-semibold text-slate-500 mt-1">On-Time Delivery</p></div>
             <div className="px-4"><p className="text-2xl font-black text-slate-800 dark:text-white">92%</p><p className="text-xs font-semibold text-slate-500 mt-1">Attendance Rate</p></div>
@@ -485,9 +485,9 @@ const Dashboard = () => {
             <div className="px-4"><p className="text-2xl font-black text-emerald-500">+5.2%</p><p className="text-xs font-semibold text-slate-500 mt-1">Improvement Rate</p></div>
           </div>
         </div>
-        <div className="lg:col-span-1 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm flex flex-col justify-center">
-          <div className="flex justify-between items-center mb-3">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Platform Summary</p>
+        <div className="lg:col-span-1 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-center dark:bg-slate-800 dark:border-slate-700"> {/* Adjusted background and border */}
+          <div className="flex justify-between items-center mb-3"> {/* Adjusted text color variables */}
+            <p className="text-[11px] font-bold text-wr-text-secondary uppercase tracking-wider">Platform Summary</p>
             <div className="flex items-center gap-1.5"><span className="relative flex h-2.5 w-2.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span></span><span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">99.9% UPTIME</span></div>
           </div>
           <div className="space-y-2">

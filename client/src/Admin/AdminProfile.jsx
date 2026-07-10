@@ -107,8 +107,8 @@ const AdminProfile = ({ user = {} }) => {
   };
 
   return (
-    <div className="p-8">
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg rounded-2xl border border-gray-200 dark:border-slate-700 shadow-xl p-8">
+    <div className="p-4 sm:p-8">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:bg-slate-800 dark:border-slate-700">
         <div className="flex justify-between items-start mb-8 pb-8 border-b border-gray-200 dark:border-slate-700">
           <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-8">
             <img

@@ -56,7 +56,7 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, holiday, isDeleti
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 dark:bg-black/70">
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-sm">
         <div className="p-6 text-center">
           <div className="mx-auto bg-red-100 dark:bg-red-500/10 rounded-full h-12 w-12 flex items-center justify-center my-4"><ExclamationTriangleIcon className="h-6 w-6 text-red-600" /></div>
@@ -178,7 +178,7 @@ const HolidayManagement = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
+    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-slate-50 dark:bg-slate-900">
       <div className="mb-8">
         <h1 className="text-3xl font-extrabold text-slate-800 dark:text-slate-200 tracking-tight">Holiday Management</h1>
         <p className="text-slate-500 dark:text-slate-400 mt-2">Manage your company's holiday calendar. Click on a date to add or remove a holiday.</p>

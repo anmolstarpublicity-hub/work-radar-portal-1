@@ -304,15 +304,15 @@ const ManagerDashboardContent = ({ user, onNavigate }) => {
   }
 
   // --- Clean Executive Manager Dashboard ---
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-manrope text-slate-800 dark:text-slate-200 p-6 lg:p-8">
+  return ( // Changed main background and text color variables to direct Tailwind classes
+    <div className="min-h-screen bg-slate-50 p-6 font-manrope text-slate-800 dark:bg-slate-900 dark:text-white lg:p-8">
       <AnnouncementWidget />
 
       {/* Blueprint Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+      <div className="mb-8 flex flex-col flex-wrap items-start justify-between gap-6 rounded-[24px] border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 p-6 text-white shadow-sm md:flex-row md:items-center dark:border-slate-700">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white">Welcome back, {user?.name?.split(' ')[0] || 'Devika'}! 👋</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Here's what's happening with your team for the selected period.</p>
+          <h1 className="text-2xl font-extrabold">Welcome back, {user?.name?.split(' ')[0] || 'Devika'}! 👋</h1>
+          <p className="text-sm mt-1">Here's what's happening with your team for the selected period.</p>
         </div>
         <div className="mt-4 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
           <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto md:mr-2">

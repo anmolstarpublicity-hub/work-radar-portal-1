@@ -35,7 +35,7 @@ const DeleteReportModal = ({ isOpen, onClose, onConfirm, report, isDeleting }) =
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 dark:bg-black/70">
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-sm">
         <div className="p-6 text-center">
           <div className="mx-auto bg-red-100 dark:bg-red-500/10 rounded-full h-12 w-12 flex items-center justify-center my-4">
@@ -209,12 +209,12 @@ export const TeamReports = ({ seniorId }) => {
       if (data.taskUpdates) { // Handle new progress-based reports
         return (
           <div className="space-y-3">
-            {data.reportNote && (
+            {data.reportNote ? (
               <div className="mb-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
                 <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Employee Notes</h4>
                 <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{data.reportNote}</p>
               </div>
-            )}
+            ) : null}
             {data.taskUpdates.map((update, i) => (
               <div key={i} className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
                 <div className="flex justify-between items-start">
@@ -250,8 +250,8 @@ export const TeamReports = ({ seniorId }) => {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 h-full bg-slate-50/50 dark:bg-black/50">
-      {!selectedEmployee ? (
+    <div className="p-4 sm:p-6 lg:p-8 h-full bg-slate-50 dark:bg-slate-900"> {/* Changed main background */}
+      {!selectedEmployee ? ( // Changed card background
         <>
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">Team Reports</h1>
@@ -272,7 +272,7 @@ export const TeamReports = ({ seniorId }) => {
             <p className="p-4 text-red-500">Failed to load employees.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredEmployees.map(employee => (
+              {filteredEmployees.map(employee => ( // Changed card background
                 <div
                   key={employee._id}
                   onClick={() => setSelectedEmployee(employee)}
@@ -315,7 +315,7 @@ export const TeamReports = ({ seniorId }) => {
           </div>
 
           {isLoadingReports && <p>Loading reports...</p>}
-          <div className="space-y-6">
+          <div className="space-y-6"> {/* Changed report card background */}
             {reports?.length > 0 ? reports.map(report => (
               <div key={report._id} className="bg-white dark:bg-black p-4 sm:p-6 rounded-xl shadow-md border border-slate-200 dark:border-slate-700">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex flex-col sm:flex-row justify-between gap-2">
@@ -362,7 +362,7 @@ const ManagePermissionsModal = ({ isOpen, onClose, employee, permissions, onChan
   if (!isOpen || !employee) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/70">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md border border-gray-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
@@ -546,7 +546,7 @@ export default function AdminPageLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 font-manrope dark:bg-slate-900">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 font-manrope text-slate-800 dark:text-white transition-colors">
       <style>
         {`
           @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
@@ -557,9 +557,9 @@ export default function AdminPageLayout() {
       </style>
       <Sidebar activeComponent={activeView.component} setActiveComponent={handleNavigation} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} />
       {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)}></div>}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden">
         <AppHeader pageTitle={pageTitles[activeView.component]} setActiveComponent={handleNavigation} onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto dark:bg-slate-900">{renderActiveComponent()}</main>
+        <main className="flex-1 overflow-y-auto bg-[var(--color-bg-canvas)]">{renderActiveComponent()}</main>
       </div>
     </div>
   );

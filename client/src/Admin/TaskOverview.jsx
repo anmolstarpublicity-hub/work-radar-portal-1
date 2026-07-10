@@ -245,7 +245,7 @@ const TaskOverview = () => {
 
   if (!selectedEmployee) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-slate-50/50 dark:bg-black/50">
+      <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-slate-50 dark:bg-slate-900">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">Task Overview</h1>
           <p className="text-slate-500 dark:text-white mt-2">Select an employee or manager to view their detailed task analytics.</p>
@@ -264,7 +264,7 @@ const TaskOverview = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredEmployees.map(employee => (
-            <div
+            <div // Changed card background
               key={employee._id}
               onClick={() => setSelectedEmployee(employee)}
               className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-100 dark:border-slate-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
@@ -301,7 +301,7 @@ const TaskOverview = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-slate-50/50 dark:bg-black/50">
+    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-slate-50 dark:bg-slate-900">
       <div className="mb-8 text-center relative">
         <button onClick={() => { setSelectedEmployee(null); setSearchTerm(''); }} className="absolute left-0 top-1/2 -translate-y-1/2 p-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
           <ArrowLeftIcon className="h-5 w-5 text-slate-600 dark:text-white" />
@@ -310,7 +310,7 @@ const TaskOverview = () => {
         <p className="text-slate-500 dark:text-white mt-2">Monitor the status of tasks assigned to {selectedEmployee.name}.</p>
       </div>
 
-      <div className="bg-white dark:bg-black rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg p-4 sm:p-8 mb-8">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg p-4 sm:p-8 mb-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <div className="relative h-[300px] sm:h-[400px]">
             <div className="w-full h-full">

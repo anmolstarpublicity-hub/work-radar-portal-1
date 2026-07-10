@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { XMarkIcon, MegaphoneIcon } from '@heroicons/react/24/outline';
-import { useGetActiveAnnouncementQuery } from './EmployeApi';
+import { XMarkIcon, MegaphoneIcon } from '@heroicons/react/24/outline'; // Removed unused import of XMarkIcon
+import { useGetActiveAnnouncementQuery, useDismissAnnouncementMutation } from './EmployeApi';
 import toast from 'react-hot-toast';
 
 const AnnouncementWidget = () => {
@@ -8,20 +8,26 @@ const AnnouncementWidget = () => {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
-    if (!announcement) return;
-    const dismissed = sessionStorage.getItem('dismissedAnnouncements_session');
-    const list = dismissed ? JSON.parse(dismissed) : [];
-    setIsVisible(!list.includes(announcement._id));
+    if (announcement) {
+      const dismissed = sessionStorage.getItem(`announcementDismissed_session_${announcement._id}`);
+      setIsVisible(!dismissed);
+    }
   }, [announcement]);
 
+  const [dismissAnnouncement] = useDismissAnnouncementMutation();
   const handleDismiss = () => {
-    if (!announcement?._id) return;
-    const dismissed = sessionStorage.getItem('dismissedAnnouncements_session');
-    const list = dismissed ? JSON.parse(dismissed) : [];
-    if (!list.includes(announcement._id)) list.push(announcement._id);
-    sessionStorage.setItem('dismissedAnnouncements_session', JSON.stringify(list));
-    setIsVisible(false);
-    toast.success('Announcement dismissed for this session.');
+    if (!announcement?._id) return; // Ensure announcement ID exists
+    dismissAnnouncement(announcement._id) // Call the RTK Query mutation
+      .unwrap()
+      .then(() => {
+        sessionStorage.setItem(`announcementDismissed_session_${announcement._id}`, 'true'); // Mark as dismissed in session storage
+        setIsVisible(false); // Hide immediately
+        toast.success('Announcement dismissed.');
+      })
+      .catch(err => {
+        console.error('Failed to dismiss announcement:', err);
+        toast.error('Failed to dismiss announcement. Please try again.');
+      });
   };
 
   if (isLoading) {

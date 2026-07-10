@@ -4,7 +4,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAddEmployeeMutation, useGetEmployeesQuery, useGetEmployeeEOMHistoryQuery } from '../services/EmployeApi';
 import { useUpdateEmployeeMutation, useDeleteEmployeeMutation} from '../services/EmployeApi';
-import toast from 'react-hot-toast';
+import toast from 'react-hot-toast'; // Removed unused import of LeaveManagementModal
 import LeaveManagementModal from './LeaveManagementModal';
 
 const EmployeeCard = ({ user, onEdit, onDelete, onView, onPermissions, onLeave }) => (
@@ -652,8 +652,8 @@ export default function EmployeeManagement() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 h-full bg-slate-50/50 dark:bg-black/50">
-      <div className="bg-white dark:bg-black rounded-2xl border border-blue-100 dark:border-slate-700 shadow-xl h-full flex flex-col p-8">
+    <div className="p-4 sm:p-6 lg:p-8 h-full bg-slate-50 dark:bg-slate-900">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl h-full flex flex-col p-8">
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-10">
           <div>
             <h2 className="text-3xl font-extrabold text-blue-900 dark:text-white tracking-tight mb-1">Employee Management</h2>
@@ -681,7 +681,7 @@ export default function EmployeeManagement() {
         </div>
         <div className="flex-1 overflow-y-auto">
           <EmployeeCardGrid
-            users={filteredUsers}
+            users={filteredUsers} // Changed card background
             onEdit={handleOpenEditModal}
             onDelete={handleOpenDeleteModal}
             onView={handleOpenViewModal}

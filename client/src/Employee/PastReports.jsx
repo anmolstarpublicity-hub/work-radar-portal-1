@@ -47,7 +47,7 @@ const PastReportsList = ({ reports, onSelectReport, activeReportId }) => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-100 border-r border-gray-200">
+    <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700">
       <div className="p-4 border-b border-gray-200 flex-shrink-0 flex items-center justify-between">
         <h3 className="font-bold text-lg text-blue-700">Report History</h3>
       </div>

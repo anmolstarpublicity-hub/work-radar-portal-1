@@ -86,7 +86,7 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, task, isDeleting 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center p-4 dark:bg-black/70">
       <div className="bg-white dark:bg-black rounded-lg shadow-xl w-full max-w-sm">
         <div className="p-6 text-center">
           <div className="mx-auto bg-red-100 rounded-full h-12 w-12 flex items-center justify-center my-4">
@@ -215,7 +215,7 @@ const ViewAllTasks = ({ initialFilters = {} }) => {
 
   if (!selectedEmployee) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-slate-50/50 dark:bg-black/50">
+      <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-slate-50 dark:bg-slate-900">
         <div className="mb-8">
           <h1 className="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">View Employee Tasks</h1>
           <p className="text-slate-500 dark:text-white mt-2">Select an employee to view their assigned tasks.</p>
@@ -230,7 +230,7 @@ const ViewAllTasks = ({ initialFilters = {} }) => {
           />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredEmployees.map(employee => (
+          {filteredEmployees.map(employee => ( // Changed card background
             <div
               key={employee._id}
               onClick={() => handleSelectEmployee(employee)}
@@ -251,7 +251,7 @@ const ViewAllTasks = ({ initialFilters = {} }) => {
       </div>
     );
   }
-
+  // Changed main background
   return (
     <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
       <div className="mb-8 text-center">
@@ -266,7 +266,7 @@ const ViewAllTasks = ({ initialFilters = {} }) => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-black rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex-1 flex flex-col">
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex-1 flex flex-col">
         {/* Toolbar */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-6 border-b border-slate-200 dark:border-slate-700">
           <div className="relative w-full md:w-auto">
@@ -330,7 +330,7 @@ const ViewAllTasks = ({ initialFilters = {} }) => {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
               {filteredTasks.length > 0 ? (
                 filteredTasks.map((task, index) => (
-                  <tr key={task._id} className="bg-white dark:bg-black hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
+                  <tr key={task._id} className="bg-white dark:bg-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-semibold text-slate-900 dark:text-white">{task.title}</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-xs">{task.description}</div>

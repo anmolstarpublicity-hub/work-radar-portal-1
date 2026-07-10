@@ -60,8 +60,8 @@ const LeaveManagement = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 h-full bg-slate-50/50 dark:bg-black/50">
-      <div className="bg-white dark:bg-black rounded-2xl border border-blue-100 dark:border-slate-700 shadow-xl h-full flex flex-col p-8">
+    <div className="p-4 sm:p-6 lg:p-8 h-full bg-slate-50 dark:bg-slate-900">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl h-full flex flex-col p-8">
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-10">
           <div>
             <h2 className="text-3xl font-extrabold text-blue-900 dark:text-white tracking-tight mb-1">Leave Management</h2>
@@ -91,7 +91,7 @@ const LeaveManagement = () => {
                 <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-black divide-y divide-slate-200 dark:divide-slate-700">
+            <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
               {filteredUsers.map(user => (
                 <EmployeeRow key={user._id} user={user} onLeave={handleOpenLeaveModal} />
               ))}

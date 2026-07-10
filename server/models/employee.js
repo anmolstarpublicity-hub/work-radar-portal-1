@@ -153,6 +153,11 @@ const employeeSchema = new mongoose.Schema({
   },
   passwordResetToken: String,
   passwordResetExpires: Date,
+  themePreference: {
+    type: String,
+    enum: ['light', 'dark'],
+    default: 'light',
+  },
 }, { timestamps: true });
 
 // Hash the password before saving the employee

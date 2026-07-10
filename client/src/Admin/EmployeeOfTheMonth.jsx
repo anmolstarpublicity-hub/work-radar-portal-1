@@ -104,8 +104,8 @@ const EmployeeOfTheMonth = () => {
     const isOfficialWinner = officialWinnerIds.has(candidate.employee._id);
     const isCompanyWinnerSet = !!officialWinnersByCompany[candidate.employee.company];
 
-    return (
-      <div className={`bg-white rounded-2xl shadow-lg border p-6 flex flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 ${isOfficialWinner ? 'border-amber-400' : 'border-slate-200'}`}>
+    return ( // Changed card background and border
+      <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border p-6 flex flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 ${isOfficialWinner ? 'border-amber-400' : 'border-slate-200 dark:border-slate-700'}`}>
         <div className="flex flex-col sm:flex-row items-center gap-5 mb-5">
           <div className="relative flex-shrink-0 self-start">
             <img
@@ -154,7 +154,7 @@ const EmployeeOfTheMonth = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
+    <div className="p-4 sm:p-6 lg:p-8 bg-slate-50 dark:bg-slate-900">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-10">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Employee of the Month</h1>
@@ -206,7 +206,7 @@ const EmployeeOfTheMonth = () => {
                 <CandidateCard key={candidate.employee._id} candidate={candidate} />
               ))}
             </div>
-          ) : (
+          ) : ( // Changed no candidates background
             <div className="text-center py-16 text-slate-500 bg-white rounded-xl border border-dashed">
               <TrophyIcon className="h-16 w-16 mx-auto text-slate-400 mb-4" />
               <p className="font-semibold text-lg">No Employee of the Month candidates found for {months.find(m => m.value === selectedMonth)?.label} {selectedYear}.</p>
@@ -214,7 +214,7 @@ const EmployeeOfTheMonth = () => {
             </div>
           )}
           <div className="bg-white rounded-xl border border-slate-200 shadow-lg p-6 mt-8">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">How Grades Are Calculated</h3>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">How Grades Are Calculated</h3>
             <p className="text-sm text-slate-600">
               The "Employee of the Month" is determined by calculating the average completion percentage of all tasks assigned to an employee within the selected month. The employee with the highest average percentage is ranked as the top performer.
             </p>

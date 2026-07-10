@@ -158,7 +158,7 @@ const AttendanceManagement = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-black">
+    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-slate-50 dark:bg-slate-900">
       {/* Header */}
       <div className="mb-8 text-center">
         <div className="inline-flex items-center justify-center p-4 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full shadow-lg mb-4 dark:from-blue-600 dark:to-indigo-700">
@@ -169,7 +169,7 @@ const AttendanceManagement = () => {
       </div>
 
       {/* Control Bar */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 sm:p-6 mb-8">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 sm:p-6 mb-8"> {/* Control bar background */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Search */}
           <div className="relative">
@@ -219,7 +219,7 @@ const AttendanceManagement = () => {
       </div>
 
       {/* Data Grid */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg flex-1 flex flex-col overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg flex-1 flex flex-col overflow-hidden"> {/* Data grid background */}
         <div className="overflow-x-auto">
           <table className="min-w-full text-left border-collapse">
             <thead>

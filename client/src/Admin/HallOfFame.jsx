@@ -7,7 +7,7 @@ const monthNames = ["January", "February", "March", "April", "May", "June", "Jul
 const WinnerCard = ({ winner }) => (
   <div className="flex flex-col items-center text-center p-4 bg-white rounded-xl shadow-md border border-slate-100">
     <img
-      src={winner.employee?.profilePicture || `https://ui-avatars.com/api/?name=${winner.employee?.name}`}
+      src={winner.employee?.profilePicture || `https://ui-avatars.com/api/?name=${winner.employee?.name}&background=random`}
       alt={winner.employee.name}
       onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${winner.employee?.name}&background=random`; }}
       className="h-20 w-20 rounded-full object-cover border-4 border-amber-300"
@@ -19,7 +19,7 @@ const WinnerCard = ({ winner }) => (
 );
 
 const MonthSection = ({ month, year, winners }) => (
-  <div className="bg-slate-50/80 backdrop-blur-sm rounded-2xl border border-slate-200 p-6">
+  <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
     <h3 className="text-xl font-bold text-slate-700 mb-4">{monthNames[month - 1]} {year}</h3>
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {winners.map(winner => (
@@ -53,7 +53,7 @@ const HallOfFame = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 h-full bg-slate-50">
+    <div className="p-4 sm:p-6 lg:p-8 h-full bg-slate-50 dark:bg-slate-900">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-10">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
@@ -91,7 +91,7 @@ const HallOfFame = () => {
           ))}
         </div>
       ) : (
-        <div className="text-center py-24 text-slate-500 bg-white rounded-xl border border-dashed">
+        <div className="text-center py-24 text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
           <TrophyIcon className="h-16 w-16 mx-auto text-slate-400 mb-4" />
           <p className="font-semibold text-lg">No Winners Found</p>
           <p className="text-sm mt-2">There are no "Employee of the Month" records for the selected year.</p>

@@ -206,7 +206,7 @@ const AdminSetup = ({ onSetupComplete }) => {
         </div>
 
         {/* Form Content */}
-        <div className="flex items-center justify-center p-4 sm:p-8 bg-slate-50 dark:bg-slate-900">
+        <div className="flex items-center justify-center p-4 sm:p-8 bg-slate-50 dark:bg-slate-900"> {/* Changed form background */}
           <form onSubmit={handleSubmit} className="w-full max-w-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-slate-200/50 dark:border-slate-700/50 p-8">
             <div className="flex-1 overflow-y-auto pr-4 -mr-4">
               {step === 1 && (

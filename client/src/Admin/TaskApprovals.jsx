@@ -209,8 +209,8 @@ const pendingApprovalsByEmployee = useMemo(() => {
 
   // Main view showing team members with pending approvals
   if (!selectedEmployeeData) {
-    return (
-      <div className="p-6 lg:p-10 h-full flex flex-col bg-gray-50 dark:bg-black/50 font-manrope">
+    return ( // Changed main background
+      <div className="p-6 lg:p-10 h-full flex flex-col bg-slate-50 dark:bg-slate-900 font-manrope">
         <div className="mb-10 bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-lg border border-slate-100 dark:border-slate-700 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-full blur-3xl -mr-16 -mt-16 transition-transform duration-700 group-hover:scale-110"></div>
           <div className="relative z-10">
@@ -227,7 +227,7 @@ const pendingApprovalsByEmployee = useMemo(() => {
         </div>
         {employeesWithPendingApprovals.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {employeesWithPendingApprovals.map(({ employee, tasks }) => (
+            {employeesWithPendingApprovals.map(({ employee, tasks }) => ( // Changed card background
               <div
                 key={employee._id}
                 onClick={() => setSelectedEmployeeData({ employee, tasks })}
@@ -266,7 +266,7 @@ const pendingApprovalsByEmployee = useMemo(() => {
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center py-24 text-gray-500 dark:text-slate-400 bg-white dark:bg-slate-900 rounded-xl border border-dashed border-gray-300 dark:border-slate-700 w-full max-w-2xl">
-              <div className="bg-slate-50 dark:bg-slate-800 h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="bg-slate-50 dark:bg-slate-700 h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <InboxIcon className="h-10 w-10 text-slate-400" />
               </div>
               <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">All Caught Up!</h3>
@@ -280,7 +280,7 @@ const pendingApprovalsByEmployee = useMemo(() => {
 
   // Detailed view showing tasks for the selected employee
   return (
-    <div className="p-6 lg:p-10 h-full flex flex-col bg-gray-50 dark:bg-black/50 font-manrope">
+    <div className="p-6 lg:p-10 h-full flex flex-col bg-slate-50 dark:bg-slate-900 font-manrope">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <button onClick={() => setSelectedEmployeeData(null)} className="p-2 rounded-lg hover:bg-white dark:hover:bg-slate-800 text-gray-500 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-slate-700">

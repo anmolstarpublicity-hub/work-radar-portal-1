@@ -66,7 +66,7 @@ class ManageEmployeeController {
       'name', 'email', 'role', 'employeeId', 'address', 'gender', 'country', 'city',
       'qualification', 'experience', 'workType', 'company', 'joiningDate',
       'dashboardAccess', 'department', 'workLocation', 'shift', 'canEditProfile', 'canViewTeam',
-      'canUpdateTask', 'canApproveTask', 'canAssignTask', 'canDeleteTask', 'canViewAnalytics',
+      'canUpdateTask', 'canApproveTask', 'canAssignTask', 'canDeleteTask', 'canViewAnalytics', 'themePreference',
       'hasAttendancePower', 'manualAttendanceStatus', 'manualAttendanceDate'
     ];
 

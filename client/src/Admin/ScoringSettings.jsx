@@ -67,12 +67,12 @@ const ScoringSettings = () => {
         <p className="text-slate-500 mt-2">Configure the points awarded for each task grade to calculate the "Employee of the Month".</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="max-w-2xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-lg p-8">
+      <form onSubmit={handleSubmit} className="max-w-2xl mx-auto bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg p-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <InputField label="'Completed' Grade Points" name="completedPoints" value={formState.completedPoints} />
-          <InputField label="'Moderate' Grade Points" name="moderatePoints" value={formState.moderatePoints} />
-          <InputField label="'Low' Grade Points" name="lowPoints" value={formState.lowPoints} />
-          <InputField label="'Pending' Grade Points" name="pendingPoints" value={formState.pendingPoints} />
+          <InputField label="'Completed' Grade Points" name="completedPoints" value={formState.completedPoints} /> {/* InputField needs dark mode styles */}
+          <InputField label="'Moderate' Grade Points" name="moderatePoints" value={formState.moderatePoints} /> {/* InputField needs dark mode styles */}
+          <InputField label="'Low' Grade Points" name="lowPoints" value={formState.lowPoints} /> {/* InputField needs dark mode styles */}
+          <InputField label="'Pending' Grade Points" name="pendingPoints" value={formState.pendingPoints} /> {/* InputField needs dark mode styles */}
         </div>
 
         <div className="mt-8 flex justify-end">

@@ -7,7 +7,7 @@ const AttendanceModal = ({ isOpen, onClose, employee }) => {
   if (!isOpen || !employee) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4 backdrop-blur-sm dark:bg-black/70">
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-700">
         <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
           <div className="flex items-center gap-4">
@@ -56,7 +56,7 @@ const AllEmployeeAttendance = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-slate-50/50 dark:bg-black/50 font-manrope">
+    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-slate-50 dark:bg-slate-900 font-manrope">
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">All Employee Attendance</h1>
         <p className="text-slate-500 dark:text-white mt-2">View attendance records for all employees in the organization.</p>

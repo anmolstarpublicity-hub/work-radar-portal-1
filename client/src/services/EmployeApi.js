@@ -92,7 +92,7 @@ export const extendedApi = apiSlice.injectEndpoints({
       invalidatesTags: ['Task'],
     }),
     getMyTasks: builder.query({
-      query: () => '/tasks/my',
+      query: () => '/tasks/my-tasks',
       providesTags: ['Task'],
     }),
     getAllTasks: builder.query({
@@ -106,6 +106,37 @@ export const extendedApi = apiSlice.injectEndpoints({
         body: patch,
       }),
       invalidatesTags: (result, error, { id }) => ['Task', { type: 'Task', id }],
+    }),
+    deleteTask: builder.mutation({
+      query: (id) => ({
+        url: `/tasks/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Task'],
+    }),
+    approveTask: builder.mutation({
+      query: ({ id, finalPercentage, comment }) => ({
+        url: `/tasks/${id}/approve`,
+        method: 'PUT',
+        body: { finalPercentage, comment },
+      }),
+      invalidatesTags: ['Task', 'Notification'],
+    }),
+    rejectTask: builder.mutation({
+      query: ({ id, reason, finalPercentage }) => ({
+        url: `/tasks/${id}/reject`,
+        method: 'PUT',
+        body: { reason, finalPercentage },
+      }),
+      invalidatesTags: ['Task', 'Notification'],
+    }),
+    addTaskComment: builder.mutation({
+      query: ({ taskId, text }) => ({
+        url: `/tasks/${taskId}/comments`,
+        method: 'POST',
+        body: { text },
+      }),
+      invalidatesTags: ['Task'],
     }),
     processPastDueTasks: builder.mutation({
       query: () => ({
@@ -135,6 +166,17 @@ export const extendedApi = apiSlice.injectEndpoints({
     getAllMyReports: builder.query({
       query: (employeeId) => `/reports/my-all/${employeeId}`,
       providesTags: ['Report'],
+    }),
+    getReportsByEmployee: builder.query({
+      query: (employeeId) => `/reports/employee/${employeeId}`,
+      providesTags: ['Report'],
+    }),
+    deleteReport: builder.mutation({
+      query: (id) => ({
+        url: `/reports/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Report'],
     }),
 
     // Announcement Management
@@ -181,6 +223,42 @@ export const extendedApi = apiSlice.injectEndpoints({
     getHolidays: builder.query({
       query: () => '/holidays',
       providesTags: ['Holiday'],
+    }),
+
+    assignEmployee: builder.mutation({
+      query: ({ employeeId, teamLeadId, department }) => ({
+        url: `/employees/${employeeId}/assign`,
+        method: 'PUT',
+        body: { teamLeadId, department },
+      }),
+      invalidatesTags: ['Employee'],
+    }),
+    unassignEmployee: builder.mutation({
+      query: (employeeId) => ({
+        url: `/employees/${employeeId}/unassign`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Employee'],
+    }),
+
+    getLeavesForEmployee: builder.query({
+      query: (employeeId) => `/leaves/${employeeId}`,
+      providesTags: ['Leave'],
+    }),
+    addLeave: builder.mutation({
+      query: ({ employeeId, date }) => ({
+        url: `/leaves/${employeeId}`,
+        method: 'POST',
+        body: { date },
+      }),
+      invalidatesTags: ['Leave'],
+    }),
+    removeLeave: builder.mutation({
+      query: (leaveId) => ({
+        url: `/leaves/${leaveId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Leave'],
     }),
 
     // Attendance Management
@@ -308,8 +386,8 @@ export const {
   useCreateAdminMutation, // Exported
   useGetMeQuery, // Exported
   useGetScoringSettingsQuery, // Exported
-  useForgotPasswordMutation, // Exported (from authSlice)
-  useResetPasswordMutation, // Exported (from authSlice)
+  useForgotPasswordMutation, // Exported
+  useResetPasswordMutation, // Exported
   useUpdateScoringSettingsMutation, // Exported,
   useAssignEmployeeMutation,
   useUnassignEmployeeMutation, // Export the new mutation
