@@ -325,8 +325,8 @@ const Dashboard = () => {
                 {_user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'SA'}
               </div>
               <div className="text-left">
-                <p className="text-sm font-bold text-slate-800 dark:text-white">{_user?.name || 'Super Administrator'}</p>
-                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">{_user?.role || 'System Admin'}</p>
+                <p className="text-sm font-bold text-white">{_user?.name || 'Super Administrator'}</p>
+                <p className="text-[11px] font-semibold text-slate-300">{_user?.role || 'System Admin'}</p>
               </div>
             </div>
           </div>

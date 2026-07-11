@@ -345,14 +345,14 @@ const ManagerDashboardContent = ({ user, onNavigate }) => {
                 {user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'DS'}
               </div>
               <div className="text-left">
-                <p className="text-sm font-bold text-slate-800 dark:text-white">{user?.name || 'Devika Sharma'}</p>
-                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Branch Manager</p>
+                <p className="text-sm font-bold text-white">{user?.name || 'Devika Sharma'}</p>
+                <p className="text-[11px] font-semibold text-slate-300">Branch Manager</p>
               </div>
             </div>
           </div>
           <button onClick={() => onNavigate('assign-task')} className="w-full sm:w-auto justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all flex items-center gap-2">
              <PlusIcon className="h-5 w-5" />
-             <span>+ Assign Task</span>
+             <span>Assign Task</span>
           </button>
         </div>
       </div>

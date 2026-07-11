@@ -308,8 +308,8 @@ export const Dashboard = ({ user, onNavigate }) => {
                 {user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'SK'}
                 </div>
                 <div className="text-left">
-                <p className="text-sm font-bold text-slate-800 dark:text-white">{user?.name || 'Shivam Kumar'}</p>
-                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Employee</p>
+                <p className="text-sm font-bold text-white">{user?.name || 'Shivam Kumar'}</p>
+                <p className="text-[11px] font-semibold text-slate-300">Employee</p>
                 </div>
             </div>
         </div>
