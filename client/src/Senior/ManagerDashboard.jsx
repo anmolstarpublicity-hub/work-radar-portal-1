@@ -566,8 +566,26 @@ const ManagerDashboard = () => {
     if (!user?.canViewTeam || !allEmployees.length) {
       return false;
     }
-    const getTeamLeadId = (emp) => emp.teamLead?._id || emp.teamLead;
-    return allEmployees.some(emp => getTeamLeadId(emp) === user._id);
+    const getAllSubordinates = (managerId, employees) => {
+      const getTeamLeadId = (emp) => emp.teamLead?._id ? String(emp.teamLead._id) : (emp.teamLead ? String(emp.teamLead) : null);
+      const subordinates = [];
+      const managerIdStr = String(managerId);
+      const queue = employees.filter(emp => getTeamLeadId(emp) === managerIdStr);
+      const visited = new Set(queue.map(e => String(e._id)));
+      while (queue.length > 0) {
+        const currentEmployee = queue.shift();
+        subordinates.push(currentEmployee);
+        const directReports = employees.filter(emp => getTeamLeadId(emp) === String(currentEmployee._id));
+        for (const report of directReports) {
+          if (!visited.has(String(report._id))) {
+            visited.add(String(report._id));
+            queue.push(report);
+          }
+        }
+      }
+      return subordinates;
+    };
+    return getAllSubordinates(user._id, allEmployees).length > 0;
   }, [user, allEmployees]);
   const dispatch = useDispatch();
 
