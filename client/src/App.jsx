@@ -7,6 +7,7 @@ import Login from "./Form/Login";
 import { selectCurrentUser } from "./app/authSlice";
 import EmployeeDashboard from "./Employee/EmployeDashboard";
 import ResetPassword from "./Form/ResetPassword.jsx";
+import ForgotPassword from "./Form/ForgotPassword.jsx";
 import ManagerDashboard from "./Senior/ManagerDashboard"; 
 import { useCheckAdminSetupQuery } from "./services/EmployeApi";
 import AdminSetup from "./Form/AdminSetup";
@@ -29,6 +30,7 @@ function App() {
       {/* CurrentUserProvider is now in main.jsx */}
       <Toaster position="top-right" />
       <Routes>
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/login" element={!user ? <Login /> : <Navigate to={
           user.dashboardAccess === 'Admin Dashboard' ? '/admin-dashboard' :
