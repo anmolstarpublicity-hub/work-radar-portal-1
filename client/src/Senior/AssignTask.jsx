@@ -8,144 +8,127 @@ import {
   ClipboardDocumentListIcon,
   PlusIcon,
   TrashIcon,
-  UserCircleIcon,
 } from '@heroicons/react/24/outline';
- 
+
+// ── Assign Task slide-over modal ────────────────────────────────────────────
+
 const AssignTaskModal = ({ isOpen, onClose, employee, isAssigning, onAssign }) => {
-  const initialTask = {
-    id: Date.now(),
-    title: '',
-    description: '',
-    startDate: '',
-    dueDate: '',
-    priority: 'Medium',
-  };
+  const initialTask = { id: Date.now(), title: '', description: '', startDate: '', dueDate: '', priority: 'Medium' };
   const [tasks, setTasks] = useState([initialTask]);
 
   React.useEffect(() => {
-    if (isOpen) setTasks([initialTask]); // Reset tasks when modal opens
+    if (isOpen) setTasks([{ ...initialTask, id: Date.now() }]);
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !employee) return null;
 
   const handleChange = (index, e) => {
-    const newTasks = [...tasks];
-    newTasks[index][e.target.name] = e.target.value;
-    setTasks(newTasks);
+    const next = [...tasks];
+    next[index][e.target.name] = e.target.value;
+    setTasks(next);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (tasks.some(task => !task.title.trim())) {
-      toast.error('Each task must have a title.');
-      return;
-    }
-    onAssign(tasks.map(task => ({ ...task, assignedTo: employee._id })));
+    if (tasks.some(t => !t.title.trim())) { toast.error('Each task must have a title.'); return; }
+    onAssign(tasks.map(t => ({ ...t, assignedTo: employee._id })));
   };
 
-  const addTask = () => setTasks([...tasks, { ...initialTask, id: Date.now() }]);
-  const removeTask = (index) => setTasks(tasks.filter((_, i) => i !== index));
+  const addTask    = () => setTasks(p => [...p, { ...initialTask, id: Date.now() }]);
+  const removeTask = (i) => setTasks(p => p.filter((_, idx) => idx !== i));
+
+  const inputCls = "w-full text-sm border border-purple-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none bg-slate-50";
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="fixed inset-0 bg-black bg-opacity-50" onClick={onClose}></div>
-      <div className="relative w-full max-w-lg bg-white dark:bg-black h-full shadow-2xl flex flex-col border-l border-slate-200 dark:border-slate-700 animate-slide-in-right">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
+      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-white h-full shadow-2xl flex flex-col border-l border-purple-100">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-purple-100"
+          style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
           <div className="flex items-center gap-2">
-            <ClipboardDocumentListIcon className="h-6 w-6 text-blue-600" />
-            <span className="font-bold text-lg text-slate-800 dark:text-white">Assign Task</span>
+            <ClipboardDocumentListIcon className="h-5 w-5 text-white/80" />
+            <span className="font-bold text-base text-white">Assign Task</span>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
-            <XMarkIcon className="h-6 w-6" />
+          <button onClick={onClose} className="text-white/70 hover:text-white transition">
+            <XMarkIcon className="h-5 w-5" />
           </button>
         </div>
-        <div className="px-6 pt-4 pb-2 border-b border-slate-100 dark:border-slate-800">
+
+        {/* Employee info */}
+        <div className="px-6 py-4 border-b border-purple-100 bg-purple-50">
           <div className="flex items-center gap-3">
-            <img 
-              src={employee.profilePicture || `https://ui-avatars.com/api/?name=${employee.name}&background=random`} 
-              alt={employee.name} 
-              onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${employee.name}&background=random`; }}
-              className="h-10 w-10 rounded-full border border-blue-200" 
+            <img
+              src={employee.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name)}&background=8E5FD0&color=fff`}
+              alt={employee.name}
+              onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name)}&background=8E5FD0&color=fff`; }}
+              className="h-11 w-11 rounded-full object-cover border-2 border-purple-200 flex-shrink-0"
             />
             <div>
-              <div className="font-semibold text-slate-800 dark:text-white">{employee.name}</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400">{employee.role} &middot; {employee.department || 'N/A'}</div>
-              <div className="text-xs text-slate-400">{employee.employeeId}</div>
+              <p className="font-bold text-slate-800">{employee.name}</p>
+              <p className="text-xs text-purple-500 font-semibold">{employee.role} · {employee.department || 'N/A'}</p>
+              <p className="text-[11px] text-slate-400 font-mono">{employee.employeeId}</p>
             </div>
           </div>
         </div>
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-y-auto">
-          <div className="flex-1 px-6 py-4 space-y-6">
+
+        {/* Task forms */}
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 px-6 py-5 space-y-5 overflow-y-auto">
             {tasks.map((task, index) => (
-              <div key={task.id} className="relative rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm p-4 space-y-3">
+              <div key={task.id} className="relative rounded-2xl bg-purple-50 border border-purple-100 shadow-sm p-4 space-y-3">
                 {tasks.length > 1 && (
-                  <button type="button" onClick={() => removeTask(index)} className="absolute -top-2 -right-2 p-1.5 bg-white dark:bg-slate-800 rounded-full text-slate-400 hover:text-red-600 hover:bg-red-100 border dark:border-slate-700 shadow-sm">
-                    <TrashIcon className="h-4 w-4" />
+                  <button type="button" onClick={() => removeTask(index)}
+                    className="absolute -top-2 -right-2 p-1.5 bg-white rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 border border-purple-100 shadow-sm transition">
+                    <TrashIcon className="h-3.5 w-3.5" />
                   </button>
                 )}
-                <div className="flex flex-col gap-2">
-                  <input
-                    type="text"
-                    name="title"
-                    required
-                    value={task.title}
-                    onChange={(e) => handleChange(index, e)}
-                    placeholder="Task Title"
-                    className="w-full text-sm border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded-lg p-2 focus:ring-2 focus:ring-blue-200"
-                  />
-                  <textarea
-                    name="description"
-                    value={task.description}
-                    onChange={(e) => handleChange(index, e)}
-                    placeholder="Description (optional)"
-                    rows="2"
-                    className="w-full text-sm border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded-lg p-2 focus:ring-2 focus:ring-blue-200"
-                  ></textarea>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-xs text-slate-500 dark:text-slate-400">Start Date</label>
-                      <input
-                        type="date"
-                        name="startDate"
-                        value={task.startDate}
-                        onChange={(e) => handleChange(index, e)}
-                        className="w-full text-sm border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded-lg p-2 mt-1"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-slate-500 dark:text-slate-400">Due Date</label>
-                      <input
-                        type="date"
-                        name="dueDate"
-                        value={task.dueDate}
-                        onChange={(e) => handleChange(index, e)}
-                        className="w-full text-sm border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded-lg p-2 mt-1"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-slate-500 dark:text-slate-400">Priority</label>
-                      <select
-                        name="priority"
-                        value={task.priority}
-                        onChange={(e) => handleChange(index, e)}
-                        className="w-full text-sm border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded-lg p-2 mt-1"
-                      >
-                        <option>Low</option>
-                        <option>Medium</option>
-                        <option>High</option>
-                      </select>
-                    </div>
+                <input type="text" name="title" required value={task.title}
+                  onChange={e => handleChange(index, e)} placeholder="Task Title *"
+                  className={inputCls} />
+                <textarea name="description" value={task.description}
+                  onChange={e => handleChange(index, e)} placeholder="Description (optional)"
+                  rows={2} className={inputCls} />
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Start Date</label>
+                    <input type="date" name="startDate" value={task.startDate}
+                      onChange={e => handleChange(index, e)} className={`${inputCls} mt-1`} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Due Date</label>
+                    <input type="date" name="dueDate" value={task.dueDate}
+                      onChange={e => handleChange(index, e)} className={`${inputCls} mt-1`} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Priority</label>
+                    <select name="priority" value={task.priority}
+                      onChange={e => handleChange(index, e)} className={`${inputCls} mt-1`}>
+                      <option>Low</option>
+                      <option>Medium</option>
+                      <option>High</option>
+                    </select>
                   </div>
                 </div>
               </div>
             ))}
-            <button type="button" onClick={addTask} className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700 border-2 border-dashed border-blue-300 hover:border-blue-400 dark:border-slate-600 dark:hover:border-slate-500 rounded-lg py-2 transition-colors dark:text-blue-400">
+
+            <button type="button" onClick={addTask}
+              className="w-full flex items-center justify-center gap-2 text-sm font-bold border-2 border-dashed border-purple-300 hover:border-purple-400 text-purple-500 hover:text-purple-600 rounded-2xl py-2.5 transition">
               <PlusIcon className="h-4 w-4" /> Add Another Task
             </button>
           </div>
-          <div className="px-6 py-4 bg-slate-50 dark:bg-black border-t border-slate-100 dark:border-slate-800 flex justify-end">
-            <button type="submit" disabled={isAssigning} className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-lg text-sm disabled:bg-blue-400 transition-colors shadow-sm">
-              {isAssigning && <ArrowPathIcon className="animate-spin h-4 w-4 mr-2" />}
+
+          <div className="px-6 py-4 bg-purple-50 border-t border-purple-100 flex justify-end gap-3">
+            <button type="button" onClick={onClose}
+              className="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-purple-200 rounded-xl hover:bg-purple-50 transition">
+              Cancel
+            </button>
+            <button type="submit" disabled={isAssigning}
+              className="inline-flex items-center gap-2 px-5 py-2 text-sm font-bold text-white rounded-xl disabled:opacity-60 transition"
+              style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+              {isAssigning && <ArrowPathIcon className="animate-spin h-4 w-4" />}
               Assign Tasks
             </button>
           </div>
@@ -155,113 +138,149 @@ const AssignTaskModal = ({ isOpen, onClose, employee, isAssigning, onAssign }) =
   );
 };
 
-const AssignTask = ({ teamLeadId, assignToManagers = false }) => { // Added assignToManagers prop
-  const { data: employees = [], isLoading: isLoadingEmployees } = useGetEmployeesQuery();
+// ── Main component ──────────────────────────────────────────────────────────
+
+const AssignTask = ({ teamLeadId, assignToManagers = false }) => {
+  const { data: employees = [], isLoading } = useGetEmployeesQuery();
   const [createMultipleTasks, { isLoading: isAssigning }] = useCreateMultipleTasksMutation();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm]         = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
 
   const teamMembers = useMemo(() => {
     if (assignToManagers) {
-      // Strictly count users as a manager ONLY if they have manager dashboard access
-      return employees.filter(emp => emp.dashboardAccess === 'Manager Dashboard');
+      return employees.filter(e => e.dashboardAccess === 'Manager Dashboard');
     }
-    // This logic finds all direct and indirect reports for the given team lead.
-    const getAllSubordinates = (managerId, allEmployees) => {
-      const subordinates = [];
-      const queue = allEmployees.filter(emp => emp.teamLead?._id === managerId);
+    const getAllSubs = (managerId, all) => {
+      const subs = [];
+      const queue = all.filter(e => e.teamLead?._id === managerId);
       const visited = new Set(queue.map(e => e._id));
-      while (queue.length > 0) {
-        const currentEmployee = queue.shift();
-        subordinates.push(currentEmployee);
-        const directReports = allEmployees.filter(emp => emp.teamLead?._id === currentEmployee._id);
-        for (const report of directReports) {
-          if (!visited.has(report._id)) {
-            visited.add(report._id);
-            queue.push(report);
-          }
-        }
+      while (queue.length) {
+        const cur = queue.shift();
+        subs.push(cur);
+        all.filter(e => e.teamLead?._id === cur._id).forEach(r => {
+          if (!visited.has(r._id)) { visited.add(r._id); queue.push(r); }
+        });
       }
-      return subordinates;
+      return subs;
     };
-    return getAllSubordinates(teamLeadId, employees);
+    return getAllSubs(teamLeadId, employees);
   }, [employees, teamLeadId, assignToManagers]);
 
-  const filteredEmployees = useMemo(() => {
-    return teamMembers.filter(employee =>
-      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (employee.employeeId && employee.employeeId.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [teamMembers, searchTerm]);
+  const filteredEmployees = useMemo(() =>
+    teamMembers.filter(e =>
+      e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (e.employeeId && e.employeeId.toLowerCase().includes(searchTerm.toLowerCase()))
+    ),
+  [teamMembers, searchTerm]);
 
   const handleAssignTask = async (tasks) => {
     try {
       await createMultipleTasks({ tasks }).unwrap();
-      toast.success(`${tasks.length} task(s) assigned to ${selectedEmployee.name} successfully!`);
+      toast.success(`${tasks.length} task(s) assigned to ${selectedEmployee.name}!`);
       setSelectedEmployee(null);
     } catch (err) {
       toast.error(err.data?.message || 'Failed to assign task.');
     }
   };
 
-  if (isLoadingEmployees) {
-    return <div className="p-8 text-center">Loading team members...</div>;
+  if (isLoading) {
+    return (
+      <div className="min-h-full flex items-center justify-center" style={{ backgroundColor: '#DFCDFE' }}>
+        <p className="text-slate-500 font-medium">Loading...</p>
+      </div>
+    );
   }
 
+  const pageTitle    = assignToManagers ? 'Assign to Managers'  : 'Task Assignment';
+  const pageSubtitle = assignToManagers
+    ? 'Delegate Tasks To Managers Across The Organization'
+    : 'Delegate Tasks To Your Team Members';
+  const emptyMsg     = assignToManagers ? 'No managers found.' : 'No team members found.';
+  const searchPlaceholder = assignToManagers ? 'Search managers...' : 'Search team members by name or ID...';
+  const btnLabel     = assignToManagers ? 'Assign Task' : 'Assign Task';
+
   return (
-    <div className="p-4 sm:p-8 lg:p-12 h-full flex flex-col bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-black">
-      <div className="mb-8 text-center">
-        <div className="inline-flex items-center justify-center p-4 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full shadow-lg mb-4 dark:from-blue-600 dark:to-indigo-700">
-          <ClipboardDocumentListIcon className="h-8 w-8 text-white" />
-        </div>
-        <h1 className="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">{assignToManagers ? 'Assign to Managers' : 'Task Assignment'}</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2">{assignToManagers ? 'Delegate tasks to managers across the organization.' : 'Delegate tasks to your team members. Click "Assign Task" to add one or more tasks.'}</p>
+    <div className="min-h-full p-6 lg:p-8" style={{ backgroundColor: '#DFCDFE' }}>
+
+      {/* ── Header ───────────────────────────────────────────────── */}
+      <div className="mb-2">
+        <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">{pageTitle}</h2>
+        <div className="h-1 w-12 rounded-full mt-1 mb-3" style={{ background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
+        <p className="text-slate-500 text-sm">{pageSubtitle}</p>
       </div>
-      <div className="bg-white dark:bg-black rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg flex-1 flex flex-col">
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 p-6 border-b border-slate-200 dark:border-slate-700">
-          <div className="relative w-full sm:w-80">
-            <MagnifyingGlassIcon className="h-5 w-5 text-slate-400 dark:text-slate-500 absolute top-1/2 left-3 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder={assignToManagers ? "Search managers..." : "Search team members by name or ID..."}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2.5 w-full text-sm border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-            />
-          </div>
+
+      {/* ── Search ───────────────────────────────────────────────── */}
+      <div className="my-6">
+        <div className="relative w-full sm:w-80">
+          <MagnifyingGlassIcon className="h-4 w-4 text-slate-400 absolute top-1/2 left-3 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder={searchPlaceholder}
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-purple-200 bg-white focus:outline-none focus:ring-2 focus:ring-purple-300 shadow-sm"
+          />
         </div>
-        <div className="flex-1 overflow-y-auto rounded-b-2xl p-4">
-          {filteredEmployees.length === 0 ? (
-            <div className="text-center text-slate-400 dark:text-slate-500 py-16">{assignToManagers ? 'No managers found.' : 'No team members found.'}</div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredEmployees.map(employee => (
-                <div key={employee._id} className="bg-gradient-to-br from-white to-blue-50 dark:from-slate-900 dark:to-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow hover:shadow-lg transition-shadow p-6 flex flex-col items-center">
-                  <img
-                    src={employee.profilePicture || `https://ui-avatars.com/api/?name=${employee.name}&background=random`}
-                    alt={employee.name}
-                    onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${employee.name}&background=random`; }}
-                    className="h-16 w-16 rounded-full object-cover border-2 border-blue-200 dark:border-blue-800 mb-3"
-                  />
-                  <div className="text-center">
-                    <div className="font-bold text-slate-900 dark:text-white text-lg">{employee.name}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 font-mono">{employee.employeeId}</div>
-                    <div className="text-sm text-slate-600 dark:text-slate-300 mt-1">{employee.role}</div>
-                    <div className="text-xs text-slate-400 dark:text-slate-500">{employee.department || 'N/A'}</div>
+      </div>
+
+      {/* ── Cards ────────────────────────────────────────────────── */}
+      <div className="pb-8">
+        {filteredEmployees.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredEmployees.map(emp => (
+              <div key={emp._id}
+                className="bg-white rounded-2xl border border-purple-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col">
+                {/* Banner */}
+                <div className="h-24 w-full relative flex-shrink-0"
+                  style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+                  <div className="absolute -bottom-14 left-1/2 -translate-x-1/2">
+                    <img
+                      src={emp.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.name)}&background=8E5FD0&color=fff`}
+                      alt={emp.name}
+                      onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.name)}&background=8E5FD0&color=fff`; }}
+                      className="h-28 w-28 rounded-full object-cover border-4 border-white shadow-md"
+                    />
                   </div>
+                </div>
+
+                {/* Content */}
+                <div className="flex flex-col items-center pt-16 px-5 pb-5">
+                  <h3 className="mt-2 text-base font-bold text-slate-800 text-center">{emp.name}</h3>
+                  <p className="text-xs text-purple-500 font-semibold">{emp.role}</p>
+                  <p className="text-[11px] text-slate-400 font-mono mt-0.5">{emp.employeeId}</p>
+                  {emp.department && (
+                    <p className="text-[11px] text-slate-400 mt-0.5">{emp.department}</p>
+                  )}
                   <button
-                    onClick={() => setSelectedEmployee(employee)}
-                    className="mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 dark:from-blue-500 dark:to-indigo-600 dark:hover:from-blue-600 dark:hover:to-indigo-700 text-white font-bold py-2 px-6 rounded-lg text-sm transition-colors shadow"
+                    onClick={() => setSelectedEmployee(emp)}
+                    className="mt-4 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold text-white transition hover:opacity-90"
+                    style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}
                   >
-                    Assign Task
+                    <ClipboardDocumentListIcon className="h-3.5 w-3.5" />
+                    {btnLabel}
                   </button>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-purple-100 p-16 text-center">
+            <MagnifyingGlassIcon className="h-12 w-12 mx-auto text-purple-200 mb-4" />
+            <p className="font-bold text-slate-600">
+              {assignToManagers ? 'No Managers Found' : 'No Team Members Found'}
+            </p>
+            <p className="text-sm text-slate-400 mt-1">{emptyMsg}</p>
+          </div>
+        )}
       </div>
-      <AssignTaskModal isOpen={!!selectedEmployee} onClose={() => setSelectedEmployee(null)} employee={selectedEmployee} isAssigning={isAssigning} onAssign={handleAssignTask} />
+
+      <AssignTaskModal
+        isOpen={!!selectedEmployee}
+        onClose={() => setSelectedEmployee(null)}
+        employee={selectedEmployee}
+        isAssigning={isAssigning}
+        onAssign={handleAssignTask}
+      />
     </div>
   );
 };

@@ -321,6 +321,32 @@ export const extendedApi = apiSlice.injectEndpoints({
       query: ({ token, password }) => ({ url: `/auth/reset-password/${token}`, method: 'POST', body: { password } }),
     }),
 
+    // Monitoring (Portal 3 - Supabase)
+    getPCStartTime: builder.query({
+      query: ({ employeeId, date }) => `/monitoring/${employeeId}/pc-start?date=${date}`,
+      providesTags: ['Monitoring'],
+    }),
+    getActivityLogs: builder.query({
+      query: ({ employeeId, date }) => `/monitoring/${employeeId}/activity?date=${date}`,
+      providesTags: ['Monitoring'],
+    }),
+    getPCDaysForMonth: builder.query({
+      query: ({ employeeId, year, month }) => `/monitoring/${employeeId}/pc-days?year=${year}&month=${month}`,
+      providesTags: ['Monitoring'],
+    }),
+    getPunchData: builder.query({
+      query: ({ employeeId, date }) => `/horilla/${employeeId}/punch?date=${date}`,
+      providesTags: ['Horilla'],
+    }),
+    getEmployeeScore: builder.query({
+      query: ({ employeeId, year, month }) => `/employee-scores/${employeeId}?year=${year}&month=${month}`,
+      providesTags: ['EmployeeScore'],
+    }),
+    setEmployeeScore: builder.mutation({
+      query: ({ employeeId, ...body }) => ({ url: `/employee-scores/${employeeId}`, method: 'POST', body }),
+      invalidatesTags: ['EmployeeScore'],
+    }),
+
     // Company Info
     getCompanyInfo: builder.query({
       query: () => '/setup/company-info',
@@ -397,4 +423,10 @@ export const {
   useGetAttendanceForMonthQuery, // Exported
   useGetHolidaysQuery,
   useGetCompanyInfoQuery,
+  useGetPCStartTimeQuery,
+  useGetActivityLogsQuery,
+  useGetPCDaysForMonthQuery,
+  useGetPunchDataQuery,
+  useGetEmployeeScoreQuery,
+  useSetEmployeeScoreMutation,
 } = extendedApi;

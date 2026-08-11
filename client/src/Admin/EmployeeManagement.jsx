@@ -7,42 +7,68 @@ import { useUpdateEmployeeMutation, useDeleteEmployeeMutation} from '../services
 import toast from 'react-hot-toast'; // Removed unused import of LeaveManagementModal
 import LeaveManagementModal from './LeaveManagementModal';
 
+const ActionBtn = ({ onClick, title, bg, children }) => (
+  <button onClick={onClick} title={title}
+    className={`h-9 w-9 rounded-xl flex items-center justify-center transition hover:opacity-80 ${bg}`}>
+    {children}
+  </button>
+);
+
 const EmployeeCard = ({ user, onEdit, onDelete, onView, onPermissions, onLeave }) => (
- <div className="bg-gradient-to-br from-purple-100 via-blue-50 to-indigo-100 dark:from-slate-900 dark:to-black rounded-2xl shadow-xl border border-blue-100 dark:border-slate-800 flex flex-col items-center p-6 relative hover:shadow-2xl transition-all duration-200 group">
-    <div className="relative">
-      <img
-        src={user.profilePicture || `https://ui-avatars.com/api/?name=${user.name}&background=random`}
-        alt={user.name}
-        className="h-20 w-20 rounded-full border-4 border-white shadow-lg object-cover"
-      />
-      <span className="absolute bottom-0 right-0 bg-green-400 border-2 border-white h-4 w-4 rounded-full"></span>
+  <div className="bg-white rounded-2xl border border-purple-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col">
+    {/* Top gradient banner */}
+    <div className="h-24 w-full relative flex-shrink-0" style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+      <div className="absolute -bottom-14 left-1/2 -translate-x-1/2">
+        <img
+          src={user.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=8E5FD0&color=fff`}
+          alt={user.name}
+          onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=8E5FD0&color=fff`; }}
+          className="h-28 w-28 rounded-full object-cover border-4 border-white shadow-md"
+        />
+      </div>
     </div>
-    <h3 className="mt-4 text-lg font-bold text-blue-900 dark:text-white">{user.name}</h3>
-    <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">{user.role}</p>
-    <p className="text-xs text-gray-500 dark:text-slate-300">{user.department || 'N/A'}</p>
-    <p className="text-xs text-gray-400 dark:text-slate-400 truncate w-full text-center">{user.email}</p>
-    <div className="flex gap-2 mt-4">
-      <button onClick={() => onView(user)} className="p-2 rounded-full bg-blue-100 hover:bg-blue-200 dark:bg-slate-800 dark:hover:bg-slate-700" title="View">
-        <EyeIcon className="h-5 w-5 text-blue-600" />
-      </button>
-      <button onClick={() => onPermissions(user)} className="p-2 rounded-full bg-indigo-100 hover:bg-indigo-200 dark:bg-slate-800 dark:hover:bg-slate-700" title="Permissions">
-        <KeyIcon className="h-5 w-5 text-indigo-600" />
-      </button>
-      <button onClick={() => onLeave(user)} className="p-2 rounded-full bg-green-100 hover:bg-green-200 dark:bg-slate-800 dark:hover:bg-slate-700" title="Leave">
-        <CalendarIcon className="h-5 w-5 text-green-600" />
-      </button>
-      <button onClick={() => onEdit(user)} className="p-2 rounded-full bg-amber-100 hover:bg-amber-200 dark:bg-slate-800 dark:hover:bg-slate-700" title="Edit">
-        <PencilIcon className="h-5 w-5 text-amber-600" />
-      </button>
-      <button onClick={() => onDelete(user)} className="p-2 rounded-full bg-red-100 hover:bg-red-200 dark:bg-slate-800 dark:hover:bg-slate-700" title="Delete">
-        <TrashIcon className="h-5 w-5 text-red-600" />
-      </button>
+
+    {/* Content */}
+    <div className="flex flex-col items-center pt-16 px-5 pb-5">
+      <h3 className="mt-2 text-base font-bold text-slate-800 text-center">{user.name}</h3>
+      <p className="text-xs text-purple-500 font-semibold">{user.role}</p>
+      <p className="text-[11px] text-slate-400 font-mono mt-0.5">{user.employeeId}</p>
+
+      {/* Email row */}
+      <div className="flex items-center gap-2.5 bg-purple-50 rounded-xl px-3 py-2 w-full mt-4">
+        <span className="flex items-center justify-center h-7 w-7 rounded-lg bg-purple-100 flex-shrink-0">
+          <AtSymbolIcon className="h-3.5 w-3.5 text-purple-500" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[10px] text-slate-400 leading-none">Email</p>
+          <p className="text-xs font-semibold text-slate-700 truncate mt-0.5">{user.email}</p>
+        </div>
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex items-center justify-center gap-2 mt-4">
+        <ActionBtn onClick={() => onView(user)} title="View" bg="bg-blue-50">
+          <EyeIcon className="h-4 w-4 text-blue-500" />
+        </ActionBtn>
+        <ActionBtn onClick={() => onPermissions(user)} title="Permissions" bg="bg-amber-50">
+          <KeyIcon className="h-4 w-4 text-amber-500" />
+        </ActionBtn>
+        <ActionBtn onClick={() => onLeave(user)} title="Leave" bg="bg-green-50">
+          <CalendarIcon className="h-4 w-4 text-green-500" />
+        </ActionBtn>
+        <ActionBtn onClick={() => onEdit(user)} title="Edit" bg="bg-purple-50">
+          <PencilIcon className="h-4 w-4 text-purple-500" />
+        </ActionBtn>
+        <ActionBtn onClick={() => onDelete(user)} title="Delete" bg="bg-red-50">
+          <TrashIcon className="h-4 w-4 text-red-500" />
+        </ActionBtn>
+      </div>
     </div>
   </div>
 );
 
 const EmployeeCardGrid = ({ users, ...actions }) => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8">
+  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
     {users.map(user => (
       <EmployeeCard key={user._id} user={user} {...actions} />
     ))}
@@ -278,10 +304,11 @@ const EmployeeFormModal = ({ isOpen, onClose, onSave, employeeToEdit, isSaving }
         shift: employeeToEdit.shift || 'Day',
         dashboardAccess: employeeToEdit.dashboardAccess || 'Employee Dashboard',
         department: employeeToEdit.department || '',
+        monitoringName: employeeToEdit.monitoringName || '',
       });
     } else {
       // Reset for "Add" mode
-      setFormData({ name: '', email: '', role: '', employeeId: '', password: '', profilePicture: null, address: '', gender: '', country: '', city: '', qualification: '', experience: '', workType: 'Full-time', company: '', joiningDate: '', workLocation: '', shift: 'Day', dashboardAccess: 'Employee Dashboard', department: '' });
+      setFormData({ name: '', email: '', role: '', employeeId: '', password: '', profilePicture: null, address: '', gender: '', country: '', city: '', qualification: '', experience: '', workType: 'Full-time', company: '', joiningDate: '', workLocation: '', shift: 'Day', dashboardAccess: 'Employee Dashboard', department: '', monitoringName: '' });
     }
   }, [employeeToEdit, isOpen]); // Rerun when the user to edit changes or modal opens
 
@@ -326,7 +353,7 @@ const EmployeeFormModal = ({ isOpen, onClose, onSave, employeeToEdit, isSaving }
     if (formData.password) employeeFormData.append('password', formData.password);
     if (formData.profilePicture) employeeFormData.append('profilePicture', formData.profilePicture);
     Object.keys(formData).forEach(key => {
-        if (!['name', 'email', 'role', 'employeeId', 'password', 'profilePicture'].includes(key) && formData[key]) {
+        if (!['name', 'email', 'role', 'employeeId', 'password', 'profilePicture'].includes(key) && formData[key] !== undefined && formData[key] !== null) {
             employeeFormData.append(key, formData[key]);
         }
     });
@@ -457,6 +484,10 @@ const EmployeeFormModal = ({ isOpen, onClose, onSave, employeeToEdit, isSaving }
                   <option value="Tech & Development">Tech & Development</option>
                 </select>
               </div>
+              <div>
+                <label htmlFor="monitoringName" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Monitoring Name <span className="text-slate-400 font-normal">(exact name in Portal 3)</span></label>
+                <input type="text" name="monitoringName" id="monitoringName" value={formData.monitoringName} onChange={handleChange} placeholder="e.g. Anmol" className="w-full text-sm border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500" />
+              </div>
             </div>
             {formError && <p className="text-sm text-red-600 bg-red-50 p-2 rounded-md mt-4">{formError}</p>}
           </div>
@@ -531,6 +562,7 @@ const EmployeeTable = ({ users, onEdit, onDelete, onView, onPermissions, onLeave
 
 export default function EmployeeManagement() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [deptFilter, setDeptFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
@@ -636,61 +668,68 @@ export default function EmployeeManagement() {
       toast.error(err.data?.message || 'Failed to delete employee.');
     }
   };
-  const filteredUsers = useMemo(() => 
-    users.filter(user => 
-      user && user.name && user.employeeId && // Ensure user and its properties are not null/undefined
+  const filteredUsers = useMemo(() =>
+    users.filter(user =>
+      user?.name && user?.employeeId &&
       (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.employeeId.toLowerCase().includes(searchTerm.toLowerCase()))
-    ), [users, searchTerm]);
+       user.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       user.role?.toLowerCase().includes(searchTerm.toLowerCase())) &&
+      (!deptFilter || user.department === deptFilter)
+    ), [users, searchTerm, deptFilter]);
 
-  if (isLoading) {
-    return <div className="p-8 text-center">Loading employees...</div>;
-  }
-
-  if (isError) {
-    return <div className="p-8 text-center text-red-500">Error fetching employees: {error.toString()}</div>;
-  }
+  if (isLoading) return <div className="p-8 text-center text-slate-500">Loading employees...</div>;
+  if (isError) return <div className="p-8 text-center text-red-500">Error: {error.toString()}</div>;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 h-full bg-slate-50 dark:bg-slate-900">
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl h-full flex flex-col p-8">
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-10">
-          <div>
-            <h2 className="text-3xl font-extrabold text-blue-900 dark:text-white tracking-tight mb-1">Employee Management</h2>
-            <p className="text-blue-500 dark:text-white text-sm">Browse, search, and manage your team in a visually engaging way.</p>
-          </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
-          <div className="relative w-full sm:w-auto">
-              <MagnifyingGlassIcon className="h-5 w-5 text-blue-400 absolute top-1/2 left-3 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search employees..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 w-full sm:w-64 text-sm border border-blue-200 dark:border-slate-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-blue-50 dark:bg-slate-900 dark:text-white"
-              />
-            </div>
-            <button 
-              onClick={handleOpenAddModal}
-            className="w-full sm:w-auto justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 text-sm shadow"
-            >
-              <UserPlusIcon className="h-5 w-5"/>
-              <span>Add Employee</span>
-            </button>
-          </div>
+    <div className="min-h-full p-6 lg:p-8" style={{ backgroundColor: '#DFCDFE' }}>
+      {/* Header */}
+      <div className="mb-2">
+        <h2 className="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">Employee Management</h2>
+        <div className="h-1 w-12 rounded-full mt-1 mb-3" style={{ background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
+        <p className="text-slate-500 dark:text-slate-400 text-sm">Manage Your Team Member Roles And Their Information</p>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 my-6">
+        <div className="relative w-full sm:w-80">
+          <MagnifyingGlassIcon className="h-4 w-4 text-slate-400 absolute top-1/2 left-3 -translate-y-1/2" />
+          <input type="text" placeholder="Search Employee By Name, Role & Email...." value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-purple-200 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-300 shadow-sm" />
         </div>
-        <div className="flex-1 overflow-y-auto">
-          <EmployeeCardGrid
-            users={filteredUsers} // Changed card background
-            onEdit={handleOpenEditModal}
-            onDelete={handleOpenDeleteModal}
-            onView={handleOpenViewModal}
-            onPermissions={handleOpenPermissionsModal}
-            onLeave={handleOpenLeaveModal}
-          />
+        <div className="flex items-center gap-3">
+          <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)}
+            className="text-sm border border-purple-200 rounded-xl px-4 py-2.5 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-300 shadow-sm font-medium">
+            <option value="">All Departments</option>
+            <option value="Corporate management">Corporate management</option>
+            <option value="Human Resource">Human Resource</option>
+            <option value="Creative Designing">Creative Designing</option>
+            <option value="Finance & Accounts">Finance & Accounts</option>
+            <option value="Marketing Operations">Marketing Operations</option>
+            <option value="Sales & Marketing">Sales & Marketing</option>
+            <option value="Tech & Development">Tech & Development</option>
+          </select>
+          <button onClick={handleOpenAddModal}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm transition hover:opacity-90"
+            style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+            <UserPlusIcon className="h-4 w-4" /> Add Employee
+          </button>
         </div>
-      </div> 
-      <EmployeeFormModal 
+      </div>
+
+      {/* Grid */}
+      <div className="pb-8">
+        <EmployeeCardGrid
+          users={filteredUsers}
+          onEdit={handleOpenEditModal}
+          onDelete={handleOpenDeleteModal}
+          onView={handleOpenViewModal}
+          onPermissions={handleOpenPermissionsModal}
+          onLeave={handleOpenLeaveModal}
+        />
+      </div>
+      <EmployeeFormModal
         isOpen={isModalOpen} 
         onClose={handleCloseModal}
         onSave={handleSaveEmployee}

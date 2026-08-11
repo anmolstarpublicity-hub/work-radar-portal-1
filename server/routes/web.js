@@ -11,6 +11,8 @@ const AuthController = require('../controllers/authController.js');
 const SetupController = require('../controllers/setupController.js');
 const SettingsController = require('../controllers/settingsController.js');
 const AnnouncementController = require('../controllers/announcementController.js');
+const MonitoringController = require('../controllers/monitoringController.js');
+const HorillaController = require('../controllers/horillaController.js');
 const { protect } = require('../middleware/authMiddleware.js');
 const multer = require('multer');
 const { storage } = require('../config/cloudinary.js');
@@ -81,6 +83,19 @@ router.put('/tasks/:id/reject', protect, TaskController.rejectTaskCompletion);
 router.post('/tasks/:id/comments', protect, TaskController.addTaskComment);
 router.delete('/tasks/:id', protect, TaskController.deleteTask);
 router.post('/tasks/process-due-tasks', protect, TaskController.processPastDueTasks);
+
+// Monitoring Routes (Portal 3 - Supabase)
+router.get('/monitoring/:employeeId/pc-start', protect, MonitoringController.getPCStartTimeForEmployee);
+router.get('/monitoring/:employeeId/activity', protect, MonitoringController.getActivityLogsForEmployee);
+router.get('/monitoring/:employeeId/pc-days', protect, MonitoringController.getPCDaysForEmployee);
+
+// Horilla Routes (Portal 1 - HRM)
+router.get('/horilla/:employeeId/punch', protect, HorillaController.getPunchForEmployee);
+
+const EmployeeScoreController = require('../controllers/employeeScoreController.js');
+
+router.get('/employee-scores/:employeeId', protect, EmployeeScoreController.getScore);
+router.post('/employee-scores/:employeeId', protect, EmployeeScoreController.setScore);
 
 // Announcement Routes
 router.get('/announcements/active', protect, AnnouncementController.getActiveAnnouncement);

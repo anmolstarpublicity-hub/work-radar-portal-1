@@ -3,17 +3,21 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
  
 // During development the frontend is served by Vite (usually on :5173/5174)
 // while the API runs on a separate Express server (default port 2000).
-// Use the backend origin in DEV so requests go to the API server, and use
-// the relative path in production where Nginx proxies `/workradar/api`.
-const resolvedBaseUrl = import.meta.env.DEV ? 'http://localhost:2000/workradar/api' : '/workradar/api';
+// In production on Vercel, VITE_API_URL must be set to the full backend URL.
+// On Hostinger (same origin), the relative path works fine.
+const resolvedBaseUrl = import.meta.env.DEV
+  ? 'http://localhost:2000/workradar/api'
+  : (import.meta.env.VITE_API_URL || '/workradar/api');
 
 const baseQuery = fetchBaseQuery({
   baseUrl: resolvedBaseUrl,
+  fetchFn: (input, init) => fetch(input, { cache: 'no-store', ...init }),
   prepareHeaders: (headers, { getState }) => {
     const token = getState().auth.token;
     if (token) {
       headers.set('authorization', `Bearer ${token}`);
     }
+    headers.set('cache-control', 'no-cache');
     return headers;
   },
 });
@@ -38,7 +42,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
 export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['Employee', 'Report', 'User', 'Task', 'Notification', 'Leave', 'Holiday', 'Announcement', 'EOMHistory', 'EOMOfficial', 'CompanyInfo'], // Define tag types for caching
+  tagTypes: ['Employee', 'Report', 'User', 'Task', 'Notification', 'Leave', 'Holiday', 'Announcement', 'EOMHistory', 'EOMOfficial', 'CompanyInfo', 'Monitoring', 'Horilla', 'EmployeeScore'],
   endpoints: (builder) => ({
     logout: builder.mutation({
       query: () => ({ url: '/logout', method: 'POST' }),

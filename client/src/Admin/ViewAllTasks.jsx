@@ -3,77 +3,61 @@ import { useGetAllTasksQuery, useGetEmployeesQuery, useUpdateTaskMutation, useDe
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../app/authSlice';
 import toast from 'react-hot-toast';
-import { MagnifyingGlassIcon, FunnelIcon, XMarkIcon, PencilIcon, ArrowPathIcon, TrashIcon, ExclamationTriangleIcon, EyeIcon, ChatBubbleLeftEllipsisIcon, PaperAirplaneIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
-import { CheckCircleIcon, CalendarDaysIcon as CalendarOutlineIcon, InformationCircleIcon as InfoOutlineIcon } from '@heroicons/react/24/solid';
+import { MagnifyingGlassIcon, XMarkIcon, PencilIcon, ArrowPathIcon, TrashIcon, ExclamationTriangleIcon, EyeIcon, ArrowLeftIcon, FunnelIcon } from '@heroicons/react/24/outline';
 import { TaskDetailsModal } from './TaskOverview.jsx';
 
 const EditTaskModal = ({ isOpen, onClose, task, onUpdate }) => {
   const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
-  const [taskData, setTaskData] = useState({
-    title: '',
-    description: '',
-    startDate: '',
-    dueDate: '',
-    priority: 'Medium',
-    status: 'Pending',
-  });
+  const [taskData, setTaskData] = useState({ title: '', description: '', startDate: '', dueDate: '', priority: 'Medium', status: 'Pending' });
 
   useEffect(() => {
-    if (task) {
-      setTaskData({
-        title: task.title || '',
-        description: task.description || '',
-        startDate: task.startDate ? new Date(task.startDate).toISOString().split('T')[0] : '',
-        dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
-        priority: task.priority || 'Medium',
-        status: task.status || 'Pending',
-      });
-    }
+    if (task) setTaskData({
+      title: task.title || '', description: task.description || '',
+      startDate: task.startDate ? new Date(task.startDate).toISOString().split('T')[0] : '',
+      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
+      priority: task.priority || 'Medium', status: task.status || 'Pending',
+    });
   }, [task]);
 
   if (!isOpen || !task) return null;
-
-  const handleChange = (e) => {
-    setTaskData({ ...taskData, [e.target.name]: e.target.value });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       await updateTask({ id: task._id, ...taskData }).unwrap();
       toast.success('Task updated successfully!');
-      onUpdate(); // This will trigger a refetch in the parent
+      onUpdate();
       onClose();
     } catch (err) {
       toast.error(err.data?.message || 'Failed to update task.');
     }
   };
 
+  const inputCls = "w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none bg-slate-50";
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center p-4">
-      <div className="bg-white dark:bg-black rounded-2xl shadow-xl w-full max-w-lg">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-slate-800 dark:text-white">Edit Task</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
-            <XMarkIcon className="h-6 w-6" />
-          </button>
+    <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <h3 className="text-base font-bold text-slate-800">Edit Task</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><XMarkIcon className="h-5 w-5" /></button>
         </div>
-        <form onSubmit={handleSubmit} className="divide-y divide-slate-200 dark:divide-slate-700">
+        <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-4">
-            <input type="text" name="title" value={taskData.title} onChange={handleChange} className="w-full text-sm border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-lg p-2.5" placeholder="Task Title" />
-            <textarea name="description" value={taskData.description} onChange={handleChange} rows="3" className="w-full text-sm border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-lg p-2.5" placeholder="Description"></textarea>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <input type="date" name="startDate" value={taskData.startDate} onChange={handleChange} className="w-full text-sm border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-lg p-2.5" />
-              <input type="date" name="dueDate" value={taskData.dueDate} onChange={handleChange} className="w-full text-sm border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-lg p-2.5" />
-              <select name="priority" value={taskData.priority} onChange={handleChange} className="w-full text-sm border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-lg p-2.5">
+            <input type="text" value={taskData.title} onChange={e => setTaskData(p => ({ ...p, title: e.target.value }))} className={inputCls} placeholder="Task Title" />
+            <textarea value={taskData.description} onChange={e => setTaskData(p => ({ ...p, description: e.target.value }))} rows="3" className={inputCls} placeholder="Description" />
+            <div className="grid grid-cols-2 gap-4">
+              <input type="date" value={taskData.startDate} onChange={e => setTaskData(p => ({ ...p, startDate: e.target.value }))} className={inputCls} />
+              <input type="date" value={taskData.dueDate} onChange={e => setTaskData(p => ({ ...p, dueDate: e.target.value }))} className={inputCls} />
+              <select value={taskData.priority} onChange={e => setTaskData(p => ({ ...p, priority: e.target.value }))} className={inputCls}>
                 <option>Low</option><option>Medium</option><option>High</option>
               </select>
             </div>
           </div>
-          <div className="p-4 bg-slate-50 dark:bg-black flex justify-end">
-            <button type="submit" disabled={isUpdating} className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm disabled:bg-blue-400">
-              {isUpdating && <ArrowPathIcon className="animate-spin h-4 w-4 mr-2" />}
-              Save Changes
+          <div className="px-6 pb-6 flex justify-end gap-3">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">Cancel</button>
+            <button type="submit" disabled={isUpdating} className="inline-flex items-center gap-2 px-5 py-2 text-sm font-bold text-white rounded-xl disabled:opacity-60" style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+              {isUpdating && <ArrowPathIcon className="animate-spin h-4 w-4" />} Save Changes
             </button>
           </div>
         </form>
@@ -84,29 +68,39 @@ const EditTaskModal = ({ isOpen, onClose, task, onUpdate }) => {
 
 const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, task, isDeleting }) => {
   if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center p-4 dark:bg-black/70">
-      <div className="bg-white dark:bg-black rounded-lg shadow-xl w-full max-w-sm">
+    <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
         <div className="p-6 text-center">
-          <div className="mx-auto bg-red-100 rounded-full h-12 w-12 flex items-center justify-center my-4">
-            <ExclamationTriangleIcon className="h-6 w-6 text-red-600" />
+          <div className="mx-auto bg-red-50 rounded-full h-12 w-12 flex items-center justify-center mb-4">
+            <ExclamationTriangleIcon className="h-6 w-6 text-red-500" />
           </div>
-          <h3 className="text-lg font-semibold text-slate-800 dark:text-white">Confirm Deletion</h3>
-          <p className="text-sm text-slate-500 dark:text-white mt-2">Are you sure you want to delete the task "{task?.title}"? This action cannot be undone.</p>
+          <h3 className="text-base font-bold text-slate-800">Confirm Deletion</h3>
+          <p className="text-sm text-slate-500 mt-2">Delete "<strong className="text-slate-700">{task?.title}</strong>"? This cannot be undone.</p>
         </div>
-        <div className="p-4 bg-slate-50 dark:bg-black rounded-b-lg flex justify-center gap-3">
-          <button type="button" onClick={onClose} className="bg-white hover:bg-slate-100 text-slate-700 font-bold py-2 px-4 rounded-lg border border-slate-300 text-sm">
-            Cancel
-          </button>
-          <button type="button" onClick={onConfirm} disabled={isDeleting} className="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-sm disabled:bg-red-400">
-            {isDeleting && <ArrowPathIcon className="animate-spin h-4 w-4 mr-2" />}
-            {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+        <div className="px-6 pb-6 flex justify-center gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">Cancel</button>
+          <button onClick={onConfirm} disabled={isDeleting} className="inline-flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl transition disabled:opacity-60">
+            {isDeleting && <ArrowPathIcon className="animate-spin h-4 w-4" />}
+            {isDeleting ? 'Deleting...' : 'Delete'}
           </button>
         </div>
       </div>
     </div>
   );
+};
+
+const statusStyles = {
+  Pending: 'bg-slate-100 text-slate-700',
+  'In Progress': 'bg-blue-100 text-blue-700',
+  'Pending Verification': 'bg-purple-100 text-purple-700',
+  'Not Completed': 'bg-orange-100 text-orange-700',
+  Completed: 'bg-emerald-100 text-emerald-700',
+};
+const priorityStyles = {
+  High: 'bg-red-100 text-red-700',
+  Medium: 'bg-amber-100 text-amber-700',
+  Low: 'bg-green-100 text-green-700',
 };
 
 const ViewAllTasks = ({ initialFilters = {} }) => {
@@ -123,66 +117,36 @@ const ViewAllTasks = ({ initialFilters = {} }) => {
   const [viewingTaskNumber, setViewingTaskNumber] = useState(null);
   const currentUser = useSelector(selectCurrentUser);
 
-  const isLoading = isLoadingTasks || isLoadingEmployees;
-
-  const { status: initialStatus, priority: initialPriority } = initialFilters;
-
   useEffect(() => {
-    setFilters({ status: initialStatus || '', priority: initialPriority || '' });
-  }, [initialStatus, initialPriority]);
+    setFilters({ status: initialFilters.status || '', priority: initialFilters.priority || '' });
+  }, [initialFilters.status, initialFilters.priority]);
 
   const handleSelectEmployee = (employee) => {
     setSelectedEmployee(employee);
-    // Set default date range to the current week
     const today = new Date();
-    const firstDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
-    const lastDayOfWeek = new Date(firstDayOfWeek);
-    lastDayOfWeek.setDate(lastDayOfWeek.getDate() + 6);
-
-    setDateRange({
-      startDate: firstDayOfWeek.toISOString().split('T')[0],
-      endDate: lastDayOfWeek.toISOString().split('T')[0],
-    });
+    const first = new Date(today.setDate(today.getDate() - today.getDay()));
+    const last = new Date(first); last.setDate(last.getDate() + 6);
+    setDateRange({ startDate: first.toISOString().split('T')[0], endDate: last.toISOString().split('T')[0] });
   };
+
+  const filteredEmployees = useMemo(() =>
+    employees.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase())),
+    [employees, searchTerm]);
 
   const filteredTasks = useMemo(() => {
     if (!selectedEmployee) return [];
-
-    let employeeTasks = tasks.filter(task => task.assignedTo?._id === selectedEmployee._id);
-
-    // Filter by date range (assignment date)
+    let t = tasks.filter(task => task.assignedTo?._id === selectedEmployee._id);
     if (dateRange.startDate && dateRange.endDate) {
-      const start = new Date(dateRange.startDate);
-      const end = new Date(dateRange.endDate);
-      end.setHours(23, 59, 59, 999); // Include the whole end day
-
-      employeeTasks = employeeTasks.filter(task => {
-        const assignedDate = new Date(task.createdAt);
-        return assignedDate >= start && assignedDate <= end;
-      });
+      const s = new Date(dateRange.startDate);
+      const e = new Date(dateRange.endDate); e.setHours(23, 59, 59, 999);
+      t = t.filter(task => { const d = new Date(task.createdAt); return d >= s && d <= e; });
     }
-
-    return employeeTasks.filter(task => {
-      const matchesSearch =
-        task.title.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesStatus = filters.status ? task.status === filters.status : true;
-      const matchesPriority = filters.priority ? task.priority === filters.priority : true;
-
-      return matchesSearch && matchesStatus && matchesPriority;
-    });
-  }, [tasks, searchTerm, filters, selectedEmployee, dateRange]);
-
-  const filteredEmployees = useMemo(() => {
-    if (!employees) return [];
-    return employees.filter(employee =>
-      employee.name.toLowerCase().includes(searchTerm.toLowerCase())
+    return t.filter(task =>
+      task.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (filters.status ? task.status === filters.status : true) &&
+      (filters.priority ? task.priority === filters.priority : true)
     );
-  }, [employees, searchTerm]);
-
-  const handleFilterChange = (type, value) => {
-    setFilters(prev => ({ ...prev, [type]: value }));
-  };
+  }, [tasks, searchTerm, filters, selectedEmployee, dateRange]);
 
   const handleConfirmDelete = async () => {
     if (!deletingTask) return;
@@ -191,203 +155,180 @@ const ViewAllTasks = ({ initialFilters = {} }) => {
       toast.success('Task deleted successfully!');
       setDeletingTask(null);
     } catch (err) {
-      console.error('Failed to delete task:', err);
       toast.error(err.data?.message || 'Failed to delete task.');
     }
   };
-  const priorityStyles = {
-    High: 'bg-red-100 text-red-800',
-    Medium: 'bg-yellow-100 text-yellow-800',
-    Low: 'bg-green-100 text-green-800',
-  };
 
-  const statusStyles = {
-    Pending: 'bg-slate-100 text-slate-800',
-    'In Progress': 'bg-blue-100 text-blue-800',
-    'Pending Verification': 'bg-purple-100 text-purple-800',
-    'Not Completed': 'bg-orange-100 text-orange-800',
-    Completed: 'bg-emerald-100 text-emerald-800',
-  };
+  if (isLoadingTasks || isLoadingEmployees) return <div className="p-8 text-center text-slate-500">Loading...</div>;
 
-  // completionCategoryStyles removed (unused)
-
-  if (isLoading) return <div className="p-8 text-center">Loading...</div>;
-
+  // Employee selection screen
   if (!selectedEmployee) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-slate-50 dark:bg-slate-900">
-        <div className="mb-8">
-          <h1 className="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">View Employee Tasks</h1>
-          <p className="text-slate-500 dark:text-white mt-2">Select an employee to view their assigned tasks.</p>
+      <div className="min-h-full p-6 lg:p-8" style={{ backgroundColor: '#DFCDFE' }}>
+        {/* Header */}
+        <div className="mb-2">
+          <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">View Employee Tasks</h2>
+          <div className="h-1 w-12 rounded-full mt-1 mb-3" style={{ background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
+          <p className="text-slate-500 text-sm">Select An Employee To View Their Assigned Tasks</p>
         </div>
-        <div className="mb-6">
-          <input
-            type="text"
-            placeholder="Search employees..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full max-w-md text-sm border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-lg p-3 focus:ring-blue-500 focus:border-blue-500"
-          />
+
+        {/* Search */}
+        <div className="my-6">
+          <div className="relative w-full sm:w-80">
+            <MagnifyingGlassIcon className="h-4 w-4 text-slate-400 absolute top-1/2 left-3 -translate-y-1/2" />
+            <input type="text" placeholder="Search employees..." value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-purple-200 bg-white focus:outline-none focus:ring-2 focus:ring-purple-300 shadow-sm" />
+          </div>
         </div>
+
+        {/* Employee Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredEmployees.map(employee => ( // Changed card background
-            <div
-              key={employee._id}
-              onClick={() => handleSelectEmployee(employee)}
-            className="bg-white dark:bg-black rounded-2xl shadow-xl p-6 flex flex-col items-center text-center border-t-4 border-blue-500 hover:scale-105 transition-transform duration-200 cursor-pointer"
-            >
-            <img 
-              src={employee.profilePicture || `https://ui-avatars.com/api/?name=${employee.name}&background=random`} 
-              alt={employee.name} 
-              onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${employee.name}&background=random`; }}
-              className="h-20 w-20 rounded-full object-cover mb-4 border-4 border-slate-100 dark:border-slate-800" 
-            />
-            <p className="font-bold text-slate-800 dark:text-white">{employee.name}</p>
-              <p className="text-sm text-blue-600 font-medium">{employee.role}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono">{employee.employeeId}</p>
+          {filteredEmployees.map(employee => (
+            <div key={employee._id} onClick={() => handleSelectEmployee(employee)}
+              className="bg-white rounded-2xl border border-purple-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col cursor-pointer">
+              {/* Banner */}
+              <div className="h-24 w-full relative flex-shrink-0" style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+                <div className="absolute -bottom-14 left-1/2 -translate-x-1/2">
+                  <img
+                    src={employee.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name)}&background=8E5FD0&color=fff`}
+                    alt={employee.name}
+                    onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name)}&background=8E5FD0&color=fff`; }}
+                    className="h-28 w-28 rounded-full object-cover border-4 border-white shadow-md"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col items-center pt-16 px-5 pb-5">
+                <h3 className="mt-2 text-base font-bold text-slate-800 text-center">{employee.name}</h3>
+                <p className="text-xs text-purple-500 font-semibold">{employee.role}</p>
+                <p className="text-[11px] text-slate-400 font-mono mt-0.5">{employee.employeeId}</p>
+                <div className="mt-4 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold text-white" style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+                  View Tasks
+                </div>
+              </div>
             </div>
           ))}
         </div>
       </div>
     );
   }
-  // Changed main background
+
+  // Task list screen
   return (
-    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
-      <div className="mb-8 text-center">
-        <div className="flex items-center gap-4">
-          <button onClick={() => { setSelectedEmployee(null); setSearchTerm(''); }} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
-            <ArrowLeftIcon className="h-5 w-5 text-slate-600 dark:text-white" />
-          </button>
-          <div>
-            <h1 className="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">Tasks for {selectedEmployee.name}</h1>
-            <p className="text-slate-500 dark:text-white mt-1">A complete overview of all tasks assigned to this employee.</p>
-          </div>
+    <div className="min-h-full p-6 lg:p-8" style={{ backgroundColor: '#DFCDFE' }}>
+      {/* Header */}
+      <div className="mb-6 flex items-center gap-4">
+        <button onClick={() => { setSelectedEmployee(null); setSearchTerm(''); }}
+          className="p-2 rounded-xl bg-white border border-purple-100 hover:bg-purple-50 shadow-sm transition">
+          <ArrowLeftIcon className="h-5 w-5 text-purple-600" />
+        </button>
+        <div>
+          <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">Tasks — {selectedEmployee.name}</h2>
+          <div className="h-1 w-12 rounded-full mt-1" style={{ background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex-1 flex flex-col">
+      {/* Table Card */}
+      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
         {/* Toolbar */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-6 border-b border-slate-200 dark:border-slate-700">
-          <div className="relative w-full md:w-auto">
-            <MagnifyingGlassIcon className="h-5 w-5 text-slate-400 absolute top-1/2 left-3 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search tasks or people..."
-              value={searchTerm} // This now searches within the selected employee's tasks
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2.5 w-full md:w-80 text-sm border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-            />
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-4 px-6 py-4 border-b border-slate-100">
+          <div className="relative w-full lg:w-72">
+            <MagnifyingGlassIcon className="h-4 w-4 text-slate-400 absolute top-1/2 left-3 -translate-y-1/2" />
+            <input type="text" placeholder="Search tasks..." value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-purple-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-purple-300" />
           </div>
-          <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
-            <div className="flex items-center gap-2">
-              <input 
-                type="date" 
-                value={dateRange.startDate}
-                onChange={e => setDateRange(prev => ({...prev, startDate: e.target.value}))}
-                className="text-sm border border-slate-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-              />
-              <input 
-                type="date" 
-                value={dateRange.endDate}
-                onChange={e => setDateRange(prev => ({...prev, endDate: e.target.value}))}
-                className="text-sm border border-slate-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-              />
-            </div>
-            <FunnelIcon className="h-5 w-5 text-slate-400" />
-            <select onChange={(e) => handleFilterChange('status', e.target.value)} value={filters.status} className="text-sm border border-slate-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500">
+          <div className="flex flex-wrap items-center gap-3">
+            <input type="date" value={dateRange.startDate} onChange={e => setDateRange(p => ({ ...p, startDate: e.target.value }))}
+              className="text-sm border border-purple-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-purple-300" />
+            <span className="text-slate-400 text-xs font-medium">to</span>
+            <input type="date" value={dateRange.endDate} onChange={e => setDateRange(p => ({ ...p, endDate: e.target.value }))}
+              className="text-sm border border-purple-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-purple-300" />
+            <select value={filters.status} onChange={e => setFilters(p => ({ ...p, status: e.target.value }))}
+              className="text-sm border border-purple-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-purple-300 font-medium">
               <option value="">All Statuses</option>
               <option>Pending</option><option>In Progress</option><option>Pending Verification</option><option>Completed</option><option>Not Completed</option>
             </select>
-            <select onChange={(e) => handleFilterChange('priority', e.target.value)} value={filters.priority} className="text-sm border border-slate-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500">
+            <select value={filters.priority} onChange={e => setFilters(p => ({ ...p, priority: e.target.value }))}
+              className="text-sm border border-purple-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-purple-300 font-medium">
               <option value="">All Priorities</option>
-              <option>Low</option>
-              <option>Medium</option>
-              <option>High</option>
+              <option>Low</option><option>Medium</option><option>High</option>
             </select>
             {(filters.status || filters.priority) && (
-              <button onClick={() => setFilters({ status: '', priority: '' })} className="text-slate-500 hover:text-slate-800">
-                <XMarkIcon className="h-5 w-5" />
+              <button onClick={() => setFilters({ status: '', priority: '' })} className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 transition">
+                <XMarkIcon className="h-4 w-4 text-slate-500" />
               </button>
             )}
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto rounded-b-xl">
-          <table className="w-full text-sm text-left text-slate-600 min-w-[900px]">
-            <thead className="text-xs text-slate-700 uppercase bg-slate-50 sticky top-0 z-10">
-              <tr>
-                <th scope="col" className="px-6 py-3">Task Title</th>
-                <th scope="col" className="px-6 py-3">Assigned By</th>
-                <th scope="col" className="px-6 py-3">Due Date</th>
-                <th scope="col" className="px-6 py-3">Completed On</th>
-                <th scope="col" className="px-6 py-3">Status</th>
-                <th scope="col" className="px-6 py-3">Priority</th>
-                <th scope="col" className="px-6 py-3">Grade</th>
-                <th scope="col" className="px-6 py-3 text-right">Actions</th>
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[900px]">
+            <thead>
+              <tr className="text-xs text-slate-400 border-b border-slate-100">
+                <th className="text-left px-6 py-3 font-semibold">Task Title</th>
+                <th className="text-left px-6 py-3 font-semibold">Assigned By</th>
+                <th className="text-left px-6 py-3 font-semibold">Due Date</th>
+                <th className="text-left px-6 py-3 font-semibold">Completed On</th>
+                <th className="text-left px-6 py-3 font-semibold">Status</th>
+                <th className="text-left px-6 py-3 font-semibold">Priority</th>
+                <th className="text-left px-6 py-3 font-semibold">Grade</th>
+                <th className="text-right px-6 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-              {filteredTasks.length > 0 ? (
-                filteredTasks.map((task, index) => (
-                  <tr key={task._id} className="bg-white dark:bg-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-slate-900 dark:text-white">{task.title}</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-xs">{task.description}</div>
-                    </td>
-                    <td className="px-6 py-4">{task.assignedBy?.name || 'N/A'}</td>
-                    <td className="px-6 py-4">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'N/A'}</td>
-                    <td className="px-6 py-4">
-                      {task.status === 'Not Completed' ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                          Incomplete
-                        </span>
-                      ) : task.status === 'Completed' && task.completionDate ? (
-                        new Date(task.completionDate).toLocaleDateString()
-                      ) : <span className="text-slate-400 dark:text-slate-500 text-xs">--</span>}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusStyles[task.status]} dark:bg-opacity-20`}>
-                        {task.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${priorityStyles[task.priority]} dark:bg-opacity-20`}>
-                        {task.priority}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {['Completed', 'Not Completed'].includes(task.status) ? (
-                        <span className="text-sm font-semibold text-slate-700 dark:text-white">
-                          {task.progress}%
-                        </span>
-                      ) : <span className="text-slate-400 dark:text-slate-500 text-xs">--</span>}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => { setViewingTask(task); setViewingTaskNumber(index + 1); }} className="p-1.5 text-slate-500 hover:text-green-600 rounded-md hover:bg-green-100 dark:hover:bg-slate-800" title="View Details">
-                          <EyeIcon className="h-4 w-4" />
+            <tbody className="divide-y divide-slate-50">
+              {filteredTasks.length > 0 ? filteredTasks.map((task, index) => (
+                <tr key={task._id} className="hover:bg-purple-50/40 transition-colors">
+                  <td className="px-6 py-3">
+                    <p className="font-semibold text-slate-800 leading-tight">{task.title}</p>
+                    <p className="text-[11px] text-slate-400 truncate max-w-[200px] mt-0.5">{task.description}</p>
+                  </td>
+                  <td className="px-6 py-3 text-slate-600 text-xs">{task.assignedBy?.name || 'N/A'}</td>
+                  <td className="px-6 py-3 text-slate-600 text-xs whitespace-nowrap">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '—'}</td>
+                  <td className="px-6 py-3 text-xs whitespace-nowrap">
+                    {task.status === 'Not Completed' ? (
+                      <span className="text-orange-600 font-semibold">Incomplete</span>
+                    ) : task.status === 'Completed' && task.completionDate ? (
+                      <span className="text-slate-600">{new Date(task.completionDate).toLocaleDateString()}</span>
+                    ) : <span className="text-slate-300">—</span>}
+                  </td>
+                  <td className="px-6 py-3">
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusStyles[task.status]}`}>{task.status}</span>
+                  </td>
+                  <td className="px-6 py-3">
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${priorityStyles[task.priority]}`}>{task.priority}</span>
+                  </td>
+                  <td className="px-6 py-3">
+                    {['Completed', 'Not Completed'].includes(task.status) ? (
+                      <span className="text-sm font-bold text-purple-600">{task.progress}%</span>
+                    ) : <span className="text-slate-300 text-xs">—</span>}
+                  </td>
+                  <td className="px-6 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <button onClick={() => { setViewingTask(task); setViewingTaskNumber(index + 1); }}
+                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-blue-50 hover:bg-blue-100 transition" title="View">
+                        <EyeIcon className="h-4 w-4 text-blue-500" />
+                      </button>
+                      {(currentUser?._id === task.assignedBy?._id || currentUser?.role === 'Admin') && (
+                        <button onClick={() => setEditingTask(task)}
+                          className="h-8 w-8 flex items-center justify-center rounded-lg bg-purple-50 hover:bg-purple-100 transition" title="Edit">
+                          <PencilIcon className="h-4 w-4 text-purple-500" />
                         </button>
-                        {(currentUser?._id === task.assignedBy?._id || currentUser?.role === 'Admin') && (
-                          <button onClick={() => setEditingTask(task)} className="p-1.5 text-slate-500 hover:text-blue-600 rounded-md hover:bg-blue-100 dark:hover:bg-slate-800" title="Edit Task">
-                            <PencilIcon className="h-4 w-4" />
-                          </button>
-                        )}
-                        <button onClick={() => setDeletingTask(task)} className="p-1.5 text-slate-500 hover:text-red-600 rounded-md hover:bg-red-100 dark:hover:bg-slate-800" title="Delete Task">
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="9" className="text-center p-16 text-slate-500 dark:text-white">
-                    <div className="flex flex-col items-center">
-                      <MagnifyingGlassIcon className="h-12 w-12 text-slate-400 mb-4" />
-                      <h3 className="text-lg font-semibold">No Tasks Found</h3>
-                      <p className="text-sm">Try adjusting your search or filter criteria.</p>
+                      )}
+                      <button onClick={() => setDeletingTask(task)}
+                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition" title="Delete">
+                        <TrashIcon className="h-4 w-4 text-red-500" />
+                      </button>
                     </div>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan="8" className="text-center p-16 text-slate-400">
+                    <MagnifyingGlassIcon className="h-12 w-12 mx-auto text-purple-200 mb-4" />
+                    <p className="font-bold text-slate-600">No Tasks Found</p>
+                    <p className="text-sm mt-1">Try adjusting your filters or date range.</p>
                   </td>
                 </tr>
               )}
@@ -395,25 +336,10 @@ const ViewAllTasks = ({ initialFilters = {} }) => {
           </table>
         </div>
       </div>
-      <EditTaskModal
-        isOpen={!!editingTask}
-        onClose={() => setEditingTask(null)}
-        task={editingTask}
-        onUpdate={refetch}
-      />
-      <DeleteConfirmationModal
-        isOpen={!!deletingTask}
-        onClose={() => setDeletingTask(null)}
-        onConfirm={handleConfirmDelete}
-        task={deletingTask}
-        isDeleting={isDeleting}
-      />
-      <TaskDetailsModal
-        isOpen={!!viewingTask}
-        onClose={() => setViewingTask(null)}
-        task={viewingTask}
-        taskNumber={viewingTaskNumber}
-      />
+
+      <EditTaskModal isOpen={!!editingTask} onClose={() => setEditingTask(null)} task={editingTask} onUpdate={refetch} />
+      <DeleteConfirmationModal isOpen={!!deletingTask} onClose={() => setDeletingTask(null)} onConfirm={handleConfirmDelete} task={deletingTask} isDeleting={isDeleting} />
+      <TaskDetailsModal isOpen={!!viewingTask} onClose={() => setViewingTask(null)} task={viewingTask} taskNumber={viewingTaskNumber} />
     </div>
   );
 };
