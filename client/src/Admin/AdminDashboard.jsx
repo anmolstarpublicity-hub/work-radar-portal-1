@@ -250,93 +250,204 @@ export const TeamReports = ({ seniorId }) => {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 h-full bg-slate-50 dark:bg-slate-900"> {/* Changed main background */}
-      {!selectedEmployee ? ( // Changed card background
+    <div className="min-h-full p-6 lg:p-8" style={{ backgroundColor: '#DFCDFE' }}>
+
+      {/* ── Employee selection ──────────────────────────────────── */}
+      {!selectedEmployee ? (
         <>
-          <div className="mb-8 text-center">
-            <h1 className="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">Team Reports</h1>
-            <p className="text-slate-500 dark:text-white mt-2">Select an employee to view their submitted reports.</p>
+          {/* Header */}
+          <div className="mb-2">
+            <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">Team Reports</h2>
+            <div className="h-1 w-12 rounded-full mt-1 mb-3" style={{ background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
+            <p className="text-slate-500 text-sm">Select An Employee To View Their Submitted Reports</p>
           </div>
-          <div className="mb-6">
-            <input
-              type="text"
-              placeholder="Search employees..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full max-w-md text-sm border border-slate-300 dark:border-slate-600 rounded-lg p-3 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-slate-900 dark:text-white"
-            />
+
+          {/* Search */}
+          <div className="my-6">
+            <div className="relative w-full sm:w-80">
+              <svg className="h-4 w-4 text-slate-400 absolute top-1/2 left-3 -translate-y-1/2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+              <input
+                type="text"
+                placeholder="Search employees..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-purple-200 bg-white focus:outline-none focus:ring-2 focus:ring-purple-300 shadow-sm"
+              />
+            </div>
           </div>
+
           {isLoadingEmployees ? (
-            <p className="p-4 text-slate-500 dark:text-white">Loading employees...</p>
+            <p className="text-slate-500 font-medium">Loading employees...</p>
           ) : isErrorEmployees ? (
-            <p className="p-4 text-red-500">Failed to load employees.</p>
+            <p className="text-red-500 font-medium">Failed to load employees.</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredEmployees.map(employee => ( // Changed card background
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 pb-8">
+              {filteredEmployees.map(employee => (
                 <div
                   key={employee._id}
                   onClick={() => setSelectedEmployee(employee)}
-                  className="bg-white dark:bg-black rounded-2xl shadow-xl p-6 flex flex-col items-center text-center border-t-4 border-blue-500 hover:scale-105 transition-transform duration-200 cursor-pointer"
+                  className="bg-white rounded-2xl border border-purple-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col cursor-pointer"
                 >
-                  <img 
-                    src={employee.profilePicture || `https://ui-avatars.com/api/?name=${employee.name}&background=random`} 
-                    alt={employee.name} 
-                    onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${employee.name}&background=random`; }}
-                    className="h-20 w-20 rounded-full object-cover mb-4 border-4 border-slate-100 dark:border-slate-800" 
-                  />
-                  <p className="font-bold text-slate-800 dark:text-white">{employee.name}</p>
-                  <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">{employee.role}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-300 mt-1 font-mono">{employee.employeeId}</p>
+                  {/* Banner */}
+                  <div className="h-24 w-full relative flex-shrink-0" style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+                    <div className="absolute -bottom-14 left-1/2 -translate-x-1/2">
+                      <img
+                        src={employee.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name)}&background=8E5FD0&color=fff`}
+                        alt={employee.name}
+                        onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name)}&background=8E5FD0&color=fff`; }}
+                        className="h-28 w-28 rounded-full object-cover border-4 border-white shadow-md"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-center pt-16 px-5 pb-5">
+                    <h3 className="mt-2 text-base font-bold text-slate-800 text-center">{employee.name}</h3>
+                    <p className="text-xs text-purple-500 font-semibold">{employee.role}</p>
+                    <p className="text-[11px] text-slate-400 font-mono mt-0.5">{employee.employeeId}</p>
+                    <div className="mt-4 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold text-white"
+                      style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+                      View Reports
+                    </div>
+                  </div>
                 </div>
               ))}
+              {filteredEmployees.length === 0 && (
+                <div className="col-span-full bg-white rounded-2xl border border-purple-100 p-16 text-center">
+                  <p className="font-bold text-slate-600">No Employees Found</p>
+                  <p className="text-sm text-slate-400 mt-1">Try adjusting your search.</p>
+                </div>
+              )}
             </div>
           )}
         </>
       ) : (
+
+        /* ── Report list view ──────────────────────────────────── */
         <div>
-          <div className="flex justify-between items-center mb-6">
+          {/* Header with back */}
+          <div className="mb-6 flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <button onClick={() => setSelectedEmployee(null)} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
-                <ArrowLeftIcon className="h-5 w-5 text-slate-600 dark:text-white" />
+              <button
+                onClick={() => setSelectedEmployee(null)}
+                className="p-2 rounded-xl bg-white border border-purple-200 hover:bg-purple-50 shadow-sm transition"
+              >
+                <ArrowLeftIcon className="h-5 w-5 text-purple-600" />
               </button>
               <div>
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Reports for {selectedEmployee.name}</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-300">Review all submitted reports for this employee.</p>
+                <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">
+                  Reports — <span style={{ color: '#48306A' }}>{selectedEmployee.name}</span>
+                </h2>
+                <div className="h-1 w-12 rounded-full mt-1" style={{ background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
               </div>
             </div>
             <button
               onClick={handleDownloadSheet}
               disabled={!reports || reports.length === 0}
-              className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-xl text-sm shadow transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-2.5 rounded-xl shadow-sm transition hover:opacity-90 disabled:opacity-40"
+              style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}
             >
-              <ArrowDownTrayIcon className="h-5 w-5" />
-              Download as Sheet
+              <ArrowDownTrayIcon className="h-4 w-4" />
+              Download Sheet
             </button>
           </div>
 
-          {isLoadingReports && <p>Loading reports...</p>}
-          <div className="space-y-6"> {/* Changed report card background */}
+          {isLoadingReports && (
+            <p className="text-slate-500 font-medium mb-4">Loading reports...</p>
+          )}
+
+          {/* Report cards */}
+          <div className="space-y-4 pb-8">
             {reports?.length > 0 ? reports.map(report => (
-              <div key={report._id} className="bg-white dark:bg-black p-4 sm:p-6 rounded-xl shadow-md border border-slate-200 dark:border-slate-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex flex-col sm:flex-row justify-between gap-2">
-                  <span>{new Date(report.reportDate).toLocaleDateString('en-US', { dateStyle: 'full' })}</span>
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                    report.status === 'Submitted' ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300'
-                  }`}>{report.status}</span>
-                </h3>
-                <div className="mb-4">{renderReportContent(report.content)}</div>
+              <div key={report._id} className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+                {/* Report header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                  <h3 className="text-base font-bold text-slate-800">
+                    {new Date(report.reportDate).toLocaleDateString('en-US', { dateStyle: 'full' })}
+                  </h3>
+                  <span className={`self-start sm:self-auto text-xs font-bold px-3 py-1 rounded-full ${
+                    report.status === 'Submitted'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-amber-50 text-amber-700 border border-amber-200'
+                  }`}>
+                    {report.status}
+                  </span>
+                </div>
+
+                {/* Report content */}
+                <div className="space-y-3">
+                  {(() => {
+                    try {
+                      const data = JSON.parse(report.content);
+                      if (data.taskUpdates) {
+                        return (
+                          <div className="space-y-3">
+                            {data.reportNote && (
+                              <div className="bg-purple-50 border border-purple-100 rounded-xl p-4">
+                                <h4 className="text-[10px] font-bold text-purple-400 uppercase tracking-wider mb-1">Employee Notes</h4>
+                                <p className="text-sm text-slate-700 whitespace-pre-wrap">{data.reportNote}</p>
+                              </div>
+                            )}
+                            {data.taskUpdates.map((update, i) => (
+                              <div key={i} className="bg-slate-50 border border-purple-100 rounded-xl p-4">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <p className="font-bold text-slate-800 text-sm">
+                                      Task {i + 1}: {update.taskId?.title || 'Unknown Task'}
+                                    </p>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                      Progress: <span className="font-bold text-purple-600">{update.completion}%</span>
+                                    </p>
+                                  </div>
+                                  {update.taskId && (
+                                    <button
+                                      onClick={() => { setViewingTask(update.taskId); setViewingTaskNumber(i + 1); }}
+                                      className="text-xs font-bold text-purple-600 hover:text-purple-700 px-3 py-1 rounded-lg bg-purple-50 border border-purple-200 transition"
+                                    >
+                                      Details
+                                    </button>
+                                  )}
+                                </div>
+                                {update.note && (
+                                  <div className="mt-2 bg-white p-3 rounded-xl border border-purple-100">
+                                    <p className="text-xs text-slate-600">
+                                      <span className="font-bold text-slate-700">Note: </span>{update.note}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+                      return <p className="text-sm text-slate-700 whitespace-pre-line">{JSON.stringify(data, null, 2)}</p>;
+                    } catch {
+                      return <p className="text-sm text-slate-700 whitespace-pre-line">{report.content}</p>;
+                    }
+                  })()}
+                </div>
+
+                {/* Delete action */}
                 {(user?.role === 'Admin' || user?.role === 'Super Admin') && (
-                  <div className="pt-4 border-t border-slate-200 dark:border-slate-800 text-right">
-                    <button onClick={() => setDeletingReport(report)} className="inline-flex items-center gap-2 text-xs font-semibold text-red-600 hover:text-red-700"><TrashIcon className="h-4 w-4" /> Delete Report</button>
+                  <div className="pt-4 mt-4 border-t border-purple-50 flex justify-end">
+                    <button
+                      onClick={() => setDeletingReport(report)}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-red-500 hover:text-red-600 transition"
+                    >
+                      <TrashIcon className="h-4 w-4" /> Delete Report
+                    </button>
                   </div>
                 )}
               </div>
             )) : (
-              <div className="text-center py-10 text-slate-400 dark:text-white">No reports found for this employee.</div>
+              <div className="bg-white rounded-2xl border border-purple-100 p-16 text-center">
+                <DocumentTextIcon className="h-12 w-12 mx-auto text-purple-200 mb-4" />
+                <p className="font-bold text-slate-600">No Reports Found</p>
+                <p className="text-sm text-slate-400 mt-1">This employee has not submitted any reports yet.</p>
+              </div>
             )}
           </div>
         </div>
       )}
+
       <TaskDetailsModal
         isOpen={!!viewingTask}
         onClose={() => setViewingTask(null)}
@@ -546,7 +657,7 @@ export default function AdminPageLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 font-manrope text-slate-800 dark:text-white transition-colors">
+    <div className="flex min-h-screen bg-[#DFCDFE] font-manrope text-slate-800 transition-colors p-3 gap-3">
       <style>
         {`
           @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
@@ -557,9 +668,9 @@ export default function AdminPageLayout() {
       </style>
       <Sidebar activeComponent={activeView.component} setActiveComponent={handleNavigation} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} />
       {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)}></div>}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden rounded-2xl bg-white shadow-sm">
         <AppHeader pageTitle={pageTitles[activeView.component]} setActiveComponent={handleNavigation} onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto bg-[var(--color-bg-canvas)]">{renderActiveComponent()}</main>
+        <main className="flex-1 overflow-y-auto">{renderActiveComponent()}</main>
       </div>
     </div>
   );

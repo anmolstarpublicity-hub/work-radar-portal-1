@@ -1,189 +1,199 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux'; // Removed useMemo as it's not directly used here
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { useUpdateEmployeeMutation, useForgotPasswordMutation } from '../services/EmployeApi';
 import { setCredentials, selectCurrentToken } from '../app/authSlice';
-import { CheckCircleIcon, KeyIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, CameraIcon, TrashIcon, LockClosedIcon, UserIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, BuildingOfficeIcon, AcademicCapIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
 
-const InfoField = ({ label, value }) => (
+const InputField = ({ label, name, value, onChange, type = 'text', icon: Icon, placeholder }) => (
   <div>
-    <p className="text-sm text-gray-500 dark:text-slate-400">{label}</p>
-    <p className="text-md font-semibold text-gray-800 dark:text-slate-200">{value || 'N/A'}</p>
-  </div>
-);
-  
-const EditField = ({ label, name, value, onChange, type = 'text' }) => (
-  <div>
-    <label htmlFor={name} className="block text-sm font-medium text-gray-700 dark:text-slate-300">{label}</label>
-    <input
-      type={type}
-      name={name}
-      id={name}
-      value={value}
-      onChange={onChange}
-      className="mt-1 w-full text-sm border border-gray-300 dark:border-slate-600 rounded-lg p-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition"
-    />
+    <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-1.5">{label}</label>
+    <div className="flex items-center gap-2 border border-purple-200 dark:border-purple-900/50 rounded-xl px-3 py-2.5 bg-white dark:bg-slate-800 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-200 dark:focus-within:ring-purple-900/40 transition">
+      {Icon && (
+        <span className="flex items-center justify-center h-7 w-7 rounded-lg bg-purple-50 dark:bg-purple-900/30 flex-shrink-0">
+          <Icon className="h-4 w-4 text-purple-500" />
+        </span>
+      )}
+      {name === 'gender' ? (
+        <select name={name} value={value} onChange={onChange}
+          className="flex-1 bg-transparent text-sm text-slate-700 dark:text-slate-200 outline-none">
+          <option value="">Select...</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+        </select>
+      ) : (
+        <input type={type} name={name} value={value} onChange={onChange} placeholder={placeholder || ''}
+          className="flex-1 bg-transparent text-sm text-slate-700 dark:text-slate-200 outline-none placeholder:text-slate-300" />
+      )}
+    </div>
   </div>
 );
 
 const AdminProfile = ({ user = {} }) => {
   const dispatch = useDispatch();
-  const [isEditMode, setIsEditMode] = useState(false);
+  const token = useSelector(selectCurrentToken);
+  const fileInputRef = useRef(null);
   const [updateProfile, { isLoading: isUpdating }] = useUpdateEmployeeMutation();
   const [forgotPassword, { isLoading: isSendingReset }] = useForgotPasswordMutation();
-  const token = useSelector(selectCurrentToken);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
-  // Initialize formData with user data when entering edit mode
-  const [formData, setFormData] = useState(() => ({ // Use functional update for initial state for performance
-    name: user.name || '', email: user.email || '', profilePicture: null,
-    address: user.address || '', gender: user.gender || '', country: user.country || '',
-    city: user.city || '', qualification: user.qualification || '',
-  }));
+  const [formData, setFormData] = useState({
+    name: '', email: '', profilePicture: null,
+    address: '', gender: '', country: '', city: '', qualification: '', phone: '',
+  });
 
-  // This effect ensures formData is always in sync with the user prop
-  // when not editing, and correctly initialized when editing starts.
   useEffect(() => {
-    setFormData({ // Directly set formData from user prop to reflect latest user data
-      name: user.name || '', email: user.email || '', profilePicture: null, address: user.address || '',
-      gender: user.gender || '', country: user.country || '', city: user.city || '', qualification: user.qualification || '',
+    setFormData({
+      name: user.name || '', email: user.email || '', profilePicture: null,
+      address: user.address || '', gender: user.gender || '', country: user.country || '',
+      city: user.city || '', qualification: user.qualification || '', phone: user.phone || '',
     });
-  }, [user, isEditMode]); // Depend on both user and isEditMode
+    setPreviewUrl(null);
+  }, [user]);
 
   const handleChange = useCallback((e) => {
     if (e.target.type === 'file') {
-      setFormData(prev => ({ ...prev, profilePicture: e.target.files[0] }));
+      const file = e.target.files[0];
+      if (file) {
+        setFormData(prev => ({ ...prev, profilePicture: file }));
+        setPreviewUrl(URL.createObjectURL(file));
+      }
     } else {
       setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     }
-  }, []); // setFormData is stable, so no need to list it as a dependency
+  }, []);
+
+  const handleDeletePhoto = () => {
+    setPreviewUrl(null);
+    setFormData(prev => ({ ...prev, profilePicture: null }));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleSave = async () => {
-    // Validate required fields
-    if (!formData.name || !formData.name.trim()) { toast.error('Name is required.'); return; }
-    if (!formData.email || !formData.email.trim()) { toast.error('Email is required.'); return; }
-
-    const profileData = new FormData();
-    profileData.append('name', formData.name.trim());
-    profileData.append('email', formData.email.trim());
-    
-    if (formData.profilePicture) { profileData.append('profilePicture', formData.profilePicture); }
-    
-    // Only append optional fields if they have values
-    if (formData.address) profileData.append('address', formData.address.trim());
-    if (formData.gender) profileData.append('gender', formData.gender);
-    if (formData.country) profileData.append('country', formData.country.trim());
-    if (formData.city) profileData.append('city', formData.city.trim());
-    if (formData.qualification) profileData.append('qualification', formData.qualification.trim());
-
+    if (!formData.name?.trim()) { toast.error('Name is required.'); return; }
+    if (!formData.email?.trim()) { toast.error('Email is required.'); return; }
+    const data = new FormData();
+    data.append('name', formData.name.trim());
+    data.append('email', formData.email.trim());
+    if (formData.profilePicture) data.append('profilePicture', formData.profilePicture);
+    if (formData.address) data.append('address', formData.address.trim());
+    if (formData.gender) data.append('gender', formData.gender);
+    if (formData.country) data.append('country', formData.country.trim());
+    if (formData.city) data.append('city', formData.city.trim());
+    if (formData.qualification) data.append('qualification', formData.qualification.trim());
+    if (formData.phone) data.append('phone', formData.phone.trim());
     try {
       const toastId = toast.loading('Updating profile...');
-      const updatedData = await updateProfile({ id: user._id, formData: profileData }).unwrap();
-      toast.success('Profile updated successfully!', { id: toastId, icon: <CheckCircleIcon className="h-6 w-6 text-green-500" /> });
-      if (updatedData.employee) {
-        dispatch(setCredentials({ user: updatedData.employee, token: updatedData.token || token })); // Use the token from Redux state
-      }
-      setIsEditMode(false);
+      const result = await updateProfile({ id: user._id, formData: data }).unwrap();
+      toast.success('Profile updated!', { id: toastId });
+      if (result.employee) dispatch(setCredentials({ user: result.employee, token: result.token || token }));
     } catch {
-      console.error('Failed to update profile.');
-      toast.error('Failed to update profile. Please try again.');
+      toast.error('Failed to update profile.');
     }
   };
 
   const handleRequestPasswordReset = async () => {
-    if (!user.email) {
-      toast.error('Email is not available for this account.');
-      return;
-    }
-    
-    const toastId = toast.loading('Sending password reset email...');
+    if (!user.email) { toast.error('No email on this account.'); return; }
+    const toastId = toast.loading('Sending reset email...');
     try {
       const result = await forgotPassword({ email: user.email }).unwrap();
-      toast.success(result.message || 'Password reset email sent successfully!', { id: toastId });
+      toast.success(result.message || 'Reset email sent!', { id: toastId });
     } catch (err) {
-      console.error('Forgot password error:', err);
-      const errorMessage = err.data?.message || err.message || 'Failed to send reset email. Please try again.';
-      toast.error(errorMessage, { id: toastId });
+      toast.error(err.data?.message || 'Failed to send reset email.', { id: toastId });
     }
   };
 
+  const avatarSrc = previewUrl || user.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'U')}&background=8E5FD0&color=fff`;
+
   return (
-    <div className="p-4 sm:p-8">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:bg-slate-800 dark:border-slate-700">
-        <div className="flex justify-between items-start mb-8 pb-8 border-b border-gray-200 dark:border-slate-700">
-          <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-8">
-            <img
-              src={user.profilePicture || `https://ui-avatars.com/api/?name=${user.name}&background=random`}
-              alt="Profile"
-              onError={(e) => { e.target.onerror = null; e.target.src = `https://ui-avatars.com/api/?name=${user.name}&background=random`; }}
-              className="h-32 w-32 rounded-full object-cover border-4 border-blue-200 shadow-lg"
-            />
-            <div>
-              <h2 className="text-3xl font-bold text-blue-800 dark:text-slate-200">{user.name}</h2>
-              <p className="text-gray-600 dark:text-slate-400">{user.role}</p>
-              <p className="text-sm text-gray-500 dark:text-slate-500 font-mono mt-1">{user.employeeId}</p>
-            </div>
+    <div className="min-h-full dark:bg-slate-900" style={{ backgroundColor: '#DFCDFE' }}>
+      {/* Hero Banner */}
+      <div className="relative h-44 flex flex-col items-center justify-end pb-0"
+        style={{ background: 'linear-gradient(135deg, #48306A, #8E5FD0)' }}>
+        {/* Wave bottom */}
+        <svg className="absolute bottom-0 left-0 w-full" viewBox="0 0 1440 80" preserveAspectRatio="none" style={{ height: 60 }}>
+          <path d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z" fill="#DFCDFE" className="dark:fill-slate-900" />
+        </svg>
+        {/* Avatar */}
+        <div className="relative z-10 mb-[-88px]">
+          <div className="h-56 w-56 rounded-full border-4 border-dashed border-white/70 p-1 bg-white/10">
+            <img src={avatarSrc}
+              onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'U')}&background=8E5FD0&color=fff`; }}
+              alt="Profile" className="h-full w-full rounded-full object-cover" />
           </div>
-          <div className="flex flex-col gap-2 items-end">
-            <button onClick={() => setIsEditMode(!isEditMode)} className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors w-full sm:w-auto">
-              {isEditMode ? 'Cancel' : 'Edit Profile'}
+        </div>
+      </div>
+
+      {/* Name + role */}
+      <div className="flex flex-col items-center pt-28 pb-4 dark:bg-slate-900" style={{ backgroundColor: '#DFCDFE' }}>
+        <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">{user.name || 'Admin User'}</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{user.role || 'Administrator'}</p>
+
+        {/* Upload button */}
+        <div className="flex items-center gap-3 mt-4">
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleChange} className="hidden" id="avatar-upload" />
+          <label htmlFor="avatar-upload"
+            className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold text-white cursor-pointer transition"
+            style={{ background: 'linear-gradient(135deg, #48306A, #8E5FD0)' }}>
+            <CameraIcon className="h-4 w-4" /> Upload
+          </label>
+        </div>
+      </div>
+
+      {/* Form Card */}
+      <div className="px-4 pb-10 max-w-5xl mx-auto">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-purple-100 dark:border-slate-700 p-8">
+
+          {/* Personal Information */}
+          <div className="text-center mb-6">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white">Personal Information</h3>
+            <p className="text-sm text-slate-400 mt-1">Manage Your Personal Information To Keep Your Account Accurate And Up To Date</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 mb-8">
+            <InputField label="Full Name"     name="name"          value={formData.name}          onChange={handleChange} icon={UserIcon} />
+            <InputField label="E - Mail Address" name="email"      value={formData.email}         onChange={handleChange} icon={EnvelopeIcon} type="email" />
+            <InputField label="Gender"        name="gender"        value={formData.gender}        onChange={handleChange} icon={UserIcon} />
+            <InputField label="Qualification" name="qualification" value={formData.qualification} onChange={handleChange} icon={AcademicCapIcon} />
+            <InputField label="Phone Number"  name="phone"         value={formData.phone}         onChange={handleChange} icon={PhoneIcon} type="tel" />
+            <InputField label="Country"       name="country"       value={formData.country}       onChange={handleChange} icon={GlobeAltIcon} />
+            <InputField label="City"          name="city"          value={formData.city}          onChange={handleChange} icon={BuildingOfficeIcon} />
+            <InputField label="Address"       name="address"       value={formData.address}       onChange={handleChange} icon={MapPinIcon} />
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-dashed border-slate-200 dark:border-slate-700 my-6" />
+
+          {/* Security Setting */}
+          <div className="text-center mb-5">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white">Security Setting</h3>
+            <p className="text-sm text-slate-400 mt-1">Protect Your Account With Secure Password Management</p>
+          </div>
+          <div className="flex justify-center mb-8">
+            <button onClick={handleRequestPasswordReset} disabled={isSendingReset}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-full border-2 border-purple-300 dark:border-purple-700 text-sm font-semibold text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition disabled:opacity-50">
+              {isSendingReset ? <ArrowPathIcon className="h-4 w-4 animate-spin" /> : <LockClosedIcon className="h-4 w-4" />}
+              Request Password Change
             </button>
-            <button onClick={handleRequestPasswordReset} disabled={isSendingReset} className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-600 transition-colors w-full sm:w-auto inline-flex items-center justify-center gap-2 disabled:bg-red-300">
-              {isSendingReset ? <ArrowPathIcon className="h-4 w-4 animate-spin" /> : <KeyIcon className="h-4 w-4" />} Request to Change Password
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-dashed border-slate-200 dark:border-slate-700 mb-6" />
+
+          {/* Actions */}
+          <div className="flex justify-center gap-4">
+            <button onClick={() => setFormData({ name: user.name || '', email: user.email || '', profilePicture: null, address: user.address || '', gender: user.gender || '', country: user.country || '', city: user.city || '', qualification: user.qualification || '', phone: user.phone || '' })}
+              className="px-8 py-2.5 rounded-full border border-slate-300 dark:border-slate-600 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+              Cancel
+            </button>
+            <button onClick={handleSave} disabled={isUpdating}
+              className="px-8 py-2.5 rounded-full text-sm font-semibold text-white transition disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #48306A, #8E5FD0)' }}>
+              {isUpdating ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </div>
-
-        {isEditMode ? (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <EditField label="Full Name" name="name" value={formData.name} onChange={handleChange} />
-              <EditField label="Email" name="email" value={formData.email} onChange={handleChange} type="email" />
-              <div>
-                <label htmlFor="gender" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Gender</label>
-                <select 
-                  name="gender" 
-                  id="gender" 
-                  value={formData.gender} 
-                  onChange={handleChange} 
-                  className="mt-1 w-full text-sm border border-gray-300 dark:border-slate-600 rounded-lg p-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition"
-                >
-                  <option value="">Select...</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <EditField label="Address" name="address" value={formData.address} onChange={handleChange} />
-              <EditField label="City" name="city" value={formData.city} onChange={handleChange} />
-              <EditField label="Country" name="country" value={formData.country} onChange={handleChange} />
-              <EditField label="Qualification" name="qualification" value={formData.qualification} onChange={handleChange} />
-              <div>
-                <label htmlFor="profilePicture" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Profile Picture</label>
-                <input 
-                  type="file" 
-                  name="profilePicture" 
-                  id="profilePicture" 
-                  onChange={handleChange} 
-                  className="mt-1 w-full text-sm border border-gray-300 dark:border-slate-600 rounded-lg p-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 file:bg-blue-500 file:text-white file:border-0 file:rounded file:px-4 file:py-2 file:cursor-pointer file:hover:bg-blue-600 outline-none transition"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <button onClick={handleSave} disabled={isUpdating} className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400">
-                {isUpdating ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <InfoField label="Email" value={user.email} />
-            <InfoField label="Gender" value={user.gender} />
-            <InfoField label="Address" value={user.address} />
-            <InfoField label="City" value={user.city} />
-            <InfoField label="Country" value={user.country} />
-            <InfoField label="Qualification" value={user.qualification} />
-          </div>
-        )}
       </div>
     </div>
   );

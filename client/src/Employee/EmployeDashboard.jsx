@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useGetTodaysReportQuery, useUpdateTodaysReportMutation, useGetEmployeesQuery, useGetHolidaysQuery, useGetMyTasksQuery, useGetAllTasksQuery, useGetAllMyReportsQuery, useGetActiveAnnouncementQuery, useGetEmployeeEOMHistoryQuery, useProcessPastDueTasksMutation, useUpdateEmployeeMutation } from '../services/EmployeApi';
 import { apiSlice, useLogoutMutation } from '../services/apiSlice';
 import toast from 'react-hot-toast';
-import { ArrowPathIcon, PaperAirplaneIcon, DocumentTextIcon, BriefcaseIcon, CheckCircleIcon, HomeIcon, ChartBarIcon, UserGroupIcon, InformationCircleIcon, CalendarDaysIcon, ClipboardDocumentListIcon, CheckBadgeIcon, ArchiveBoxIcon, TrophyIcon, StarIcon, ShieldCheckIcon, ExclamationTriangleIcon, ClockIcon, CalendarIcon, ChevronDoubleLeftIcon, ChevronDownIcon, ArrowRightOnRectangleIcon, Cog8ToothIcon, ArrowDownTrayIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, PaperAirplaneIcon, DocumentTextIcon, BriefcaseIcon, CheckCircleIcon, HomeIcon, ChartBarIcon, UserGroupIcon, InformationCircleIcon, CalendarDaysIcon, ClipboardDocumentListIcon, CheckBadgeIcon, ArchiveBoxIcon, TrophyIcon, StarIcon, ShieldCheckIcon, ExclamationTriangleIcon, ClockIcon, CalendarIcon, ChevronDoubleLeftIcon, ChevronDownIcon, ArrowRightOnRectangleIcon, Cog8ToothIcon, ArrowDownTrayIcon, ChevronRightIcon, CameraIcon, TrashIcon, UserIcon, EnvelopeIcon, MapPinIcon, BuildingOfficeIcon, AcademicCapIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
 import { EyeIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentUser, setCredentials, selectCurrentToken } from '../app/authSlice'; // Removed useForgotPasswordMutation as it's not used here
@@ -35,8 +35,81 @@ const isSameDay = (date1, date2) => {
          date1.getDate() === date2.getDate();
 };
 
-// Reusable display and edit field components at module scope to avoid
-// recreating component types on every render (prevents input remounts).
+// Admin-style SVG donut chart — module scope for stable identity
+const EmpDonutChart = ({ segments, total, size = 180 }) => {
+  const [hovered, setHovered] = React.useState(null);
+  const cx = size / 2, cy = size / 2;
+  const r = Math.floor(size * 0.36), strokeW = Math.floor(size * 0.175), gapDeg = 6;
+  const circ = 2 * Math.PI * r;
+  const gapFrac = gapDeg / 360;
+  const slices = React.useMemo(() => {
+    let cum = 0;
+    return segments.map(s => {
+      const pct = s.val / (total || 1);
+      const arcFrac = Math.max(pct - gapFrac, 0.01);
+      const dash = arcFrac * circ;
+      const offset = -(cum * circ) + circ * 0.25;
+      cum += pct;
+      return { ...s, dash, offset };
+    });
+  }, [segments, total, circ, gapFrac]);
+
+  return (
+    <div className="flex items-center gap-6">
+      <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} onMouseLeave={() => setHovered(null)}>
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f3f0fa" strokeWidth={strokeW} />
+          {slices.map(s => {
+            const isHov = hovered === s.label;
+            return (
+              <circle key={s.label} cx={cx} cy={cy} r={r} fill="none"
+                stroke={s.color}
+                strokeWidth={isHov ? strokeW + 6 : strokeW}
+                strokeDasharray={`${s.dash} ${circ - s.dash}`}
+                strokeDashoffset={s.offset}
+                strokeLinecap="round"
+                style={{ filter: `drop-shadow(0px ${isHov ? 6 : 4}px ${isHov ? 10 : 6}px rgba(0,0,0,${isHov ? 0.25 : 0.15}))`, transition: 'stroke-width 0.15s ease', cursor: 'pointer' }}
+                onMouseEnter={() => setHovered(s.label)}
+              />
+            );
+          })}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          {hovered ? (
+            <>
+              <span className="text-xl font-extrabold text-slate-800 leading-none">{slices.find(s => s.label === hovered)?.val}</span>
+              <span className="text-[10px] font-semibold text-slate-400 mt-0.5 text-center px-2 leading-tight">{hovered}</span>
+            </>
+          ) : (
+            <>
+              <span className="text-2xl font-extrabold text-slate-800 leading-none">{total}</span>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mt-0.5">Total</span>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-col gap-3 flex-1">
+        {slices.map(s => {
+          const pct = total > 0 ? ((s.val / total) * 100).toFixed(0) : 0;
+          const isHov = hovered === s.label;
+          return (
+            <div key={s.label}
+              className={`flex items-center justify-between rounded-xl px-2 py-1 transition-all cursor-pointer ${isHov ? 'bg-purple-50' : ''}`}
+              onMouseEnter={() => setHovered(s.label)}
+              onMouseLeave={() => setHovered(null)}>
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
+                <span className={`text-xs font-medium transition-colors ${isHov ? 'text-slate-800 font-bold' : 'text-slate-500'}`}>{s.label}</span>
+              </div>
+              <span className={`text-xs font-bold ${isHov ? 'text-slate-800' : 'text-slate-400'}`}>{pct}%</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const InfoField = ({ label, value }) => (
   <div>
     <p className="text-sm text-gray-500 dark:text-slate-400">{label}</p>
@@ -55,6 +128,31 @@ const EditField = ({ label, name, value, onChange, type = 'text' }) => (
       onChange={onChange}
       className="mt-1 w-full text-sm border border-gray-300 dark:border-slate-600 rounded-lg p-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition"
     />
+  </div>
+);
+
+const ProfileInputField = ({ label, name, value, type = 'text', icon: Icon, onChange }) => (
+  <div>
+    <label className="block text-sm font-semibold text-slate-600 mb-1.5">{label}</label>
+    <div className="flex items-center gap-2 border border-purple-200 rounded-xl px-3 py-2.5 bg-white focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-200 transition">
+      {Icon && (
+        <span className="flex items-center justify-center h-7 w-7 rounded-lg bg-purple-50 flex-shrink-0">
+          <Icon className="h-4 w-4 text-purple-500" />
+        </span>
+      )}
+      {name === 'gender' ? (
+        <select name={name} value={value} onChange={onChange}
+          className="flex-1 bg-transparent text-sm text-slate-700 outline-none">
+          <option value="">Select...</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+        </select>
+      ) : (
+        <input type={type} name={name} value={value} onChange={onChange}
+          className="flex-1 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-300" />
+      )}
+    </div>
   </div>
 );
 
@@ -258,222 +356,211 @@ export const Dashboard = ({ user, onNavigate }) => {
   const performanceScore = totalPct ? Math.round((stats.taskStats.completed / stats.totalTasks) * 100) : 0;
 
   const donutData = [
-    { name: 'Completed', value: stats.taskStats.completed || 0 },
-    { name: 'In Progress', value: stats.taskStats.inProgress || 0 },
-    { name: 'Pending', value: stats.taskStats.pending || 0 },
-    { name: 'Not Completed', value: stats.taskStats.notCompleted || 0 },
+    { name: 'Completed', value: filteredTasks.filter(t => t.status === 'Completed').length },
+    { name: 'In Progress', value: filteredTasks.filter(t => t.status === 'In Progress').length },
+    { name: 'Pending', value: filteredTasks.filter(t => t.status === 'Pending').length },
+    { name: 'Not Completed', value: filteredTasks.filter(t => t.status === 'Not Completed').length },
+    { name: 'Pending Verification', value: filteredTasks.filter(t => t.status === 'Pending Verification').length },
   ].filter(d => d.value > 0);
-  const DONUT_COLORS = { 'Completed': '#10b981', 'In Progress': '#3b82f6', 'Pending': '#f97316', 'Not Completed': '#ef4444', 'No Tasks': '#e2e8f0' };
+  const donutTotal = filteredTasks.length;
+  const DONUT_COLORS = { 'Completed': '#10b981', 'In Progress': '#3b82f6', 'Pending': '#f97316', 'Not Completed': '#ef4444', 'Pending Verification': '#8E5FD0', 'No Tasks': '#e2e8f0' };
 
   if (isLoading) return <div className="p-8 text-center">Loading dashboard...</div>;
 
-  // --- Clean Executive Personal Dashboard ---
-  return ( // Changed main background and text color variables to direct Tailwind classes
-    <div className="min-h-screen bg-slate-50 p-6 font-manrope text-slate-800 dark:bg-slate-900 dark:text-white lg:p-8">
+  // --- Employee Dashboard (Admin-style UI) ---
+  return (
+    <div className="min-h-screen p-6 lg:p-8 font-manrope" style={{ backgroundColor: '#DFCDFE' }}>
       <AnnouncementWidget />
 
-      <div className="mb-8 flex flex-col flex-wrap items-start justify-between gap-6 rounded-[24px] border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 p-6 text-white shadow-sm md:flex-row md:items-center dark:border-slate-700">
+      {/* Welcome Bar — matches admin purple gradient */}
+      <div className="mb-8 flex flex-col md:flex-row items-center justify-between gap-4 rounded-2xl px-8 py-8 text-white" style={{ background: 'linear-gradient(135deg, #48306A, #8E5FD0)' }}>
         <div>
-          <h1 className="text-2xl font-extrabold">Welcome back, {user?.name?.split(' ')[0] || 'Shivam'}! 👋</h1>
-          <p className="text-sm mt-1">Here's your work summary for the selected period.</p>
+          <h1 className="text-2xl font-extrabold uppercase tracking-wide">Welcome Back, {user?.name?.split(' ')[0] || 'Employee'} !</h1>
+          <p className="text-base mt-3 text-purple-200">Track Your Tasks, Performance And Daily Progress From One Place</p>
         </div>
-        <div className="mt-4 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
-          <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto md:mr-2">
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="w-full sm:w-auto bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 outline-none cursor-pointer shadow-sm"
-            >
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="custom">Custom Range</option>
-            </select>
-            {filterType === 'custom' ? (
-              <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 shadow-sm">
-                <CalendarIcon className="h-4 w-4 text-slate-400" />
-                <input type="date" value={dateRange.startDate} onChange={e => setDateRange(prev => ({...prev, startDate: e.target.value}))} className="w-full sm:w-auto bg-transparent border-none text-xs font-bold text-slate-600 dark:text-slate-300 outline-none cursor-pointer" />
-                <span className="text-slate-400">-</span>
-                <input type="date" value={dateRange.endDate} onChange={e => setDateRange(prev => ({...prev, endDate: e.target.value}))} className="w-full sm:w-auto bg-transparent border-none text-xs font-bold text-slate-600 dark:text-slate-300 outline-none cursor-pointer" />
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-2 w-full sm:w-auto bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 shadow-sm">
-                <CalendarIcon className="h-4 w-4 text-slate-400" />
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{dateRange.startDate ? new Date(dateRange.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''} - {dateRange.endDate ? new Date(dateRange.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}</span>
-              </div>
-            )}
+        <div className="hidden md:block w-px self-stretch bg-white/20" />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center bg-white/10 rounded-lg p-1.5">
+            {['week', 'month'].map(t => (
+              <button key={t} onClick={() => setFilterType(t)}
+                className={`px-4 py-2 rounded-md text-sm font-bold capitalize transition-all ${filterType === t ? 'bg-white text-purple-800' : 'text-white hover:bg-white/10'}`}>
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </button>
+            ))}
           </div>
-        <div className="text-right hidden sm:block mr-3 border-l border-slate-200 dark:border-slate-700 pl-4">
-            <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-700 dark:text-indigo-400 font-bold border border-indigo-200 dark:border-indigo-800">
-                {user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'SK'}
-                </div>
-                <div className="text-left">
-                <p className="text-sm font-bold text-white">{user?.name || 'Shivam Kumar'}</p>
-                <p className="text-[11px] font-semibold text-slate-300">Employee</p>
-                </div>
-            </div>
-        </div>
+          <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
+            <CalendarIcon className="h-4 w-4 text-purple-200 flex-shrink-0" />
+            <input type="date" value={dateRange.startDate}
+              onChange={e => { setDateRange(p => ({ ...p, startDate: e.target.value })); setFilterType('custom'); }}
+              onFocus={() => setFilterType('custom')}
+              className="text-sm font-semibold text-white bg-transparent px-1 py-0.5 rounded outline-none [color-scheme:dark]" />
+            <span className="text-purple-300 font-bold">-</span>
+            <input type="date" value={dateRange.endDate}
+              onChange={e => { setDateRange(p => ({ ...p, endDate: e.target.value })); setFilterType('custom'); }}
+              onFocus={() => setFilterType('custom')}
+              className="text-sm font-semibold text-white bg-transparent px-1 py-0.5 rounded outline-none [color-scheme:dark]" />
+          </div>
         </div>
       </div>
 
-      {/* Individual Metrics Grid (5 Cards) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6 mb-8">
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
         <StatCard title="Total Tasks" value={stats?.totalTasks || 0} subtext="Selected Period" icon={ClipboardDocumentListIcon} />
         <StatCard title="Pending Tasks" value={stats?.taskStats?.pending || 0} subtext={`${pendingPct}%`} isWarning icon={ClockIcon} />
-        <StatCard title="Completed Tasks" value={stats?.taskStats?.completed || 0} subtext={`${completedPct}%`} isSuccess icon={CheckCircleIcon} />
+        <StatCard title="Completed" value={stats?.taskStats?.completed || 0} subtext={`${completedPct}%`} isSuccess icon={CheckCircleIcon} />
         <StatCard title="In Progress" value={stats?.taskStats?.inProgress || 0} subtext={`${inProgressPct}%`} isInfo icon={ShieldCheckIcon} />
         <StatCard title="Attendance" value={`${Math.round((attendanceData?.presentCount / (attendanceData?.totalDays || 1)) * 100) || 0}%`} subtext="Selected Period" isDanger icon={CalendarDaysIcon} />
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Personal Task Progress Donut */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 flex flex-col">
-          <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">Personal Task Progress</h3>
-          <div className="flex-1 flex flex-col sm:flex-row items-center gap-4 sm:gap-0">
-            <div className="relative h-48 w-48 flex-shrink-0 mx-auto sm:mx-0">
-              <GooglePieChart data={donutData?.length > 0 ? donutData : [{name:'No Tasks', value: 1}]} title="" colors={DONUT_COLORS} pieHole={0.65} is3D={false} hideLegend={true} />
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-1">
-                <p className="text-2xl font-black text-slate-800 dark:text-white leading-none">{stats?.totalTasks || 0}</p>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Total</p>
-              </div>
-            </div>
-            <div className="flex-1 flex flex-col justify-center gap-3 sm:pl-6 w-full">
-              {donutData.map(d => {
-                const pct = stats?.totalTasks > 0 ? Math.round((d.value / stats.totalTasks) * 100) : 0;
-                return (
-                  <div key={d.name} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2"><span className="h-3 w-3 rounded-full" style={{ backgroundColor: DONUT_COLORS[d.name] }}></span><span className="font-semibold text-slate-600 dark:text-slate-300">{d.name}</span></div>
-                    <span className="font-bold text-slate-800 dark:text-white">{d.value} - {pct}%</span>
-                  </div>
-                );
-              })}
-            </div>
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Personal Task Status Donut */}
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+          <h3 className="text-base font-bold text-slate-800 mb-1">Personal Task Overview</h3>
+          <p className="text-xs text-slate-400 mb-4">Task status breakdown for selected period</p>
+          <EmpDonutChart
+            total={donutTotal}
+            size={180}
+            segments={donutData.map(d => ({ label: d.name, val: d.value, color: DONUT_COLORS[d.name] }))}
+          />
+        </div>
+
+        {/* Task Completion Trend */}
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+          <h3 className="text-base font-bold text-slate-800 mb-2">Task Completion Trend</h3>
+          <div className="h-52 -ml-4 -mb-2">
+            <GoogleAreaChart data={_productivityTrend} colors={['#8E5FD0']} />
           </div>
         </div>
 
-        {/* My Tasks Active List */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 flex flex-col">
-          <div className="flex justify-between items-center mb-4"><h3 className="text-base font-bold text-slate-800 dark:text-white">My Tasks</h3><button onClick={() => onNavigate('my-tasks')} className="text-xs font-bold text-indigo-600 hover:underline">View All</button></div>
-          <div className="space-y-3 overflow-y-auto flex-1 pr-2"> 
-            {stats?.activeTaskList?.length > 0 ? (
-              stats?.activeTaskList?.map((task, _index) => (
-                <div key={task._id} className="p-3 border border-slate-100 dark:border-slate-700/50 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                  <div className="flex justify-between items-center gap-3">
-                    <div className="flex-1 min-w-0 pr-3">
-                      <p className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate leading-tight">{task.title}</p>
-                      <p className="text-[11px] text-slate-500 mt-1 truncate">{formatDueDate(new Date(task.dueDate))}</p>
-                    </div>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full whitespace-nowrap flex-shrink-0 ${task.priority === 'High' ? 'bg-rose-100 text-rose-700' : task.priority === 'Medium' ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                      {task.priority || 'Medium'}
-                    </span>
+        {/* Upcoming Deadlines */}
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-base font-bold text-slate-800">Upcoming Deadlines</h3>
+            <button onClick={() => onNavigate('my-tasks')} className="text-xs font-bold px-3 py-1 rounded-lg text-white transition" style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>View All</button>
+          </div>
+          <div className="space-y-3">
+            {upcomingTasks?.map(task => {
+              const target = safeDate(task.dueDate); target.setHours(0,0,0,0);
+              const todayD = new Date(); todayD.setHours(0,0,0,0);
+              const daysLeft = Math.round((target - todayD) / (1000 * 60 * 60 * 24));
+              const isToday = daysLeft === 0;
+              const isSoon = daysLeft > 0 && daysLeft <= 3;
+              return (
+                <div key={task._id} className="p-3 rounded-xl bg-purple-50 border border-purple-100 flex justify-between items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-800 truncate">{task.title}</p>
+                    <p className="text-[11px] text-slate-400">{new Date(task.dueDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
                   </div>
+                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border flex-shrink-0 ${isToday ? 'text-rose-600 bg-rose-50 border-rose-200' : isSoon ? 'text-orange-600 bg-orange-50 border-orange-200' : 'text-purple-600 bg-purple-50 border-purple-200'}`}>
+                    {isToday ? 'Today' : `${daysLeft}d left`}
+                  </span>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-10 text-slate-500">
-                <CheckCircleIcon className="h-12 w-12 mx-auto text-green-400" />
-                <p className="mt-2 font-semibold">No pending or in-progress tasks!</p>
+              );
+            })}
+            {(!upcomingTasks || upcomingTasks.length === 0) && <p className="text-sm text-slate-400">No upcoming deadlines.</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* Lower Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* My Active Tasks */}
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6 flex flex-col">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-base font-bold text-slate-800">My Active Tasks</h3>
+            <button onClick={() => onNavigate('my-tasks')} className="text-xs font-bold px-3 py-1 rounded-lg text-white transition" style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>View All</button>
+          </div>
+          <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+            {stats?.activeTaskList?.length > 0 ? stats.activeTaskList.map(task => (
+              <div key={task._id} className="p-3 border border-purple-100 rounded-xl flex items-center justify-between hover:bg-purple-50 transition">
+                <div className="flex-1 min-w-0 pr-2">
+                  <p className="font-bold text-sm text-slate-800 truncate">{task.title}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">{formatDueDate(new Date(task.dueDate))}</p>
+                </div>
+                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full flex-shrink-0 ${task.priority === 'High' ? 'bg-red-100 text-red-700 border border-red-200' : task.priority === 'Medium' ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-emerald-100 text-emerald-700 border border-emerald-200'}`}>
+                  {task.priority || 'Medium'}
+                </span>
+              </div>
+            )) : (
+              <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+                <CheckCircleIcon className="h-10 w-10 text-emerald-400 mb-2" />
+                <p className="font-semibold text-sm">All caught up!</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Upcoming Deadlines */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 flex flex-col">
-          <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">Upcoming Deadlines</h3>
-          <div className="space-y-4">
-            {upcomingTasks?.map((task, _index) => {
-              const target = safeDate(task.dueDate);
-              target.setHours(0,0,0,0);
-              const todayD = new Date();
-              todayD.setHours(0,0,0,0);
-              const daysLeft = Math.round((target - todayD) / (1000 * 60 * 60 * 24));
-              const isToday = daysLeft === 0;
-              const isSoon = daysLeft > 0 && daysLeft <= 3;
-              return (
-                <div key={task._id} className="flex items-center gap-3">
-                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0 border ${isToday ? 'bg-rose-50 text-rose-600 border-rose-100' : isSoon ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                    {new Date(task.dueDate).getDate()}
-                  </div>
-                  <div className="flex-1 min-w-0"><p className="text-sm font-bold text-slate-800 dark:text-white truncate">{task.title}</p><p className="text-[11px] text-slate-500 font-medium truncate">{new Date(task.dueDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</p></div>
-                  <span className={`text-[10px] font-bold px-2 py-1 rounded border whitespace-nowrap flex-shrink-0 ${isToday ? 'text-rose-600 bg-rose-50 border-rose-100' : isSoon ? 'text-orange-600 bg-orange-50 border-orange-100' : 'text-blue-600 bg-blue-50 border-blue-100'}`}>
-                    {isToday ? 'Today' : `${daysLeft} days left`}
-                  </span>
-                </div>
-              );
-            })}
-            {(!upcomingTasks || upcomingTasks.length === 0) && <p className="text-sm text-slate-500">No upcoming deadlines.</p>}
-          </div>
-        </div>
-      </div>
-
-      {/* 3-Column Lower Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        {/* Personal Attendance Tracker */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 flex flex-col justify-between">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white">Personal Attendance Tracker</h3>
-            <button onClick={() => onNavigate('attendance')} className="text-xs font-bold text-indigo-600 hover:underline">View All</button>
-          </div>
-          <div className="flex justify-between items-center w-full px-2 mb-6 overflow-x-auto pb-2">
-            {attendanceData?.days?.map((day, idx) => (
-              <div key={idx} className="flex flex-col items-center gap-2 flex-shrink-0 px-3 sm:px-1">
-                <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${day.isPresent ? 'border-emerald-500 text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : day.isFuture ? 'border-slate-100 border-dashed dark:border-slate-800' : 'border-slate-200 text-slate-300 dark:border-slate-700 dark:bg-slate-800'}`}>
-                  {day.isPresent && <CheckCircleIcon className="h-4 w-4" />}
-                </div>
-                <span className="text-[10px] font-bold text-slate-500 uppercase whitespace-nowrap">{day.label}</span>
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-slate-700 pt-4">
-            <div className="text-center"><p className="text-sm font-black text-slate-800 dark:text-white">{attendanceData?.presentCount || 0}/{attendanceData?.totalDays || 0}</p><p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Present</p></div>
-            <div className="text-center border-x border-slate-100 dark:border-slate-700"><p className="text-sm font-black text-slate-800 dark:text-white">{(attendanceData?.presentCount || 0) * 8}h</p><p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Hours</p></div>
-            <div className="text-center"><p className="text-sm font-black text-emerald-500">0</p><p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Leaves</p></div>
-          </div>
-        </div>
-
         {/* Recent Activity */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white">Recent Activity</h3>
-            <button onClick={() => onNavigate('task-history')} className="text-xs font-bold text-indigo-600 hover:underline">View All</button>
+            <h3 className="text-base font-bold text-slate-800">Recent Activity</h3>
+            <button onClick={() => onNavigate('task-history')} className="text-xs font-bold px-3 py-1 rounded-lg text-white transition" style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>View All</button>
           </div>
-          <div className="relative border-l-2 border-slate-100 dark:border-slate-700 ml-3 space-y-5">
-            {stats?.recentActivityLog?.slice(0, 3).map((activity, i) => (
-              <div key={i} className="relative pl-6">
-                <span className={`absolute -left-[9px] top-1 h-4 w-4 rounded-full border-2 border-white dark:border-slate-800 ${i % 2 === 0 ? 'bg-blue-500' : 'bg-emerald-500'}`}></span>
-                <p className="text-sm font-bold text-slate-800 dark:text-white leading-tight truncate">Task Update: {activity.title}</p>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">{safeDate(activity.updatedAt || activity.createdAt).toLocaleDateString()}</p>
+          <div className="relative border-l-2 border-purple-100 ml-4 space-y-4">
+            {stats?.recentActivityLog?.slice(0, 4).map((activity, i) => (
+              <div key={i} className="relative pl-5">
+                <span className="absolute -left-[9px] top-1 h-4 w-4 rounded-full border-2 border-white flex-shrink-0" style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }} />
+                <p className="text-xs font-bold text-slate-800 leading-tight truncate">Task Update: {activity.title}</p>
+                <p className="text-[10px] font-bold text-purple-400 mt-0.5">{safeDate(activity.updatedAt || activity.createdAt).toLocaleDateString()}</p>
               </div>
             ))}
-            {(!stats?.recentActivityLog || stats.recentActivityLog.length === 0) && <p className="text-sm text-slate-500">No recent activity.</p>}
+            {(!stats?.recentActivityLog || stats.recentActivityLog.length === 0) && <p className="text-xs text-slate-400 pl-5">No recent activities.</p>}
           </div>
         </div>
 
         {/* My Performance */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 flex flex-col items-center justify-center text-center">
-          <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4 self-start">My Performance</h3>
-          <div className="relative w-40 h-40 flex items-center justify-center mb-2 mx-auto">
-            <svg className="w-full h-full transform -rotate-180" viewBox="0 0 100 100">
-              <path d="M 10 50 A 40 40 0 0 1 90 50" fill="transparent" stroke="currentColor" strokeWidth="12" className="text-slate-100 dark:text-slate-700" strokeLinecap="round" />
-              <path d="M 10 50 A 40 40 0 0 1 90 50" fill="transparent" stroke="url(#purpleGrad)" strokeWidth="12" strokeDasharray="125.6" strokeDashoffset={125.6 - (125.6 * performanceScore / 100)} strokeLinecap="round" />
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6 flex flex-col items-center justify-center text-center">
+          <h3 className="text-base font-bold text-slate-800 mb-4 self-start">My Performance</h3>
+          <div className="relative w-40 h-40 flex items-center justify-center mb-3 mx-auto">
+            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="40" fill="none" stroke="#f3f0fa" strokeWidth="12" />
+              <circle cx="50" cy="50" r="40" fill="none" stroke="url(#empPurpleGrad)" strokeWidth="12"
+                strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * performanceScore / 100)}
+                strokeLinecap="round" />
               <defs>
-                <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#8b5cf6" />
-                  <stop offset="100%" stopColor="#4f46e5" />
+                <linearGradient id="empPurpleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#48306A" />
+                  <stop offset="100%" stopColor="#8E5FD0" />
                 </linearGradient>
               </defs>
             </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-end pb-4 pointer-events-none mt-1">
-              <p className="text-2xl font-black text-slate-800 dark:text-white">{performanceScore}%</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <p className="text-2xl font-black text-slate-800 leading-none">{performanceScore}%</p>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mt-0.5">Score</p>
             </div>
           </div>
-          <p className={`text-[13px] font-bold ${performanceScore >= 80 ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30' : performanceScore >= 50 ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30' : 'text-orange-600 bg-orange-50 dark:bg-orange-900/30'} px-3 py-1 rounded-full uppercase tracking-wider mb-2`}>
+          <span className={`text-[13px] font-bold px-3 py-1 rounded-full uppercase tracking-wider ${performanceScore >= 80 ? 'text-emerald-600 bg-emerald-50' : performanceScore >= 50 ? 'text-purple-600 bg-purple-50' : 'text-orange-600 bg-orange-50'}`}>
             {performanceScore >= 80 ? 'Excellent' : performanceScore >= 50 ? 'Good' : 'Needs Focus'}
-          </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Keep up the great work!</p>
+          </span>
+          <p className="text-xs text-slate-400 mt-2">Keep up the great work!</p>
+        </div>
+      </div>
+
+      {/* Attendance Row */}
+      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+          <div className="flex-1 w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-base font-bold text-slate-800">Personal Attendance Tracker</h3>
+              <button onClick={() => onNavigate('attendance')} className="text-xs font-bold px-3 py-1 rounded-lg text-white transition" style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>View All</button>
+            </div>
+            <div className="flex justify-between items-center w-full px-2 overflow-x-auto pb-2">
+              {attendanceData?.days?.map((day, idx) => (
+                <div key={idx} className="flex flex-col items-center gap-2 flex-shrink-0 px-2">
+                  <div className={`h-10 w-10 rounded-full border-2 flex items-center justify-center ${day.isPresent ? 'border-purple-400 bg-purple-50' : day.isFuture ? 'border-slate-200 border-dashed' : 'border-slate-200 border-dashed'}`}>
+                    {day.isPresent && <CheckCircleIcon className="h-5 w-5 text-purple-500" />}
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">{day.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="w-full lg:w-auto lg:border-l border-purple-100 lg:pl-8 grid grid-cols-3 gap-4 min-w-[240px]">
+            <div><p className="text-xl font-black text-purple-600">{attendanceData?.presentCount || 0}/{attendanceData?.totalDays || 0}</p><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Present</p></div>
+            <div><p className="text-xl font-black text-slate-800">{(attendanceData?.presentCount || 0) * 8}h</p><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Hours</p></div>
+            <div><p className="text-xl font-black text-orange-500">0</p><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Leaves</p></div>
+          </div>
         </div>
       </div>
 
@@ -481,20 +568,96 @@ export const Dashboard = ({ user, onNavigate }) => {
   );
 };
 
-export const AnalyticsStatCard = ({ grade, count }) => {
-  const GRADE_COLORS = { 'Avg. Completion': '#10B981', 'Total Tasks': '#3B82F6', 'In Progress': '#F59E0B', 'In Verification': '#8B5CF6', 'Not Completed': '#f97316', 'Completed': '#10B981', 'Moderate': '#3B82F6', 'Low': '#F59E0B', 'Pending': '#EF4444', 'Pending Verification': '#8B5CF6' };
-  const GRADE_ICONS = { Completed: TrophyIcon, Moderate: ShieldCheckIcon, Low: StarIcon, Pending: ExclamationTriangleIcon };
-  const Icon = GRADE_ICONS[grade] || InformationCircleIcon;
+export const AnalyticsDonutChart = ({ segments, total, size = 260 }) => {
+  const [hovered, setHovered] = React.useState(null);
+  const cx = size / 2, cy = size / 2;
+  const r = 90, strokeW = 36, gapDeg = 6;
+  const circ = 2 * Math.PI * r;
+  const gapFrac = gapDeg / 360;
+  let cumPct = 0;
   return (
-    <div className="bg-white dark:bg-slate-800/80 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/60 flex flex-col gap-4 hover:shadow-md hover:-translate-y-1 hover:border-slate-200 dark:hover:border-slate-600 transition-all duration-300 group">
-      <div className="flex items-center gap-4">
-        <div className="p-3.5 rounded-full shadow-sm group-hover:scale-110 transition-transform duration-300" style={{ backgroundColor: `${GRADE_COLORS[grade]}15`, color: GRADE_COLORS[grade] }}>
-          <Icon className="h-7 w-7" />
+    <div className="flex flex-col sm:flex-row items-center gap-6">
+      <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} onMouseLeave={() => setHovered(null)}>
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f3f0fa" strokeWidth={strokeW} />
+          {segments.map(s => {
+            const pct = s.val / (total || 1);
+            const arcFrac = Math.max(pct - gapFrac, 0.01);
+            const dash = arcFrac * circ;
+            const dashOffset = -(cumPct * circ) + circ * 0.25;
+            cumPct += pct;
+            const isHov = hovered === s.label;
+            return (
+              <circle key={s.label} cx={cx} cy={cy} r={r} fill="none"
+                stroke={s.color}
+                strokeWidth={isHov ? strokeW + 6 : strokeW}
+                strokeDasharray={`${dash} ${circ - dash}`}
+                strokeDashoffset={dashOffset}
+                strokeLinecap="round"
+                style={{ filter: `drop-shadow(0px ${isHov ? 6 : 4}px ${isHov ? 10 : 6}px rgba(0,0,0,${isHov ? 0.25 : 0.15}))`, transition: 'stroke-width 0.15s ease', cursor: 'pointer' }}
+                onMouseEnter={() => setHovered(s.label)}
+              />
+            );
+          })}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          {hovered ? (
+            <>
+              <span className="text-xl font-extrabold text-slate-800 leading-none">{segments.find(s => s.label === hovered)?.val}</span>
+              <span className="text-[10px] font-semibold text-slate-400 mt-0.5 text-center px-2 leading-tight">{hovered}</span>
+            </>
+          ) : (
+            <>
+              <span className="text-2xl font-extrabold text-slate-800 leading-none">{total}</span>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mt-0.5">Total</span>
+            </>
+          )}
         </div>
       </div>
-      <div>
-        <p className="text-4xl font-extrabold text-slate-800 dark:text-white tracking-tight">{count}</p>
-        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mt-1">{grade}</p>
+      <div className="flex flex-col gap-3 flex-1 w-full">
+        {segments.map(s => {
+          const pct = total > 0 ? ((s.val / total) * 100).toFixed(0) : 0;
+          const isHov = hovered === s.label;
+          return (
+            <div key={s.label}
+              className={`flex items-center justify-between rounded-xl px-2 py-1 transition-all cursor-pointer ${isHov ? 'bg-purple-50' : ''}`}
+              onMouseEnter={() => setHovered(s.label)}
+              onMouseLeave={() => setHovered(null)}
+            >
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
+                <span className={`text-xs font-medium transition-colors ${isHov ? 'text-slate-800 font-bold' : 'text-slate-500'}`}>{s.label}</span>
+              </div>
+              <span className={`text-xs font-bold ${isHov ? 'text-slate-800' : 'text-slate-400'}`}>{pct}%</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export const AnalyticsStatCard = ({ grade, count, accentColor }) => {
+  const ACCENT = accentColor || '#8E5FD0';
+  const GRADE_ICONS = {
+    'Avg. Completion': ChartBarIcon,
+    'Total Tasks': ClipboardDocumentListIcon,
+    'In Progress': ArrowPathIcon,
+    'In Verification': ShieldCheckIcon,
+    'Completed': TrophyIcon,
+    'Not Completed': ExclamationTriangleIcon,
+    'Pending': ExclamationTriangleIcon,
+  };
+  const Icon = GRADE_ICONS[grade] || InformationCircleIcon;
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-purple-100 p-5 flex items-start gap-4 hover:shadow-md transition-shadow">
+      <div className="flex-shrink-0 p-3 rounded-xl" style={{ backgroundColor: `${ACCENT}18`, color: ACCENT }}>
+        <Icon className="h-6 w-6" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">{grade}</p>
+        <p className="text-4xl font-extrabold text-slate-800 leading-none">{count}</p>
+        <div className="h-0.5 w-8 rounded-full mt-2" style={{ backgroundColor: ACCENT }} />
       </div>
     </div>
   );
@@ -653,137 +816,170 @@ export const Analytics = ({ user }) => {
   const GRADE_ICONS = { Completed: TrophyIcon, Moderate: ShieldCheckIcon, Low: StarIcon, Pending: ExclamationTriangleIcon };
 
   if (isLoadingAllTasks || isLoadingEmployees) {
-    return <div className="p-8 text-center">Loading analytics...</div>;
+    return (
+      <div className="min-h-full flex items-center justify-center" style={{ backgroundColor: '#DFCDFE' }}>
+        <p className="text-slate-500 font-medium">Loading analytics...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-slate-50/80 dark:bg-slate-900/50">
-      <div className="flex flex-col xl:flex-row justify-between xl:items-center gap-4 mb-10">
-        <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{title}</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base">An overview of task completion and progress.</p>
-        </div>
-        <div className="flex flex-col xl:flex-row items-center gap-4 mt-4 xl:mt-0">
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <div className="flex items-center p-1.5 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl space-x-1 border border-slate-200/50 dark:border-slate-700/50">
-                {(user?.role === 'Admin' || user?.role === 'Super Admin') && (
-                  <button onClick={() => { setView('org_stats'); setSelectedUserId(''); }} className={`px-6 py-2 text-sm font-semibold rounded-lg transition-all duration-200 whitespace-nowrap ${view === 'org_stats' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'}`}>Org</button>
-                )}
-                {user?.canViewTeam && user?.role !== 'Admin' && user?.role !== 'Super Admin' && (
-                  <button onClick={() => { setView('team_stats'); setSelectedUserId(''); }} className={`px-6 py-2 text-sm font-semibold rounded-lg transition-all duration-200 whitespace-nowrap ${view === 'team_stats' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'}`}>Team</button>
-                )}
-                {user?.role !== 'Admin' && user?.role !== 'Super Admin' && (
-                  <button onClick={() => { setView('my_stats'); setSelectedUserId(''); }} className={`px-6 py-2 text-sm font-semibold rounded-lg transition-all duration-200 whitespace-nowrap ${view === 'my_stats' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'}`}>My Stats</button>
-                )}
-            </div>
-            
-            {(user?.role === 'Admin' || user?.role === 'Super Admin' || user?.canViewTeam) && employeesForDropdown.length > 0 && (
-              <select
-                value={selectedUserId}
-                onChange={(e) => {
-                  setSelectedUserId(e.target.value);
-                  if (e.target.value) {
-                    setView('user_stats');
-                  } else {
-                    setView(user?.role === 'Admin' || user?.role === 'Super Admin' ? 'org_stats' : 'team_stats');
-                  }
-                }}
-                className="w-full sm:w-auto px-4 py-2.5 text-sm font-semibold border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 transition-all outline-none shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer appearance-none"
-                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: `right 0.5rem center`, backgroundRepeat: `no-repeat`, backgroundSize: `1.5em 1.5em`, paddingRight: `2.5rem` }}
-              >
-                <option value="">-- All Users --</option>
-                {employeesForDropdown.map(emp => (
-                  <option key={emp._id} value={emp._id}>{emp.name}</option>
-                ))}
-              </select>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <CalendarIcon className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input 
-                type="date" 
-                value={dateRange.startDate}
-                onChange={e => setDateRange(prev => ({...prev, startDate: e.target.value}))}
-                className="w-full pl-10 pr-4 py-2.5 text-sm font-medium border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white dark:bg-slate-800 dark:text-white transition-all outline-none shadow-sm"
-              />
-            </div>
-            <span className="text-slate-400 font-medium text-sm">to</span>
-            <div className="relative">
-              <CalendarIcon className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input 
-                type="date" 
-                value={dateRange.endDate}
-                onChange={e => setDateRange(prev => ({...prev, endDate: e.target.value}))}
-                className="w-full pl-10 pr-4 py-2.5 text-sm font-medium border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white dark:bg-slate-800 dark:text-white transition-all outline-none shadow-sm"
-              />
-            </div>
-          </div>
-        </div>
+    <div className="min-h-full p-6 lg:p-8" style={{ backgroundColor: '#DFCDFE' }}>
+
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <div className="mb-2">
+        <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">Performance Analytics</h2>
+        <div className="h-1 w-12 rounded-full mt-1 mb-3" style={{ background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
+        <p className="text-slate-500 text-sm">An Overview Of Task Completion And Progress</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <AnalyticsStatCard grade="Avg. Completion" count={`${performanceStats.averageCompletion.toFixed(1)}%`} />
-        <AnalyticsStatCard grade="Total Tasks" count={performanceStats.totalTasks} />
-        <AnalyticsStatCard grade="In Progress" count={performanceStats.tasksInProgress} />
-        <AnalyticsStatCard grade="In Verification" count={performanceStats.tasksInVerification} />
-      </div>
+      {/* ── Toolbar ────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 my-6">
+        {/* Search */}
+        <div className="relative w-full sm:w-64">
+          <svg className="h-4 w-4 text-slate-400 absolute top-1/2 left-3 -translate-y-1/2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+          <input type="text" placeholder="Search Anything..." className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-purple-200 bg-white focus:outline-none focus:ring-2 focus:ring-purple-300 shadow-sm" readOnly />
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm p-8 flex flex-col">
-          <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 tracking-tight">Active Task Status</h3>
-          {chartData.length > 0 ? (
-            <div className="flex-1 flex flex-col sm:flex-row items-center gap-8 lg:gap-12">
-              <div className="relative h-64 w-64 flex-shrink-0 mx-auto sm:mx-0">
-                <GooglePieChart data={chartData} title="" colors={GRADE_COLORS} pieHole={0.65} is3D={false} hideLegend={true} />
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-1">
-                  <p className="text-4xl font-black text-slate-800 dark:text-white leading-none">{performanceStats.totalTasks}</p>
-                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-1">Tasks Total</p>
-                </div>
-              </div>
-              <div className="flex-1 flex flex-col justify-center gap-4 w-full">
-                {chartData.map(d => {
-                  const pct = performanceStats.totalTasks > 0 ? ((d.value / performanceStats.totalTasks) * 100).toFixed(1) : 0;
-                  return (
-                    <div key={d.name} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-3">
-                        <span className="h-4 w-4 rounded-full shadow-sm" style={{ backgroundColor: GRADE_COLORS[d.name] }}></span>
-                        <span className="font-semibold text-slate-700 dark:text-slate-300">{d.name}</span>
-                      </div>
-                      <span className="font-bold text-slate-800 dark:text-white">{d.value} <span className="text-slate-400 font-medium ml-1">({pct}%)</span></span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">No graded tasks to display for this view.</div>
+        {/* View toggle */}
+        <div className="flex items-center rounded-xl overflow-hidden border border-purple-200 bg-white shadow-sm">
+          {(user?.role === 'Admin' || user?.role === 'Super Admin') && (
+            <button
+              onClick={() => { setView('org_stats'); setSelectedUserId(''); }}
+              className="px-5 py-2.5 text-sm font-bold transition-all whitespace-nowrap"
+              style={view === 'org_stats' ? { background: 'linear-gradient(135deg,#48306A,#8E5FD0)', color: '#fff' } : { color: '#48306A' }}
+            >ORG</button>
+          )}
+          {user?.canViewTeam && user?.role !== 'Admin' && user?.role !== 'Super Admin' && (
+            <button
+              onClick={() => { setView('team_stats'); setSelectedUserId(''); }}
+              className="px-5 py-2.5 text-sm font-bold transition-all whitespace-nowrap"
+              style={view === 'team_stats' ? { background: 'linear-gradient(135deg,#48306A,#8E5FD0)', color: '#fff' } : { color: '#48306A' }}
+            >Team</button>
+          )}
+          {user?.role !== 'Admin' && user?.role !== 'Super Admin' && (
+            <button
+              onClick={() => { setView('my_stats'); setSelectedUserId(''); }}
+              className="px-5 py-2.5 text-sm font-bold transition-all whitespace-nowrap"
+              style={view === 'my_stats' ? { background: 'linear-gradient(135deg,#48306A,#8E5FD0)', color: '#fff' } : { color: '#48306A' }}
+            >My Stats</button>
           )}
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm p-8 flex flex-col">
-          <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 tracking-tight">Metric Definitions</h3>
-          <div className="space-y-6">
-            <div className="flex items-start gap-4">
-               <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex-shrink-0 mt-1">
-                  <ChartBarIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-               </div>
-               <div>
-                  <h4 className="font-bold text-slate-800 dark:text-slate-200">Avg. Completion</h4>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mt-1">Average final progress of all graded tasks in the selected date range.</p>
-               </div>
-            </div>
-            <div className="flex items-start gap-4">
-               <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex-shrink-0 mt-1">
-                  <ClipboardDocumentListIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-               </div>
-               <div>
-                  <h4 className="font-bold text-slate-800 dark:text-slate-200">Total Tasks</h4>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mt-1">All tasks assigned within the selected date range, regardless of their current status.</p>
-               </div>
-            </div>
+        {/* User dropdown */}
+        {(user?.role === 'Admin' || user?.role === 'Super Admin' || user?.canViewTeam) && employeesForDropdown.length > 0 && (
+          <select
+            value={selectedUserId}
+            onChange={e => {
+              setSelectedUserId(e.target.value);
+              setView(e.target.value ? 'user_stats' : (user?.role === 'Admin' || user?.role === 'Super Admin' ? 'org_stats' : 'team_stats'));
+            }}
+            className="text-sm border border-purple-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-300 shadow-sm font-semibold text-slate-700"
+          >
+            <option value="">All User</option>
+            {employeesForDropdown.map(emp => (
+              <option key={emp._id} value={emp._id}>{emp.name}</option>
+            ))}
+          </select>
+        )}
+
+        {/* Date pickers */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-white border border-purple-200 rounded-xl px-3 py-2.5 shadow-sm">
+            <CalendarIcon className="h-4 w-4 text-purple-400 flex-shrink-0" />
+            <input
+              type="date" value={dateRange.startDate}
+              onChange={e => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+              className="text-sm text-slate-600 outline-none bg-transparent w-32"
+            />
+          </div>
+          <span className="text-slate-500 text-sm font-semibold">TO</span>
+          <div className="flex items-center gap-1.5 bg-white border border-purple-200 rounded-xl px-3 py-2.5 shadow-sm">
+            <CalendarIcon className="h-4 w-4 text-purple-400 flex-shrink-0" />
+            <input
+              type="date" value={dateRange.endDate}
+              onChange={e => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+              className="text-sm text-slate-600 outline-none bg-transparent w-32"
+            />
           </div>
         </div>
+      </div>
+
+      {/* ── Stat Cards ──────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <AnalyticsStatCard grade="Avg. Completion" count={`${performanceStats.averageCompletion.toFixed(1)}%`} accentColor="#8E5FD0" />
+        <AnalyticsStatCard grade="Total Tasks"     count={performanceStats.totalTasks}           accentColor="#3B82F6" />
+        <AnalyticsStatCard grade="In Progress"     count={performanceStats.tasksInProgress}       accentColor="#10B981" />
+        <AnalyticsStatCard grade="In Verification" count={performanceStats.tasksInVerification}   accentColor="#F59E0B" />
+      </div>
+
+      {/* ── Bottom Row ──────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8">
+
+        {/* Active Task Status */}
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6 flex flex-col">
+          <h3 className="text-lg font-extrabold text-slate-800 mb-5">Active Task Status</h3>
+          {chartData.length > 0 ? (
+            <AnalyticsDonutChart
+              segments={chartData.map(d => ({ label: d.name, val: d.value, color: GRADE_COLORS[d.name] }))}
+              total={performanceStats.totalTasks}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+              <ChartBarIcon className="h-10 w-10 mb-2 text-purple-200" />
+              <p className="text-sm">No task data to display.</p>
+            </div>
+          )}
+          <div className="pt-4 mt-4 border-t border-purple-100">
+            <p className="text-sm font-semibold text-slate-500">Total Task</p>
+            <p className="text-3xl font-extrabold text-slate-800">{performanceStats.totalTasks}</p>
+            <div className="h-0.5 w-8 rounded-full mt-1" style={{ background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
+          </div>
+        </div>
+
+        {/* Metric Definitions */}
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6 flex flex-col">
+          <h3 className="text-lg font-extrabold text-slate-800 mb-5">Metric Definitions</h3>
+          <div className="space-y-0 divide-y divide-purple-50">
+            {[
+              {
+                icon: ChartBarIcon,
+                color: '#8E5FD0',
+                title: 'Average Completion',
+                desc: 'Average Final Progress Of All Graded Task In The Selected Data Range',
+              },
+              {
+                icon: ClipboardDocumentListIcon,
+                color: '#3B82F6',
+                title: 'Total Task',
+                desc: 'All Task Assign Within The Selected Range Time',
+              },
+              {
+                icon: ArrowPathIcon,
+                color: '#10B981',
+                title: 'Inprogress',
+                desc: 'Task Currently Being Worked On By Employee',
+              },
+              {
+                icon: ShieldCheckIcon,
+                color: '#F59E0B',
+                title: 'In Verification',
+                desc: 'Tasks Submitted By Employee And Awaiting Approval',
+              },
+            ].map(({ icon: Icon, color, title, desc }) => (
+              <div key={title} className="flex items-start gap-4 py-4">
+                <div className="flex-shrink-0 p-2.5 rounded-xl" style={{ backgroundColor: `${color}18`, color }}>
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-extrabold text-slate-800">{title}</p>
+                  <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
       </div>
     </div>
   );
@@ -851,134 +1047,133 @@ export const MyTasks = () => {
     return { stats, tasksToShow: tasks };
   }, [myTasks, activeTab, dateRange]);
 
-  if (isLoading) {
-    return <div className="p-8 text-center">Loading tasks...</div>;
-  }
+  if (isLoading) return <div className="p-8 text-center text-slate-500">Loading tasks...</div>;
 
-  const StatCard = React.useMemo(() => ({ title, value, icon: Icon, color }) => (
-    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 border border-slate-100 dark:border-slate-700 flex items-center gap-5 transition-all duration-300 group">
-      <div className={`p-4 rounded-full bg-gradient-to-br ${color.bg} ${color.text} shadow-sm group-hover:scale-110 transition-transform duration-300`}>
-        <Icon className="h-7 w-7" />
-      </div>
-      <div>
-        <p className="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">{value}</p>
-        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">{title}</p>
-      </div>
-    </div>
-  ), []);
+  const statusStyles = {
+    'Pending': 'bg-amber-50 text-amber-700 border border-amber-200',
+    'In Progress': 'bg-blue-50 text-blue-700 border border-blue-200',
+    'Completed': 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+    'Pending Verification': 'bg-purple-50 text-purple-700 border border-purple-200',
+    'Not Completed': 'bg-orange-50 text-orange-700 border border-orange-200',
+  };
+  const priorityColors = { High: '#ef4444', Medium: '#f59e0b', Low: '#10b981' };
+
   return (
-    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-slate-50/80 dark:bg-slate-900/50">
-      <div className="mb-8 text-center sm:text-left">
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">My Tasks</h1>
-        <p className="text-slate-500 mt-2 text-sm sm:text-base">Stay on top of your assigned tasks and deadlines.</p>
+    <div className="min-h-screen p-6 lg:p-8 font-manrope" style={{ backgroundColor: '#DFCDFE' }}>
+
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-extrabold text-slate-800 uppercase tracking-wide">My Tasks</h1>
+        <p className="text-sm text-slate-500 mt-1">Stay on top of your assigned tasks and deadlines</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-        <StatCard title="Active Tasks" value={stats.active} icon={ClipboardDocumentListIcon} color={{ bg: 'from-indigo-50 to-blue-100 dark:from-indigo-900/40 dark:to-blue-900/20', text: 'text-indigo-600 dark:text-indigo-400' }} />
-        <StatCard title="Overdue Tasks" value={stats.overdue} icon={ExclamationTriangleIcon} color={{ bg: 'from-rose-50 to-red-100 dark:from-rose-900/40 dark:to-red-900/20', text: 'text-rose-600 dark:text-rose-400' }} />
-        <StatCard title="Completed Tasks" value={stats.completed} icon={CheckCircleIcon} color={{ bg: 'from-emerald-50 to-green-100 dark:from-emerald-900/40 dark:to-green-900/20', text: 'text-emerald-600 dark:text-emerald-400' }} />
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        {/* Active Tasks — blue pastel */}
+        <div className="flex items-center gap-4 bg-white rounded-2xl border border-blue-100 p-5 shadow-sm">
+          <div className="rounded-xl p-2.5 bg-blue-50 flex-shrink-0">
+            <ClipboardDocumentListIcon className="h-5 w-5 text-blue-500" />
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Active Tasks</p>
+            <p className="text-4xl font-extrabold text-blue-600 mt-1">{stats.active}</p>
+          </div>
+        </div>
+        {/* Overdue Tasks — red pastel */}
+        <div className="flex items-center gap-4 bg-white rounded-2xl border border-red-100 p-5 shadow-sm">
+          <div className="rounded-xl p-2.5 bg-red-50 flex-shrink-0">
+            <ExclamationTriangleIcon className="h-5 w-5 text-red-400" />
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Overdue Tasks</p>
+            <p className="text-4xl font-extrabold text-red-500 mt-1">{stats.overdue}</p>
+          </div>
+        </div>
+        {/* Completed Tasks — green pastel */}
+        <div className="flex items-center gap-4 bg-white rounded-2xl border border-emerald-100 p-5 shadow-sm">
+          <div className="rounded-xl p-2.5 bg-emerald-50 flex-shrink-0">
+            <CheckCircleIcon className="h-5 w-5 text-emerald-500" />
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Completed Tasks</p>
+            <p className="text-4xl font-extrabold text-emerald-600 mt-1">{stats.completed}</p>
+          </div>
+        </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex-1 flex flex-col overflow-hidden">
-        <div className="p-5 border-b border-slate-100 dark:border-slate-700/50 flex flex-col lg:flex-row items-center justify-between gap-4">
-          <div className="flex items-center p-1.5 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl space-x-1 w-full lg:w-auto overflow-x-auto no-scrollbar border border-slate-200/50 dark:border-slate-700/50">
+      {/* Task Table Card */}
+      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-purple-50 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center bg-purple-50 rounded-xl p-1 gap-1">
             {['All', 'Active', 'Completed'].map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-2 text-sm font-semibold rounded-lg transition-all duration-200 whitespace-nowrap ${activeTab === tab ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'}`}>
+              <button key={tab} onClick={() => setActiveTab(tab)}
+                className={`px-5 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === tab ? 'text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                style={activeTab === tab ? { background: 'linear-gradient(135deg,#48306A,#8E5FD0)' } : {}}>
                 {tab}
               </button>
             ))}
           </div>
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-            <div className="relative w-full sm:w-auto flex-1 lg:flex-none">
-              <CalendarIcon className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input 
-                type="date" 
-                value={dateRange.startDate}
-                onChange={e => setDateRange(prev => ({...prev, startDate: e.target.value}))}
-                className="w-full sm:w-auto pl-10 pr-4 py-2.5 text-sm font-medium border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white dark:bg-slate-800 dark:text-white transition-all outline-none shadow-sm"
-              />
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 border border-purple-200 rounded-xl px-3 py-2 bg-white">
+              <CalendarIcon className="h-4 w-4 text-purple-400 flex-shrink-0" />
+              <input type="date" value={dateRange.startDate}
+                onChange={e => setDateRange(p => ({ ...p, startDate: e.target.value }))}
+                className="text-xs font-semibold text-slate-600 bg-transparent outline-none" />
+              <span className="text-slate-300 font-bold">-</span>
+              <input type="date" value={dateRange.endDate}
+                onChange={e => setDateRange(p => ({ ...p, endDate: e.target.value }))}
+                className="text-xs font-semibold text-slate-600 bg-transparent outline-none" />
             </div>
-            <span className="text-slate-400 font-medium text-sm">to</span>
-            <div className="relative w-full sm:w-auto flex-1 lg:flex-none">
-              <CalendarIcon className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input 
-                type="date" 
-                value={dateRange.endDate}
-                onChange={e => setDateRange(prev => ({...prev, endDate: e.target.value}))}
-                className="w-full sm:w-auto pl-10 pr-4 py-2.5 text-sm font-medium border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white dark:bg-slate-800 dark:text-white transition-all outline-none shadow-sm"
-              />
-            </div>
+            <p className="text-xs text-slate-400 font-semibold whitespace-nowrap">{tasksToShow.length} task{tasksToShow.length !== 1 ? 's' : ''}</p>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 dark:bg-slate-900/30">
-          {tasksToShow.length > 0 ? (
-            <ul className="space-y-4">
-              {tasksToShow.map((task, index) => {
-                const priorityStyles = { High: 'bg-rose-500', Medium: 'bg-amber-500', Low: 'bg-emerald-500' };
-                const statusStyles = { 
-                  Pending: 'bg-slate-100 text-slate-700 dark:bg-slate-700/50 dark:text-slate-300', 
-                  'In Progress': 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400', 
-                  Completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400', 
-                  'Pending Verification': 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400', 
-                  'Not Completed': 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400' 
-                };
-
-                const now = new Date();
-                const todayUTCStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-                const isOverdue = !['Completed', 'Not Completed', 'Pending Verification'].includes(task.status) && task.dueDate && new Date(task.dueDate) < todayUTCStart;
-                return (
-                  <li key={task._id} className="bg-white dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/60 rounded-2xl p-5 hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600 transition-all duration-200 flex flex-col md:flex-row md:items-center justify-between gap-6 group relative overflow-hidden">
-                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${priorityStyles[task.priority] || 'bg-slate-300'}`}></div>
-                    <div className="flex-1 min-w-0 pl-2">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className={`flex-shrink-0 h-3 w-3 rounded-full shadow-sm ${priorityStyles[task.priority]}`} title={`${task.priority} Priority`}></span>
-                        <h3 className="text-base font-semibold text-slate-800 dark:text-white truncate tracking-tight">{task.title}</h3>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-4 pl-6">
-                        <div className={`flex items-center gap-1.5 text-sm font-medium ${isOverdue ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-slate-400'}`}>
-                          <CalendarIcon className="h-4 w-4" />
-                          <span>Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'N/A'} {isOverdue && '(Overdue)'}</span>
-                        </div>
-                        {['Completed', 'Not Completed'].includes(task.status) && (
-                          <div className="flex items-center gap-1.5 text-sm font-medium text-slate-500 dark:text-slate-400">
-                            <CheckCircleIcon className="h-4 w-4" />
-                            <span>
-                              {task.status === 'Not Completed' ? <span className="text-orange-600 dark:text-orange-400">Incomplete</span> : `Completed: ${task.completionDate ? new Date(task.completionDate).toLocaleDateString() : 'N/A'}`}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 lg:gap-8 w-full md:w-auto">
-                      <div className="w-full sm:w-48 flex items-center gap-3">
-                        <div className="flex-1 bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden shadow-inner">
-                          <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 transition-all duration-500" style={{ width: `${task.progress}%` }}></div>
-                        </div>
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300 w-10 text-right">{task.progress}%</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
-                        <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap shadow-sm ${statusStyles[task.status]}`}>{task.status}</span>
-                        <button onClick={() => { setViewingTask(task); setViewingTaskNumber(index + 1); }} className="text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1.5 transition-colors group-hover:underline bg-indigo-50 dark:bg-indigo-500/10 px-3 py-1.5 rounded-lg">
-                          Details <ChevronRightIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                    
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <div className="text-center py-16 text-slate-500">
-              <ClipboardDocumentListIcon className="h-12 w-12 mx-auto text-slate-400" />
-              <p className="mt-2 font-semibold">No {activeTab.toLowerCase()} tasks.</p>
+        <div className="divide-y divide-purple-50">
+          {tasksToShow.length > 0 ? tasksToShow.map((task, index) => {
+            const now = new Date();
+            const todayUTCStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+            const isOverdue = !['Completed', 'Not Completed', 'Pending Verification'].includes(task.status) && task.dueDate && new Date(task.dueDate) < todayUTCStart;
+            return (
+              <div key={task._id} className="px-6 py-4 hover:bg-purple-50/50 transition flex flex-col md:flex-row md:items-center gap-4">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <span className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: priorityColors[task.priority] || '#94a3b8' }} title={`${task.priority} Priority`} />
+                  <div className="min-w-0">
+                    <p className="font-bold text-sm text-slate-800 truncate">{task.title}</p>
+                    <span className={`text-[10px] font-bold ${isOverdue ? 'text-rose-600' : 'text-slate-400'}`}>
+                      Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
+                      {isOverdue && ' · Overdue'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 w-full md:w-40 flex-shrink-0">
+                  <div className="flex-1 h-2 rounded-full bg-purple-100 overflow-hidden">
+                    <div className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${task.progress || 0}%`, background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
+                  </div>
+                  <span className="text-xs font-bold text-slate-600 w-8 text-right">{task.progress || 0}%</span>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide whitespace-nowrap ${statusStyles[task.status] || ''}`}>
+                    {task.status}
+                  </span>
+                  <button onClick={() => { setViewingTask(task); setViewingTaskNumber(index + 1); }}
+                    className="text-xs font-bold px-3 py-1.5 rounded-lg text-white transition"
+                    style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+                    Details
+                  </button>
+                </div>
+              </div>
+            );
+          }) : (
+            <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+              <ClipboardDocumentListIcon className="h-12 w-12 text-purple-200 mb-3" />
+              <p className="font-bold text-slate-500">No {activeTab.toLowerCase()} tasks.</p>
+              <p className="text-sm mt-1">Tasks assigned to you will appear here.</p>
             </div>
           )}
         </div>
       </div>
+
       <TaskDetailsModal
         isOpen={!!viewingTask}
         onClose={() => setViewingTask(null)}
@@ -1006,28 +1201,42 @@ export const MyReportHistory = ({ employeeId }) => {
       const data = JSON.parse(content);
       if (data.taskUpdates) {
         return (
-          <div className="space-y-3 p-6 bg-slate-50 dark:bg-slate-900/50">
+          <div className="px-6 pb-6 space-y-3">
             {data.reportNote && (
-              <div className="mb-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
-                <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Report Notes</h4>
-                <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{data.reportNote}</p>
+              <div className="bg-purple-50 border border-purple-100 rounded-xl px-4 py-3">
+                <h4 className="text-[10px] font-bold text-purple-400 uppercase tracking-wider mb-1">Employee Notes</h4>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">{data.reportNote}</p>
               </div>
             )}
             {data.taskUpdates.map((update, i) => (
-              <div key={i} className="bg-white border border-slate-200 rounded-xl p-4">
-                <div className="flex justify-between items-start">
-                  <p className="font-semibold text-slate-800">{update.taskId?.title || 'Unknown Task'}</p>
-                  <button onClick={() => { setViewingTask(update.taskId); setViewingTaskNumber(i + 1); }} className="text-xs font-semibold text-blue-600 hover:underline">Details</button>
+              <div key={i} className="bg-slate-50 border border-purple-100 rounded-xl p-4">
+                {/* Title + Details button */}
+                <div className="flex justify-between items-center mb-2">
+                  <p className="font-bold text-sm text-slate-800 flex-1 min-w-0 pr-3 truncate">
+                    Task {i + 1}: {update.taskId?.title || 'Unknown Task'}
+                  </p>
+                  {update.taskId && (
+                    <button onClick={() => { setViewingTask(update.taskId); setViewingTaskNumber(i + 1); }}
+                      className="text-[10px] font-bold px-2.5 py-1 rounded-lg text-white transition flex-shrink-0"
+                      style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+                      Details
+                    </button>
+                  )}
                 </div>
-                <div className="flex items-center gap-4 mt-2">
-                  <div className="w-full bg-slate-200 rounded-full h-2">
-                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${update.completion}%` }}></div>
+                {/* Progress bar */}
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="flex-1 h-2 rounded-full bg-purple-100 overflow-hidden">
+                    <div className="h-full rounded-full transition-all duration-300"
+                      style={{ width: `${update.completion}%`, background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
                   </div>
-                  <span className="text-sm font-bold text-blue-600 w-12 text-right tabular-nums">{update.completion}%</span>
+                  <span className="text-sm font-extrabold flex-shrink-0 w-10 text-right"
+                    style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    {update.completion}%
+                  </span>
                 </div>
                 {update.note && (
-                  <div className="mt-4 bg-slate-50 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
-                    <p className="text-sm text-slate-600 dark:text-slate-300"><span className="font-semibold text-slate-700 dark:text-slate-200">Note:</span> {update.note}</p>
+                  <div className="mt-2 bg-white rounded-lg border border-purple-100 px-3 py-2">
+                    <p className="text-xs text-slate-600"><span className="font-bold text-slate-700">Note: </span>{update.note}</p>
                   </div>
                 )}
               </div>
@@ -1035,44 +1244,74 @@ export const MyReportHistory = ({ employeeId }) => {
           </div>
         );
       }
-      return <p className="whitespace-pre-wrap text-sm text-slate-600">{JSON.stringify(data, null, 2)}</p>;
+      return <p className="px-6 pb-6 text-sm text-slate-600 whitespace-pre-wrap">{JSON.stringify(data, null, 2)}</p>;
     } catch {
-      return <p className="whitespace-pre-wrap text-sm text-slate-600">{content}</p>;
+      return <p className="px-6 pb-6 text-sm text-slate-600 whitespace-pre-wrap">{content}</p>;
     }
   };
 
-  if (isLoading) {
-    return <div className="p-8 text-center">Loading report history...</div>;
-  }
+  if (isLoading) return <div className="p-8 text-center text-slate-500">Loading report history...</div>;
 
-  return ( 
-    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-slate-50/50 font-manrope">
-      <div className="mb-6 sm:mb-8 text-center">
-        <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">My Report History</h1>
-        <p className="text-slate-500 mt-2">Review your previously submitted daily progress reports.</p>
+  return (
+    <div className="min-h-screen p-6 lg:p-8 font-manrope" style={{ backgroundColor: '#DFCDFE' }}>
+
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-extrabold text-slate-800 uppercase tracking-wide">My Report History</h1>
+        <p className="text-sm text-slate-500 mt-1">Review your previously submitted daily progress reports</p>
       </div>
-      <div className="space-y-4">
-        {reports.length > 0 ? (
-          reports.map(report => (
-            <div key={report._id} className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden transition-all duration-300">
-              <button onClick={() => setExpandedReportId(expandedReportId === report._id ? null : report._id)} className="w-full text-left p-5 flex justify-between items-center hover:bg-slate-50/50">
-                <span className="font-bold text-slate-800">{new Date(report.reportDate).toLocaleDateString('en-US', { dateStyle: 'full' })}</span>
-                <div className="flex items-center gap-4">
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${report.status === 'Submitted' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{report.status}</span>
-                  <ChevronDownIcon className={`h-5 w-5 text-slate-500 transition-transform ${expandedReportId === report._id ? 'rotate-180' : ''}`} />
+
+      {/* Report count */}
+      <div className="flex items-center justify-between mb-4 px-1">
+        <p className="text-sm font-bold text-slate-600">{reports.length} report{reports.length !== 1 ? 's' : ''} found</p>
+      </div>
+
+      {/* Report list */}
+      <div className="space-y-3">
+        {reports.length > 0 ? reports.map(report => (
+          <div key={report._id} className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
+            {/* Accordion header */}
+            <button
+              onClick={() => setExpandedReportId(expandedReportId === report._id ? null : report._id)}
+              className="w-full text-left px-6 py-4 flex items-center justify-between hover:bg-purple-50/50 transition">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+                  <DocumentTextIcon className="h-4 w-4 text-white" />
                 </div>
-              </button>
-              {expandedReportId === report._id && renderReportContent(report.content)}
-            </div>
-          ))
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-slate-500 bg-white rounded-2xl border-2 border-dashed p-16">
-            <ArchiveBoxIcon className="h-16 w-16 text-slate-400 mb-4" />
-            <p className="font-semibold">No Report History Found</p>
-            <p className="text-sm">You have not submitted any reports yet.</p>
+                <div>
+                  <p className="font-bold text-sm text-slate-800">
+                    {new Date(report.reportDate).toLocaleDateString('en-US', { dateStyle: 'full' })}
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    {(() => { try { const d = JSON.parse(report.content); return `${(d.taskUpdates || []).length} task update${(d.taskUpdates || []).length !== 1 ? 's' : ''}`; } catch { return ''; } })()}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${report.status === 'Submitted' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                  {report.status}
+                </span>
+                <ChevronDownIcon className={`h-4 w-4 text-slate-400 transition-transform ${expandedReportId === report._id ? 'rotate-180' : ''}`} />
+              </div>
+            </button>
+
+            {/* Accordion body */}
+            {expandedReportId === report._id && (
+              <div className="border-t border-purple-50 pt-4">
+                {renderReportContent(report.content)}
+              </div>
+            )}
+          </div>
+        )) : (
+          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-purple-100 shadow-sm text-slate-400">
+            <ArchiveBoxIcon className="h-12 w-12 text-purple-200 mb-3" />
+            <p className="font-bold text-slate-500 text-base">No Report History Found</p>
+            <p className="text-sm mt-1">You have not submitted any reports yet.</p>
           </div>
         )}
       </div>
+
       <TaskDetailsModal isOpen={!!viewingTask} onClose={() => setViewingTask(null)} task={viewingTask} taskNumber={viewingTaskNumber} />
     </div>
   );
@@ -1167,7 +1406,7 @@ export const TeamInformation = ({ seniorId }) => {
                 </div>
               </div>
               <h3 className="text-lg font-semibold text-slate-800 mb-4">Attendance Calendar</h3>
-              <AttendanceCalendar employeeId={selectedEmployee._id} />
+              <AttendanceCalendar employeeId={selectedEmployee._id} employee={selectedEmployee} />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-slate-500 bg-white rounded-2xl border-2 border-dashed p-8">
@@ -1271,106 +1510,122 @@ export const MyDailyReport = ({ employeeId }) => {
   }, [assignedTasks]);
 
   if (isLoadingTasks || isLoadingReport) {
-    return <div className="text-center p-10">Loading Report...</div>;
+    return <div className="p-8 text-center text-slate-500">Loading Report...</div>;
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 h-full overflow-y-auto bg-slate-50/50 dark:bg-slate-900">
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8">
+    <div className="min-h-screen p-6 lg:p-8 font-manrope" style={{ backgroundColor: '#DFCDFE' }}>
+
+      {/* Header */}
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-800 dark:text-slate-200 tracking-tight">Today's Progress Report</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Update the completion status for your active tasks.</p>
+          <h1 className="text-2xl font-extrabold text-slate-800 uppercase tracking-wide">Today's Progress Report</h1>
+          <p className="text-sm text-slate-500 mt-1">Update the completion status for your active tasks</p>
         </div>
         {!isReadOnly && tasksToDisplay.length > 0 && (
-          <button onClick={handleSubmit} disabled={isUpdating} className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl text-sm disabled:bg-blue-400 transition-colors shadow-lg shadow-blue-500/30 dark:shadow-blue-800/50">
-            {isUpdating ? <ArrowPathIcon className="animate-spin h-5 w-5 mr-2" /> : <PaperAirplaneIcon className="h-5 w-5 mr-2" />}
+          <button onClick={handleSubmit} disabled={isUpdating}
+            className="flex items-center gap-2 font-bold py-2.5 px-6 rounded-xl text-white shadow-sm transition text-sm disabled:opacity-60 whitespace-nowrap"
+            style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+            {isUpdating ? <ArrowPathIcon className="animate-spin h-4 w-4" /> : <PaperAirplaneIcon className="h-4 w-4" />}
             Submit Progress
           </button>
         )}
       </div>
 
+      {/* Read-only warning */}
       {isReadOnly && (
-        <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border-l-4 border-amber-500 text-amber-800 p-4 mb-6 rounded-r-lg shadow-sm dark:bg-amber-500/10 dark:text-amber-300" role="alert">
-          <p className="font-bold">Reporting Closed for Today</p>
-          <p className="text-sm">You can submit progress once daily before 7:00 PM. Today's report may have already been submitted or the deadline has passed.</p>
+        <div className="mb-6 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
+          <ExclamationTriangleIcon className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold text-amber-800 text-sm">Reporting Closed For Today</p>
+            <p className="text-xs text-amber-700 mt-0.5">You can submit progress once daily before 7:00 PM. Today's report may have already been submitted or the deadline has passed.</p>
+          </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6">
-        {tasksToDisplay.map((task, index) => ( 
-          <div key={task._id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 flex flex-col transition-all hover:shadow-md">
-            
-            {/* 1. Task Name & Percentage */}
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-lg text-slate-800 dark:text-slate-200 tracking-tight truncate pr-4">
-                {task.title}
-              </h3>
-              <span className={`font-extrabold text-xl tabular-nums flex-shrink-0 ${isReadOnly ? 'text-slate-500' : 'text-indigo-600 dark:text-indigo-400'}`}>
+      {/* Task Cards */}
+      <div className="space-y-4">
+        {tasksToDisplay.map((task, index) => (
+          <div key={task._id} className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6 hover:shadow-md transition">
+
+            {/* Task header */}
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex-1 min-w-0 pr-4">
+                <h3 className="font-bold text-base text-slate-800 truncate">{task.title}</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}</p>
+              </div>
+              <span className="text-2xl font-extrabold flex-shrink-0" style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {progress[task._id] || 0}%
               </span>
             </div>
 
-            {/* 2. Progress Bar */}
-            <div className="relative w-full h-6 flex items-center mb-4 group">
-              <div className="absolute h-2.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full transition-all duration-300"
-                  style={{ width: `${progress[task._id] || 0}%` }}
-                ></div>
+            {/* Progress bar + slider */}
+            <div className="relative w-full mb-4">
+              <div className="h-3 w-full bg-purple-100 rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-300"
+                  style={{ width: `${progress[task._id] || 0}%`, background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
               </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="5"
+              <input type="range" min="0" max="100" step="5"
                 value={progress[task._id] ?? 0}
                 onChange={(e) => handleProgressChange(task._id, e.target.value)}
                 disabled={isTaskReadOnly(task)}
-                className="absolute z-10 w-full h-6 bg-transparent appearance-none cursor-pointer disabled:cursor-not-allowed slider-thumb opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute inset-0 w-full opacity-0 cursor-pointer disabled:cursor-not-allowed h-3"
+                style={{ top: 0 }}
               />
             </div>
 
-            {/* 3. Description Field */}
-            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-100 dark:border-slate-700/50">
-              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">
-                {task.description || "No specific details provided for this task."}
-              </p>
-            </div>
+            {/* Description */}
+            {task.description && (
+              <div className="bg-purple-50 rounded-xl px-4 py-3 border border-purple-100 mb-4">
+                <p className="text-xs text-slate-500 leading-relaxed whitespace-pre-wrap">{task.description}</p>
+              </div>
+            )}
 
-            {/* 4. Task Update Note */}
-            <div className="mt-4">
-              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 ml-1">Task Update Note (Optional)</label>
-              <input
-                type="text"
+            {/* Task note */}
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-1.5">Task Update Note <span className="font-normal text-slate-400">(Optional)</span></label>
+              <input type="text"
                 placeholder="E.g., Finished the first draft, waiting on review..."
                 value={taskNotes[task._id] || ''}
                 onChange={(e) => setTaskNotes(prev => ({ ...prev, [task._id]: e.target.value }))}
                 disabled={isTaskReadOnly(task)}
-                className="w-full text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-900/50 dark:text-white rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-slate-50"
+                className="w-full text-sm border border-purple-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400 transition disabled:opacity-60 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white text-slate-700 placeholder:text-slate-300"
               />
             </div>
           </div>
         ))}
+
         {tasksToDisplay.length === 0 && (
-          <div className="text-center py-16 text-slate-500 bg-white dark:bg-slate-800 rounded-xl border border-dashed dark:border-slate-700">
-            <CheckCircleIcon className="h-12 w-12 mx-auto text-green-400" />
-            <p className="mt-4 font-semibold text-lg">All tasks are completed!</p>
-            <p className="text-sm">No pending tasks to report on.</p>
+          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-purple-100 shadow-sm text-slate-400">
+            <CheckCircleIcon className="h-12 w-12 text-emerald-400 mb-3" />
+            <p className="font-bold text-slate-600 text-base">All tasks are completed!</p>
+            <p className="text-sm mt-1">No pending tasks to report on.</p>
           </div>
         )}
-        
+
+        {/* Additional Notes */}
         {(!isReadOnly || reportNote) && (
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 flex flex-col transition-all">
-            <h3 className="font-bold text-lg text-slate-800 dark:text-slate-200 tracking-tight mb-3">
-              Additional Notes / Comments
-            </h3>
+          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+            <h3 className="font-bold text-base text-slate-800 mb-3">Additional Notes / Comments</h3>
             <textarea
               value={reportNote}
               onChange={(e) => setReportNote(e.target.value)}
               disabled={isReadOnly}
               placeholder="Add any notes, blockers, or comments regarding today's progress for your manager..."
-              className="w-full text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-900/50 dark:text-white rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none min-h-[120px] disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-slate-50"
+              className="w-full text-sm border border-purple-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400 transition resize-none min-h-[120px] disabled:opacity-60 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white text-slate-700 placeholder:text-slate-300"
             />
+          </div>
+        )}
+
+        {/* Bottom submit button */}
+        {!isReadOnly && tasksToDisplay.length > 0 && (
+          <div className="flex justify-end pt-2">
+            <button onClick={handleSubmit} disabled={isUpdating}
+              className="flex items-center gap-2 font-bold py-2.5 px-8 rounded-xl text-white shadow-sm transition text-sm disabled:opacity-60"
+              style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+              {isUpdating ? <ArrowPathIcon className="animate-spin h-4 w-4" /> : <PaperAirplaneIcon className="h-4 w-4" />}
+              Submit Progress
+            </button>
           </div>
         )}
       </div>
@@ -1379,14 +1634,14 @@ export const MyDailyReport = ({ employeeId }) => {
 };
 
 export const MyAttendance = ({ employeeId }) => {
-  const { data: holidays = [], isLoading: isLoadingHolidays } = useGetHolidaysQuery(); 
+  const { data: holidays = [], isLoading: isLoadingHolidays } = useGetHolidaysQuery();
 
   const legendItems = [
-    { label: 'Present', color: 'bg-emerald-500' },
-    { label: 'Absent', color: 'bg-red-500' },
-    { label: 'Holiday', color: 'bg-amber-500' },
-    { label: 'Leave', color: 'bg-sky-500' },
-    { label: 'Future', color: 'bg-slate-200' },
+    { label: 'Present',  color: 'bg-emerald-500' },
+    { label: 'Absent',   color: 'bg-red-500' },
+    { label: 'Holiday',  color: 'bg-amber-500' },
+    { label: 'Leave',    color: 'bg-sky-500' },
+    { label: 'Future',   color: 'bg-slate-200' },
   ];
 
   const upcomingHolidays = useMemo(() => {
@@ -1398,38 +1653,54 @@ export const MyAttendance = ({ employeeId }) => {
   }, [holidays]);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-slate-50/50"> 
-      <div className="mb-6 sm:mb-8 text-center">
-        <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">My Attendance</h1>
-        <p className="text-slate-500 mt-2">Review your monthly attendance record.</p>
+    <div className="min-h-screen p-6 lg:p-8 font-manrope" style={{ backgroundColor: '#DFCDFE' }}>
+
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-extrabold text-slate-800 uppercase tracking-wide">My Attendance</h1>
+        <p className="text-sm text-slate-500 mt-1">Review your monthly attendance record</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 md:gap-8">
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-lg p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Calendar */}
+        <div className="lg:col-span-3 bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
           <AttendanceCalendar employeeId={employeeId} />
         </div>
-        <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">Legend</h3>
-            <div className="space-y-3">
+
+        {/* Sidebar */}
+        <div className="space-y-4">
+          {/* Legend */}
+          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
+            <h3 className="text-sm font-bold text-slate-800 mb-3">Legend</h3>
+            <div className="space-y-2.5">
               {legendItems.map(item => (
-                <div key={item.label} className="flex items-center gap-3">
-                  <span className={`h-4 w-4 rounded-full ${item.color}`}></span>
+                <div key={item.label} className="flex items-center gap-2.5">
+                  <span className={`h-3.5 w-3.5 rounded-full flex-shrink-0 ${item.color}`} />
                   <span className="text-sm font-medium text-slate-600">{item.label}</span>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-slate-400 mt-6 italic">Click on a date to apply for leave. Sundays are default holidays.</p>
+            <p className="text-[11px] text-slate-400 mt-4 italic leading-relaxed">
+              Click on a date to apply for leave. Sundays are default holidays.
+            </p>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">Upcoming Holidays</h3>
-            <div className="space-y-3">
-              {isLoadingHolidays ? <p className="text-sm text-slate-400">Loading...</p> : upcomingHolidays.length > 0 ? upcomingHolidays.slice(0, 5).map(holiday => (
-                <div key={holiday._id} className="p-3 rounded-lg bg-amber-50">
-                  <p className="font-semibold text-sm text-amber-800">{holiday.name}</p>
-                  <p className="text-xs text-amber-600">{new Date(holiday.date).toLocaleDateString('en-US', { dateStyle: 'long', timeZone: 'UTC' })}</p>
-                </div>
-              )) : (
+
+          {/* Upcoming Holidays */}
+          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
+            <h3 className="text-sm font-bold text-slate-800 mb-3">Upcoming Holidays</h3>
+            <div className="space-y-2">
+              {isLoadingHolidays ? (
+                <p className="text-sm text-slate-400">Loading...</p>
+              ) : upcomingHolidays.length > 0 ? (
+                upcomingHolidays.slice(0, 5).map(holiday => (
+                  <div key={holiday._id} className="p-3 rounded-xl bg-amber-50 border border-amber-100">
+                    <p className="font-bold text-sm text-amber-800">{holiday.name}</p>
+                    <p className="text-[11px] text-amber-600 mt-0.5">
+                      {new Date(holiday.date).toLocaleDateString('en-US', { dateStyle: 'long', timeZone: 'UTC' })}
+                    </p>
+                  </div>
+                ))
+              ) : (
                 <p className="text-sm text-slate-400">No upcoming holidays found.</p>
               )}
             </div>
@@ -1454,24 +1725,31 @@ const EmployeeProfileContent = ({ user }) => {
     name: '', email: '', profilePicture: null, address: '', gender: '', country: '', city: '', qualification: '',
   });
 
-  // This effect populates formData when entering edit mode or when the user prop changes (e.g., after a save)
+  // Populate form data when the user loads or changes, but do not reset while editing.
   useEffect(() => {
-    if (isEditMode || (user && (formData.name === '' || formData.name !== user.name))) { // Only update if entering edit mode or user data has changed
-      setFormData({
-        name: user.name || '', email: user.email || '', profilePicture: null, // Reset file input when re-syncing
-        address: user.address || '', gender: user.gender || '', country: user.country || '',
-        city: user.city || '', qualification: user.qualification || '',
-      });
-    }
+    if (!user || isEditMode) return;
+
+    setFormData({
+      name: user.name || '',
+      email: user.email || '',
+      profilePicture: null,
+      address: user.address || '',
+      gender: user.gender || '',
+      country: user.country || '',
+      city: user.city || '',
+      qualification: user.qualification || '',
+    });
   }, [user, isEditMode]);
 
   const handleChange = useCallback((e) => {
     if (e.target.type === 'file') {
       setFormData(prev => ({ ...prev, profilePicture: e.target.files[0] }));
-    } else {
-      setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+      return;
     }
-  }, []); // setFormData is stable, so no need to list it as a dependency
+
+    setIsEditMode(true);
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  }, []); // setFormData and setIsEditMode are stable, so no need to list them as dependencies
 
   const handleSave = async () => {
     // Validate required fields
@@ -1514,108 +1792,122 @@ const EmployeeProfileContent = ({ user }) => {
     }
   };
 
-  const InfoField = ({ label, value }) => (
-    <div>
-      <p className="text-sm text-gray-500 dark:text-slate-400">{label}</p>
-      <p className="text-md font-semibold text-gray-800 dark:text-slate-200">{value || 'N/A'}</p>
-    </div>
-  );
+  const fileInputRef = React.useRef(null);
+  const [previewUrl, setPreviewUrl] = React.useState(null);
+
+  const handleFileChange = useCallback((e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData(prev => ({ ...prev, profilePicture: file }));
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  }, []);
+
+  const handleDeletePhoto = () => {
+    setPreviewUrl(null);
+    setFormData(prev => ({ ...prev, profilePicture: null }));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const avatarSrc = previewUrl || user.profilePicture ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'U')}&background=8E5FD0&color=fff`;
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl p-4 sm:p-8">
-      <div className="flex justify-between items-start mb-8 pb-8 border-b border-gray-200 dark:border-slate-700">
-        <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-8">
-        <img
-          src={user.profilePicture || `https://ui-avatars.com/api/?name=${user.name}&background=random`}
-          alt="Profile"
-          className="h-32 w-32 rounded-full object-cover border-4 border-blue-200 shadow-lg"
-        />
-        <div>
-          <h2 className="text-3xl font-bold text-blue-800 dark:text-slate-200">{user.name}</h2>
-          <p className="text-gray-600 dark:text-slate-400">{user.role}</p>
-          <p className="text-sm text-gray-500 dark:text-slate-500 font-mono mt-1">{user.employeeId}</p>
+    <div className="min-h-full" style={{ backgroundColor: '#DFCDFE' }}>
+      {/* Hero Banner */}
+      <div className="relative h-44 flex flex-col items-center justify-end pb-0"
+        style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+        <svg className="absolute bottom-0 left-0 w-full" viewBox="0 0 1440 80" preserveAspectRatio="none" style={{ height: 60 }}>
+          <path d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z" fill="#DFCDFE" />
+        </svg>
+        <div className="relative z-10 mb-[-88px]">
+          <div className="h-56 w-56 rounded-full border-4 border-dashed border-white/70 p-1 bg-white/10">
+            <img src={avatarSrc}
+              onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'U')}&background=8E5FD0&color=fff`; }}
+              alt="Profile" className="h-full w-full rounded-full object-cover" />
+          </div>
         </div>
       </div>
-        {user.canEditProfile && (
-          <button onClick={() => setIsEditMode(!isEditMode)} className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors">
-            {isEditMode ? 'Cancel' : 'Edit Profile'}
-          </button>
-        )}
-      </div>
 
-      {eomHistory.length > 0 && !isEditMode && (
-        <div className="mb-8">
-          <h4 className="text-md font-semibold text-slate-700 dark:text-slate-300 mb-3">Hall of Fame</h4>
-          <div className="flex flex-wrap gap-2">
-            {eomHistory.map((win) => (
-              <div key={win._id} className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M8 1.75a.75.75 0 0 1 .692.462l1.41 3.393 3.663.293a.75.75 0 0 1 .428 1.317l-2.79 2.39.853 3.575a.75.75 0 0 1-1.12.814L8 11.97l-3.126 1.92a.75.75 0 0 1-1.12-.814l.852-3.574-2.79-2.39a.75.75 0 0 1 .427-1.318l3.663-.293L7.308 2.212A.75.75 0 0 1 8 1.75Z" clipRule="evenodd" /></svg>
-                <span>EOM: {monthNames[win.month - 1]} {win.year} <span className="font-normal opacity-80">(Avg. {win.score.toFixed(1)}%)</span></span>
+      {/* Name + role */}
+      <div className="flex flex-col items-center pt-28 pb-4" style={{ backgroundColor: '#DFCDFE' }}>
+        <h2 className="text-xl font-extrabold text-slate-800">{user.name}</h2>
+        <p className="text-sm text-slate-500 mt-0.5">{user.role}</p>
+
+        {/* EOM badges */}
+        {eomHistory.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-2 mt-3">
+            {eomHistory.map(win => (
+              <div key={win._id}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full"
+                style={{ boxShadow: '0 0 8px 1px rgba(251,191,36,0.3)' }}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5 text-amber-400">
+                  <path fillRule="evenodd" d="M8 1.75a.75.75 0 0 1 .692.462l1.41 3.393 3.663.293a.75.75 0 0 1 .428 1.317l-2.79 2.39.853 3.575a.75.75 0 0 1-1.12.814L8 11.97l-3.126 1.92a.75.75 0 0 1-1.12-.814l.852-3.574-2.79-2.39a.75.75 0 0 1 .427-1.318l3.663-.293L7.308 2.212A.75.75 0 0 1 8 1.75Z" clipRule="evenodd" />
+                </svg>
+                EOM: {monthNames[win.month - 1]} {win.year}
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
 
-      {isEditMode ? (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <EditField label="Full Name" name="name" value={formData.name} onChange={handleChange} />
-            <EditField label="Email" name="email" value={formData.email} onChange={handleChange} type="email" />
-            <div>
-              <label htmlFor="gender" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Gender</label>
-              <select 
-                name="gender" 
-                id="gender" 
-                value={formData.gender} 
-                onChange={handleChange} 
-                className="mt-1 w-full text-sm border border-gray-300 dark:border-slate-600 rounded-lg p-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition"
-              >
-                <option value="">Select...</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <EditField label="Address" name="address" value={formData.address} onChange={handleChange} />
-            <EditField label="City" name="city" value={formData.city} onChange={handleChange} />
-            <EditField label="Country" name="country" value={formData.country} onChange={handleChange} />
-            <EditField label="Qualification" name="qualification" value={formData.qualification} onChange={handleChange} />
-            <div>
-              <label htmlFor="profilePicture" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Profile Picture</label>
-              <input 
-                type="file" 
-                name="profilePicture" 
-                id="profilePicture" 
-                onChange={handleChange} 
-                className="mt-1 w-full text-sm border border-gray-300 dark:border-slate-600 rounded-lg p-2 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 file:bg-blue-500 file:text-white file:border-0 file:rounded file:px-4 file:py-2 file:cursor-pointer file:hover:bg-blue-600 outline-none transition"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end">
-            <button onClick={handleSave} disabled={isUpdating} className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400">
-              {isUpdating ? 'Saving...' : 'Save Changes'}
+        {/* Upload/Delete photo */}
+        {user.canEditProfile && (
+          <div className="flex items-center gap-3 mt-4">
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" id="avatar-upload-profile" />
+            <label htmlFor="avatar-upload-profile"
+              className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold text-white cursor-pointer transition"
+              style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+              <CameraIcon className="h-4 w-4" /> Upload
+            </label>
+            <button onClick={handleDeletePhoto}
+              className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition">
+              <TrashIcon className="h-4 w-4" /> Delete
             </button>
           </div>
+        )}
+      </div>
+
+      {/* Form Card */}
+      <div className="px-4 pb-10 max-w-5xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-sm border border-purple-100 p-8">
+
+          {/* Personal Information */}
+          <div className="text-center mb-6">
+            <h3 className="text-xl font-bold text-slate-800">Personal Information</h3>
+            <p className="text-sm text-slate-400 mt-1">Manage Your Personal Information To Keep Your Account Accurate And Up To Date</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 mb-8">
+            <ProfileInputField label="Full Name"     name="name"          value={formData.name}          icon={UserIcon} onChange={handleChange} />
+            <ProfileInputField label="E-Mail Address" name="email"        value={formData.email}         icon={EnvelopeIcon} type="email" onChange={handleChange} />
+            <ProfileInputField label="Gender"        name="gender"        value={formData.gender}        icon={UserIcon} onChange={handleChange} />
+            <ProfileInputField label="Qualification" name="qualification" value={formData.qualification} icon={AcademicCapIcon} onChange={handleChange} />
+            <ProfileInputField label="Country"       name="country"       value={formData.country}       icon={GlobeAltIcon} onChange={handleChange} />
+            <ProfileInputField label="City"          name="city"          value={formData.city}          icon={BuildingOfficeIcon} onChange={handleChange} />
+            <ProfileInputField label="Address"       name="address"       value={formData.address}       icon={MapPinIcon} onChange={handleChange} />
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-dashed border-slate-200 mb-6" />
+
+          {/* Actions */}
+          <div className="flex justify-center gap-4">
+            <button onClick={() => {
+                setFormData({ name: user.name||'', email: user.email||'', profilePicture: null, address: user.address||'', gender: user.gender||'', country: user.country||'', city: user.city||'', qualification: user.qualification||'' });
+                setIsEditMode(false);
+              }}
+              className="px-8 py-2.5 rounded-full border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">
+              Cancel
+            </button>
+            {user.canEditProfile && (
+              <button onClick={handleSave} disabled={isUpdating}
+                className="px-8 py-2.5 rounded-full text-sm font-semibold text-white transition disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+                {isUpdating ? 'Saving...' : 'Save Changes'}
+              </button>
+            )}
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <InfoField label="Email" value={user.email} />
-          <InfoField label="Gender" value={user.gender} />
-          <InfoField label="Address" value={user.address} />
-          <InfoField label="City" value={user.city} />
-          <InfoField label="Country" value={user.country} />
-          <InfoField label="Qualification" value={user.qualification} />
-        </div>
-      )}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8 pt-8 border-t border-gray-200">
-        <InfoField label="Department" value={user.department} />
-        <InfoField label="Experience" value={user.experience} />
-        <InfoField label="Work Type" value={user.workType} />
-        <InfoField label="Company" value={user.company} />
-        <InfoField label="Joining Date" value={user.joiningDate ? new Date(user.joiningDate).toLocaleDateString() : 'N/A'} />
-        <InfoField label="Work Location" value={user.workLocation} />
-        <InfoField label="Shift" value={user.shift} />
       </div>
     </div>
   );
@@ -1694,7 +1986,7 @@ const EmployeeDashboard = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 text-gray-800 font-manrope dark:bg-slate-900 dark:text-slate-200">
+    <div className="flex min-h-screen bg-[#DFCDFE] font-manrope text-slate-800 transition-colors p-3 gap-3">
       <style>
         {`
           @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
@@ -1714,12 +2006,12 @@ const EmployeeDashboard = () => {
         setIsCollapsed={setIsSidebarCollapsed} 
       />
       {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)}></div>}
-      <div className="flex-1 flex flex-col overflow-hidden transition-all duration-300">
-          <AppHeader pageTitle={pageTitles[activeComponent]} onMenuClick={() => setSidebarOpen(true)} setActiveComponent={setActiveComponent} />
-          <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900">
-            {renderContent()}
-          </main>
-        </div>
+      <div className="flex flex-1 flex-col overflow-hidden rounded-2xl bg-white shadow-sm">
+        <AppHeader pageTitle={pageTitles[activeComponent]} onMenuClick={() => setSidebarOpen(true)} setActiveComponent={setActiveComponent} />
+        <main className="flex-1 overflow-y-auto">
+          {renderContent()}
+        </main>
+      </div>
     </div>
    );
 };

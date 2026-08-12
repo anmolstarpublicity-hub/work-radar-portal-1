@@ -158,6 +158,11 @@ const employeeSchema = new mongoose.Schema({
     enum: ['light', 'dark'],
     default: 'light',
   },
+  monitoringName: {
+    type: String,
+    trim: true,
+    default: '',
+  },
 }, { timestamps: true });
 
 // Hash the password before saving the employee

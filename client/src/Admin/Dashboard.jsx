@@ -1,506 +1,461 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { UsersIcon, BriefcaseIcon, ClockIcon, TrophyIcon, CheckBadgeIcon, MegaphoneIcon, ChartBarIcon, ServerStackIcon, CodeBracketIcon, UserGroupIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline';
-import { ArrowTrendingUpIcon } from '@heroicons/react/24/solid';
+import React, { useMemo, useState, useEffect } from 'react';
+import { UsersIcon, BriefcaseIcon, ClockIcon, CheckBadgeIcon, UserGroupIcon, ClipboardDocumentListIcon, BuildingOffice2Icon } from '@heroicons/react/24/outline';
+import { ArrowRightIcon, ChevronDownIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { useGetDashboardStatsQuery, useGetAllTasksQuery, useGetEmployeeOfTheMonthCandidatesQuery, useGetActiveAnnouncementQuery, useGetTasksForApprovalQuery, useGetEmployeesQuery } from '../services/EmployeApi';
 import GooglePieChart from './GooglePieChart.jsx';
 import GoogleAreaChart from './GoogleAreaChart.jsx';
 import StatCard from '../shared/StatCard.jsx';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../app/authSlice';
-import { CalendarIcon } from '@heroicons/react/24/outline';
 
-const safeDate = (dateVal) => {
-  if (!dateVal) return new Date();
-  const d = new Date(dateVal);
-  return isNaN(d.getTime()) ? new Date() : d;
-};
-
-
-const isSameDay = (date1, date2) => {
-  if (!date1 || !date2) return false;
-  return date1.getFullYear() === date2.getFullYear() &&
-         date1.getMonth() === date2.getMonth() &&
-         date1.getDate() === date2.getDate();
-};
-
-const Countdown = ({ toDate }) => {
-  const calculateTimeLeft = useCallback(() => {
-    const difference = +new Date(toDate) - +new Date();
-    let timeLeft = {};
-
-    if (difference > 0) {
-      timeLeft = {
-        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-      };
-    }
-    return timeLeft;
-  }, [toDate]);
-
-  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
+const DonutChart = ({ segments, total, size = 160 }) => {
+  const [hovered, setHovered] = React.useState(null);
+  const [isAnimated, setIsAnimated] = useState(false);
+  const cx = size / 2, cy = size / 2;
+  const r = 58, strokeW = 28, gapDeg = 6;
+  const circ = 2 * Math.PI * r;
+  const gapFrac = gapDeg / 360;
 
   useEffect(() => {
-    // Set up an interval to update the countdown every minute
-    const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
-    }, 60000); // 60000 ms = 1 minute
+    const timer = window.setTimeout(() => setIsAnimated(true), 80);
+    return () => window.clearTimeout(timer);
+  }, []);
 
-    // Clear the interval when the component unmounts or toDate changes
-    return () => clearInterval(timer);
-  }, [calculateTimeLeft]);
-
-  if (!timeLeft.days && !timeLeft.hours) return <span className="text-yellow-300">Expires soon</span>;
+  // Pre-compute outside render so StrictMode double-invoke doesn't corrupt cumPct
+  const slices = React.useMemo(() => {
+    let cum = 0;
+    return segments.map(s => {
+      const pct     = s.val / (total || 1);
+      const arcFrac = Math.max(pct - gapFrac, 0.01);
+      const dash    = arcFrac * circ;
+      const offset  = -(cum * circ) + circ * 0.25;
+      cum += pct;
+      return { ...s, dash, offset };
+    });
+  }, [segments, total, circ, gapFrac]);
 
   return (
-    <span className="text-yellow-300">
-      {timeLeft.days > 0 && `${timeLeft.days}d `}
-      {timeLeft.hours > 0 && `${timeLeft.hours}h `}
-      left
-    </span>
+    <div className="flex items-center gap-6">
+      <div
+        className="relative flex-shrink-0"
+        style={{ width: size, height: size, opacity: isAnimated ? 1 : 0.75, transform: isAnimated ? 'scale(1)' : 'scale(0.96)', transition: 'opacity 0.45s ease, transform 0.45s ease' }}
+      >
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} onMouseLeave={() => setHovered(null)}>
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f3f0fa" strokeWidth={strokeW} />
+          {slices.map((s) => {
+            const isHov = hovered === s.label;
+            return (
+              <circle key={s.label} cx={cx} cy={cy} r={r} fill="none"
+                stroke={s.color}
+                strokeWidth={isHov ? strokeW + 6 : strokeW}
+                strokeDasharray={`${s.dash} ${circ - s.dash}`}
+                strokeDashoffset={isAnimated ? s.offset : s.offset + circ}
+                strokeLinecap="round"
+                style={{ filter: `drop-shadow(0px ${isHov ? 6 : 4}px ${isHov ? 10 : 6}px rgba(0,0,0,${isHov ? 0.25 : 0.15}))`, transition: 'stroke-dashoffset 800ms cubic-bezier(0.22, 1, 0.36, 1), stroke-width 0.15s ease, opacity 0.25s ease', cursor: 'pointer', opacity: isAnimated ? 1 : 0.3 }}
+                onMouseEnter={() => setHovered(s.label)}
+              />
+            );
+          })}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          {hovered ? (
+            <>
+              <span className="text-xl font-extrabold text-slate-800 leading-none">{slices.find(s => s.label === hovered)?.val}</span>
+              <span className="text-[10px] font-semibold text-slate-400 mt-0.5 text-center px-2 leading-tight">{hovered}</span>
+            </>
+          ) : (
+            <>
+              <span className="text-2xl font-extrabold text-slate-800 leading-none">{total}</span>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mt-0.5">Total</span>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-col gap-3 flex-1">
+        {slices.map(s => {
+          const pct = total > 0 ? ((s.val / total) * 100).toFixed(0) : 0;
+          const isHov = hovered === s.label;
+          return (
+            <div key={s.label}
+              className={`flex items-center justify-between rounded-xl px-2 py-1 transition-all cursor-pointer ${isHov ? 'bg-purple-50' : ''}`}
+              onMouseEnter={() => setHovered(s.label)}
+              onMouseLeave={() => setHovered(null)}
+            >
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
+                <span className={`text-xs font-medium transition-colors ${isHov ? 'text-slate-800 font-bold' : 'text-slate-500'}`}>{s.label}</span>
+              </div>
+              <span className={`text-xs font-bold ${isHov ? 'text-slate-800' : 'text-slate-400'}`}>{pct}%</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 };
 
-const Dashboard = () => {
-  const _user = useSelector(selectCurrentUser); // unused variable kept for future use
-  const isAuthenticated = !!_user?._id;
+const safeDate = (d) => { const dt = new Date(d); return isNaN(dt.getTime()) ? new Date() : dt; };
+const isSameDay = (a, b) => a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
-  const [filterType, setFilterType] = useState('week'); // 'week', 'month', 'custom'
+const perfLabel = (score) => {
+  if (score >= 85) return { label: 'Excellent', cls: 'bg-green-100 text-green-700' };
+  if (score >= 75) return { label: 'Very Good', cls: 'bg-blue-100 text-blue-700' };
+  if (score >= 65) return { label: 'Good', cls: 'bg-purple-100 text-purple-700' };
+  return { label: 'Average', cls: 'bg-orange-100 text-orange-700' };
+};
+
+const Dashboard = ({ onNavigate = () => {} }) => {
+  const _user = useSelector(selectCurrentUser);
+  const isAuthenticated = !!_user?._id;
+  const [filterType, setFilterType] = useState('week');
   const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
 
   useEffect(() => {
     const today = new Date();
     if (filterType === 'week') {
-      const firstDay = new Date(today.setDate(today.getDate() - today.getDay()));
-      const lastDay = new Date(firstDay);
-      lastDay.setDate(lastDay.getDate() + 6);
-      setDateRange({
-        startDate: firstDay.toISOString().split('T')[0],
-        endDate: lastDay.toISOString().split('T')[0],
-      });
+      const first = new Date(today); first.setDate(today.getDate() - today.getDay());
+      const last = new Date(first); last.setDate(first.getDate() + 6);
+      setDateRange({ startDate: first.toISOString().split('T')[0], endDate: last.toISOString().split('T')[0] });
     } else if (filterType === 'month') {
-      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      setDateRange({
-        startDate: firstDay.toISOString().split('T')[0],
-        endDate: lastDay.toISOString().split('T')[0],
-      });
+      const first = new Date(today.getFullYear(), today.getMonth(), 1);
+      const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      setDateRange({ startDate: first.toISOString().split('T')[0], endDate: last.toISOString().split('T')[0] });
     }
   }, [filterType]);
 
-  const { data: stats, isLoading: isLoadingStats } = useGetDashboardStatsQuery(undefined, { skip: !isAuthenticated });
+  const { data: stats } = useGetDashboardStatsQuery(undefined, { skip: !isAuthenticated });
   const { data: allTasks = [], isLoading: isLoadingTasks } = useGetAllTasksQuery(undefined, { skip: !isAuthenticated });
-  const { data: eomCandidates = [], isLoading: isLoadingEOM } = useGetEmployeeOfTheMonthCandidatesQuery({
-    month: new Date().getMonth() + 1,
-    year: new Date().getFullYear(),
-  }, { skip: !isAuthenticated });
-  const { data: _announcement, isLoading: isLoadingAnnouncement } = useGetActiveAnnouncementQuery(undefined, { skip: !isAuthenticated });
+  const { data: eomCandidates = [], isLoading: isLoadingEOM } = useGetEmployeeOfTheMonthCandidatesQuery({ month: new Date().getMonth() + 1, year: new Date().getFullYear() }, { skip: !isAuthenticated });
+  const { isLoading: isLoadingAnn } = useGetActiveAnnouncementQuery(undefined, { skip: !isAuthenticated });
   const { data: approvalTasks = [] } = useGetTasksForApprovalQuery(undefined, { skip: !isAuthenticated });
   const { data: allEmployees = [] } = useGetEmployeesQuery(undefined, { skip: !isAuthenticated });
 
-  // Helper to get employee counts for a given date range
-  const getCountsForDateRange = useCallback((employees, startDate, endDate) => {
-    if (!startDate || !endDate || !employees) {
-      return { totalUsers: 0, totalManagers: 0, totalEmployees: 0 };
-    }
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+  const isLoading = isLoadingTasks || isLoadingEOM || isLoadingAnn;
 
-    const filtered = employees.filter(emp => {
-      const joinDate = safeDate(emp.joiningDate);
-      return joinDate >= start && joinDate <= end;
-    });
-
-    const totalManagers = filtered.filter(emp => emp.dashboardAccess === 'Manager Dashboard').length || 0;
-    const totalEmployees = filtered.filter(emp => emp.dashboardAccess !== 'Manager Dashboard' && emp.role !== 'Admin' && emp.role !== 'Super Admin').length || 0;
-    const totalUsers = filtered.length || 0;
-
-    return { totalUsers, totalManagers, totalEmployees };
-  }, []);
-
-
-  // Filter employees based on their joiningDate within the current dateRange
-  const filteredEmployeesByJoinDate = useMemo(() => {
-    if (!dateRange.startDate || !dateRange.endDate || !allEmployees) return [];
-    const start = new Date(dateRange.startDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(dateRange.endDate);
-    end.setHours(23, 59, 59, 999);
-
-    return allEmployees.filter(emp => {
-      const joinDate = safeDate(emp.joiningDate);
-      return joinDate >= start && joinDate <= end;
-    });
-  }, [allEmployees, dateRange]);
-
-  // Calculate the previous date range for trend comparison
-  const previousDateRange = useMemo(() => {
-    const { startDate, endDate } = dateRange;
-    if (!startDate || !endDate) return { startDate: '', endDate: '' };
-
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-
-    const diffMs = end.getTime() - start.getTime(); // Duration of the current period in milliseconds
-    const durationDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-
-    const prevEnd = new Date(start);
-    prevEnd.setDate(start.getDate() - 1); // Day before current start
-
-    const prevStart = new Date(prevEnd);
-    prevStart.setDate(prevEnd.getDate() - durationDays); // Subtract duration from prevEnd
-
-    return {
-      startDate: prevStart.toISOString().split('T')[0],
-      endDate: prevEnd.toISOString().split('T')[0],
-    };
-  }, [dateRange]);
-
-  // Filter employees for the previous date range to calculate trends
-  const previousPeriodEmployeeCounts = useMemo(() => {
-    return getCountsForDateRange(allEmployees, previousDateRange.startDate, previousDateRange.endDate);
-  }, [allEmployees, previousDateRange]);
-
-  const isLoading = isLoadingStats || isLoadingTasks || isLoadingEOM || isLoadingAnnouncement;
-
-  const filteredAllTasks = useMemo(() => {
+  const filteredTasks = useMemo(() => {
     if (!dateRange.startDate || !dateRange.endDate) return allTasks;
-    const start = new Date(dateRange.startDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(dateRange.endDate);
-    end.setHours(23, 59, 59, 999);
-    
-    return allTasks.filter(task => {
-      const taskDate = new Date(task.createdAt || task.updatedAt);
-      return taskDate >= start && taskDate <= end;
-    });
+    const s = new Date(dateRange.startDate); s.setHours(0,0,0,0);
+    const e = new Date(dateRange.endDate); e.setHours(23,59,59,999);
+    return allTasks.filter(t => { const d = new Date(t.createdAt || t.updatedAt); return d >= s && d <= e; });
   }, [allTasks, dateRange]);
 
-  const dashboardData = useMemo(() => {
-    if (isLoading) return null;
+  const totalUsers = allEmployees.length;
+  const totalManagers = allEmployees.filter(e => e.dashboardAccess === 'Manager Dashboard').length;
+  const totalEmployees = allEmployees.filter(e => e.dashboardAccess !== 'Manager Dashboard' && e.role !== 'Admin' && e.role !== 'Super Admin').length;
+  const totalTasks = filteredTasks.length;
+  const tasksCompleted = filteredTasks.filter(t => t.status === 'Completed').length;
+  const pendingApprovals = filteredTasks.filter(t => t.status === 'Pending Verification').length;
 
-    const topCandidate = eomCandidates[0];
+  const taskChartData = useMemo(() => [
+    { name: 'Completed', value: filteredTasks.filter(t => t.status === 'Completed').length },
+    { name: 'Pending', value: filteredTasks.filter(t => t.status === 'Pending').length },
+    { name: 'In Progress', value: filteredTasks.filter(t => t.status === 'In Progress').length },
+    { name: 'Not Completed', value: filteredTasks.filter(t => t.status === 'Not Completed').length },
+  ].filter(d => d.value > 0), [filteredTasks]);
 
-    const taskChartData = [
-      { name: 'Pending', value: filteredAllTasks.filter(t => t.status === 'Pending').length },
-      { name: 'In Progress', value: filteredAllTasks.filter(t => t.status === 'In Progress').length },
-      { name: 'Verification', value: filteredAllTasks.filter(t => t.status === 'Pending Verification').length },
-      { name: 'Completed', value: filteredAllTasks.filter(t => t.status === 'Completed').length },
-      { name: 'Not Completed', value: filteredAllTasks.filter(t => t.status === 'Not Completed').length },
-    ].filter(entry => entry.value > 0);
+  const userDistData = useMemo(() => [
+    { name: 'Employee', value: totalEmployees },
+    { name: 'Manager', value: totalManagers },
+  ].filter(d => d.value > 0), [totalEmployees, totalManagers]);
 
-    const tasksCompletedThisPeriod = filteredAllTasks.filter(t => t.status === 'Completed').length;
+  const TASK_COLORS = { Completed: '#86efac', Pending: '#d8b4fe', 'In Progress': '#7c3aed', 'Not Completed': '#f97316', 'No Tasks': '#e2e8f0' };
+  const DIST_COLORS = { Employee: '#86efac', Manager: '#7c3aed', 'No Users': '#e2e8f0' };
 
-    // These counts now reflect employees who joined within the current dateRange
-    const totalManagers = filteredEmployeesByJoinDate.filter(emp => emp.dashboardAccess === 'Manager Dashboard').length || 0;
-    const totalEmployeesVal = filteredEmployeesByJoinDate.filter(emp => emp.dashboardAccess !== 'Manager Dashboard' && emp.role !== 'Admin' && emp.role !== 'Super Admin').length || 0;
-    const totalUsers = filteredEmployeesByJoinDate.length || 0;
-    const activeDepartments = new Set(filteredEmployeesByJoinDate.map(emp => emp.department).filter(Boolean)).size || 0;
-    return {
-      totalEmployees: totalEmployeesVal,
-      totalManagers,
-      totalUsers,
-      activeDepartments,
-      tasksPendingVerification: filteredAllTasks.filter(t => t.status === 'Pending Verification').length,
-      totalTasks: filteredAllTasks.length || 0,
-      topCandidate,
-      taskChartData,
-      upcomingManagerTask: stats?.upcomingManagerTask,
-      tasksCompletedThisPeriod, // This is based on filteredAllTasks (task creation/update date)
-    };
-  }, [isLoading, stats, filteredAllTasks, eomCandidates, allEmployees]);
-
-  const TASK_COLORS = {
-    'Completed': '#10B981',
-    'In Progress': '#3B82F6',
-    'Pending': '#F59E0B',
-    'Verification': '#8B5CF6',
-    'Not Completed': '#F97316',
-    'No Tasks': '#e2e8f0'
-  };
-
-  const calculateTrend = useCallback((currentValue, previousValue) => {
-    if (previousValue === 0) return currentValue > 0 ? 'New' : 'N/A';
-    const change = ((currentValue - previousValue) / previousValue) * 100;
-    return change > 0 ? `+${change.toFixed(0)}%` : `${change.toFixed(0)}%`;
-  }, []);
-  // Dynamic Trend Data
   const trendData = useMemo(() => {
     const data = [['Day', 'Tasks Completed']];
     if (!dateRange.startDate || !dateRange.endDate) return data;
-    
-    const start = new Date(dateRange.startDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(dateRange.endDate);
-    end.setHours(23, 59, 59, 999);
-    
-    const daysCount = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
-    const maxDays = Math.min(daysCount, 31); 
-
-    for (let i = maxDays - 1; i >= 0; i--) {
-      const d = new Date(end);
-      d.setDate(d.getDate() - i);
-      const completedCount = allTasks.filter(t => t.completionDate && isSameDay(safeDate(t.completionDate), d)).length;
-      data.push([d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), completedCount]);
+    const s = new Date(dateRange.startDate); s.setHours(0,0,0,0);
+    const e = new Date(dateRange.endDate); e.setHours(23,59,59,999);
+    const days = Math.min(Math.floor((e - s) / 86400000) + 1, 31);
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(e); d.setDate(d.getDate() - i);
+      data.push([d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), allTasks.filter(t => t.completionDate && isSameDay(safeDate(t.completionDate), d)).length]);
     }
     return data;
   }, [allTasks, dateRange]);
 
-  // Dynamic System Activities
-  const dynamicSystemActivities = useMemo(() => {
-    return filteredAllTasks.slice().sort((a, b) => safeDate(b.updatedAt || b.createdAt).getTime() - safeDate(a.updatedAt || a.createdAt).getTime()).slice(0, 4).map((t, i) => {
-      const colors = ["bg-indigo-500", "bg-emerald-500", "bg-blue-500", "bg-orange-500"];
-      return { id: t._id, action: `Task "${t.title}" marked as ${t.status}`, user: t.assignedTo?.name || 'System', time: safeDate(t.updatedAt || t.createdAt).toLocaleDateString(), color: colors[i % colors.length] };
-    });
-  }, [filteredAllTasks]);
+  const systemActivities = useMemo(() =>
+    filteredTasks.slice().sort((a, b) => safeDate(b.updatedAt).getTime() - safeDate(a.updatedAt).getTime()).slice(0, 4).map(t => ({
+      id: t._id,
+      title: `Task "${t.title}" marked as ${t.status}`,
+      sub: t.assignedTo?.name || 'System',
+      time: safeDate(t.updatedAt || t.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      avatar: t.assignedTo?.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.assignedTo?.name || 'S')}&background=8E5FD0&color=fff`,
+    })), [filteredTasks]);
 
-  // Platform Analytics Calculation
-  const platformAnalytics = useMemo(() => {
-    const completed = filteredAllTasks.filter(t => t.status === 'Completed').length;
-    const total = filteredAllTasks.length;
-    const completionRate = total > 0 ? ((completed / total) * 100).toFixed(2) : 0;
-    const onTime = filteredAllTasks.filter(t => t.status === 'Completed' && safeDate(t.completionDate) <= safeDate(t.dueDate)).length;
-    const onTimeRate = completed > 0 ? ((onTime / completed) * 100).toFixed(0) : 0;
-    const avgRating = eomCandidates.length > 0 ? (eomCandidates.reduce((acc, c) => acc + c.totalScore, 0) / eomCandidates.length / 20).toFixed(1) : '4.6'; 
-    const activeUsers = new Set(filteredAllTasks.map(t => {
-      const id = t.assignedTo?._id || t.assignedTo;
-      return id ? String(id) : null;
-    }).filter(Boolean)).size;
-    
-    return { completionRate, onTimeRate, avgRating, activeUsers };
-  }, [filteredAllTasks, eomCandidates]);
+  const topManagers = useMemo(() =>
+    eomCandidates.filter(c => c.employee?.dashboardAccess === 'Manager Dashboard').slice(0, 5).map(c => ({
+      name: c.employee?.name, role: c.employee?.role,
+      avatar: c.employee?.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.employee?.name || 'M')}&background=8E5FD0&color=fff`,
+      tasks: c.completedTasks || 0, rate: Math.min(c.totalScore, 100).toFixed(0),
+    })), [eomCandidates]);
 
-  const userTrend = useMemo(() => calculateTrend(dashboardData?.totalUsers || 0, previousPeriodEmployeeCounts.totalUsers), [dashboardData?.totalUsers, previousPeriodEmployeeCounts.totalUsers, calculateTrend]);
-  const managerTrend = useMemo(() => calculateTrend(dashboardData?.totalManagers || 0, previousPeriodEmployeeCounts.totalManagers), [dashboardData?.totalManagers, previousPeriodEmployeeCounts.totalManagers, calculateTrend]);
-  const employeeTrend = useMemo(() => calculateTrend(dashboardData?.totalEmployees || 0, previousPeriodEmployeeCounts.totalEmployees), [dashboardData?.totalEmployees, previousPeriodEmployeeCounts.totalEmployees, calculateTrend]);
+  const completionRate = totalTasks > 0 ? ((tasksCompleted / totalTasks) * 100).toFixed(1) : 0;
+  const onTime = filteredTasks.filter(t => t.status === 'Completed' && safeDate(t.completionDate) <= safeDate(t.dueDate)).length;
+  const onTimeRate = tasksCompleted > 0 ? ((onTime / tasksCompleted) * 100).toFixed(0) : 0;
+  const avgRating = eomCandidates.length > 0 ? (eomCandidates.reduce((a, c) => a + c.totalScore, 0) / eomCandidates.length / 20).toFixed(1) : '4.5';
+  const activeUsers = new Set(filteredTasks.map(t => String(t.assignedTo?._id || t.assignedTo)).filter(Boolean)).size;
 
-  if (isLoading) {
-    return <div className="p-8 text-center">Loading dashboard...</div>;
-  }
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 
-  const userDistData = [
-    {name: 'Employees', value: dashboardData?.totalEmployees || 0},
-    {name: 'Managers', value: dashboardData?.totalManagers || 0}
-  ].filter(x => x.value > 0);
+  if (isLoading) return <div className="p-8 text-center text-slate-500">Loading dashboard...</div>;
 
-  // --- Clean Executive Layout ---
-  return ( // Changed main background and text color variables to direct Tailwind classes
-    <div className="min-h-screen bg-slate-50 p-6 font-manrope text-slate-800 dark:bg-slate-900 dark:text-white lg:p-8">
+  return (
+    <div className="min-h-screen p-6 lg:p-8 font-manrope" style={{ backgroundColor: '#DFCDFE' }}>
 
-      {/* Blueprint Banner */}
-      <div className="mb-8 flex flex-col flex-wrap items-start justify-between gap-6 rounded-[24px] border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 p-6 shadow-sm text-white md:flex-row md:items-center dark:border-slate-700">
-        <div className="w-full md:w-3/4"> {/* Adjusted welcome message for Admin Dashboard */}
-          <h1 className="text-2xl font-extrabold">Welcome back, {_user?.name?.split(' ')[0] || 'Admin'}! 👋</h1>
-          <p className="text-sm mt-1">Here's what's happening across the platform for the selected period.</p>
+      {/* Welcome Bar */}
+      <div className="mb-8 flex flex-col md:flex-row items-center justify-between gap-4 rounded-2xl px-10 py-10 text-white animate-[fadeInUp_0.6s_ease-out]" style={{ background: 'linear-gradient(135deg, #48306A, #8E5FD0)' }}>
+        <div>
+          <h1 className="text-2xl font-extrabold uppercase tracking-wide">Welcome Back, {_user?.name?.split(' ')[0] || 'Admin'} !</h1>
+          <p className="text-base mt-4 text-purple-200">Monitor Platform Performance, Employee Activities And Task Progress From One Place</p>
         </div>
-        <div className="mt-4 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
-          <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto md:mr-2">
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="w-full sm:w-auto bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-600 outline-none cursor-pointer shadow-sm dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"
-            >
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="custom">Custom Range</option>
-            </select>
-            {filterType === 'custom' ? (
-              <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 shadow-sm">
-                <CalendarIcon className="h-4 w-4 text-slate-400" />
-                <input type="date" value={dateRange.startDate} onChange={e => setDateRange(prev => ({...prev, startDate: e.target.value}))} className="w-full sm:w-auto bg-transparent border-none text-xs font-bold text-slate-600 dark:text-slate-300 outline-none cursor-pointer" />
-                <span className="text-slate-400">-</span>
-                <input type="date" value={dateRange.endDate} onChange={e => setDateRange(prev => ({...prev, endDate: e.target.value}))} className="w-full sm:w-auto bg-transparent border-none text-xs font-bold text-slate-600 dark:text-slate-300 outline-none cursor-pointer" />
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-2 w-full sm:w-auto bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 shadow-sm">
-                <CalendarIcon className="h-4 w-4 text-slate-400" />
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{dateRange.startDate ? new Date(dateRange.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''} - {dateRange.endDate ? new Date(dateRange.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}</span>
-              </div>
-            )}
-          </div>
-          <div className="text-right hidden sm:block mr-3 border-l border-slate-200 pl-4 dark:border-slate-700">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center text-slate-800 font-bold border border-slate-200 dark:bg-slate-700 dark:text-white dark:border-slate-600">
-                {_user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'SA'}
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-bold text-white">{_user?.name || 'Super Administrator'}</p>
-                <p className="text-[11px] font-semibold text-slate-300">{_user?.role || 'System Admin'}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-6 mb-8">
-        <StatCard title="Total Users" value={dashboardData?.totalUsers || 0} trend={userTrend} icon={UsersIcon} />
-        <StatCard title="Total Managers" value={dashboardData?.totalManagers || 0} trend={managerTrend} icon={BriefcaseIcon} />
-        <StatCard title="Total Employees" value={dashboardData?.totalEmployees || 0} trend={employeeTrend} icon={UserGroupIcon} />
-        <StatCard title="Total Tasks" value={dashboardData?.totalTasks || 0} subtext="Selected Period" icon={ClipboardDocumentListIcon} />
-        <StatCard title="Tasks Completed" value={dashboardData?.tasksCompletedThisPeriod || 0} subtext={`${platformAnalytics.completionRate}% Completion`} isSuccess icon={CheckBadgeIcon} />
-        <StatCard title="Pending Approvals" value={dashboardData?.tasksPendingVerification || 0} isWarning subtext="Requires Attention" icon={ClockIcon} />
-      </div>
-
-      {/* Data Visualization & Analytics Middle Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        
-        {/* Task Overview Donut */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-center dark:bg-slate-800 dark:border-slate-700">
-          <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">Platform Task Overview</h3>
-          <div className="flex-1 flex flex-col sm:flex-row items-center gap-4 sm:gap-0">
-            <div className="relative h-48 w-48 flex-shrink-0 mx-auto sm:mx-0">
-              {dashboardData?.taskChartData?.length > 0 ? (
-                <GooglePieChart data={dashboardData.taskChartData} title="" colors={TASK_COLORS} pieHole={0.65} is3D={false} hideLegend={true} />
-              ) : (
-                <GooglePieChart data={[{name: 'No Tasks', value: 1}]} title="" colors={{'No Tasks': '#e2e8f0'}} pieHole={0.65} is3D={false} hideLegend={true} />
-              )}
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-1">
-                <p className="text-2xl font-black text-slate-800 dark:text-white leading-none">{dashboardData?.totalTasks || 0}</p>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Total</p>
-              </div>
-            </div>
-            <div className="flex-1 flex flex-col justify-center gap-3 sm:pl-6 w-full">
-              {dashboardData?.taskChartData?.map(d => {
-                const pct = dashboardData.totalTasks > 0 ? ((d.value / dashboardData.totalTasks) * 100).toFixed(1) : 0;
-                return (
-                  <div key={d.name} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2"><span className="h-3 w-3 rounded-full" style={{ backgroundColor: TASK_COLORS[d.name] }}></span><span className="font-semibold text-slate-600 dark:text-slate-300">{d.name}</span></div>
-                    <span className="font-bold text-slate-800 dark:text-white">{d.value} - {pct}%</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Task Completion Trend (Area Chart) */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm lg:col-span-1 dark:bg-slate-800 dark:border-slate-700">
-          <h3 className="text-base font-bold text-slate-800 dark:text-white mb-2">Task Completion Trend</h3>
-          <div className="relative h-60 -ml-4 -mb-2">
-            <GoogleAreaChart data={trendData} colors={['#6366f1']} />
-          </div>
-        </div>
-
-        {/* User Distribution Donut */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-center dark:bg-slate-800 dark:border-slate-700">
-          <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">User Distribution</h3>
-          <div className="flex-1 flex flex-col sm:flex-row items-center gap-4 sm:gap-0">
-            <div className="relative h-48 w-48 flex-shrink-0 mx-auto sm:mx-0">
-              <GooglePieChart 
-                data={userDistData.length > 0 ? userDistData : [{name: 'No Users', value: 1}]} 
-                title="" 
-                colors={{'Employees': '#3b82f6', 'Managers': '#10b981', 'No Users': '#e2e8f0'}} 
-                pieHole={0.65} is3D={false} hideLegend={true}
-              />
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-1">
-                <p className="text-2xl font-black text-slate-800 dark:text-white leading-none">{dashboardData?.totalUsers || 0}</p>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Total Users</p>
-              </div>
-            </div>
-            <div className="flex-1 flex flex-col justify-center gap-3 sm:pl-6 w-full">
-              <div className="flex items-center justify-between text-sm"><div className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-blue-500"></span><span className="font-semibold text-slate-600 dark:text-slate-300">Employees</span></div><span className="font-bold text-slate-800 dark:text-white">{dashboardData?.totalEmployees || 0} - {dashboardData?.totalUsers ? ((dashboardData.totalEmployees / dashboardData.totalUsers) * 100).toFixed(1) : 0}%</span></div>
-              <div className="flex items-center justify-between text-sm"><div className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-emerald-500"></span><span className="font-semibold text-slate-600 dark:text-slate-300">Managers</span></div><span className="font-bold text-slate-800 dark:text-white">{dashboardData?.totalManagers || 0} - {dashboardData?.totalUsers ? ((dashboardData.totalManagers / dashboardData.totalUsers) * 100).toFixed(1) : 0}%</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Grid Rows */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        
-        {/* Top Performing Managers / Employees - Adjusted background */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm dark:bg-slate-800 dark:border-slate-700">
-          <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">Top Performing Managers</h3>
-          <div className="space-y-4">
-            {eomCandidates.filter(c => c.employee && c.employee.dashboardAccess === 'Manager Dashboard').slice(0, 4).map((candidate, i) => (
-              <div key={i} className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-3 min-w-0">
-                  <img src={candidate.employee?.profilePicture || `https://ui-avatars.com/api/?name=${candidate.employee?.name || 'User'}`} alt={candidate.employee?.name} className="h-10 w-10 rounded-full object-cover border border-slate-200 flex-shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{candidate.employee?.name || 'Unknown User'}</p>
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase truncate">{candidate.employee?.role || 'N/A'}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(candidate.totalScore, 100)}%` }}></div>
-                  </div>
-                  <span className="text-xs font-bold text-emerald-600">{Math.min(candidate.totalScore, 100).toFixed(0)}%</span>
-                </div>
-              </div>
+        <div className="hidden md:block w-px self-stretch bg-white/20" />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center bg-white/10 rounded-lg p-2">
+            {['week','month'].map(t => (
+              <button key={t} onClick={() => setFilterType(t)}
+                className={`px-5 py-2.5 rounded-md text-sm font-bold capitalize transition-all ${filterType === t ? 'bg-white text-purple-800' : 'text-white hover:bg-white/10'}`}>
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </button>
             ))}
-            {eomCandidates.filter(c => c.employee && c.employee.dashboardAccess === 'Manager Dashboard').length === 0 && <p className="text-sm text-slate-500">No performance data available yet.</p>}
           </div>
+
+          <div className="flex items-center gap-3 bg-white/10 rounded-lg px-3 py-2">
+            <CalendarIcon className="h-5 w-5 text-purple-200 flex-shrink-0" />
+            <input
+              type="date"
+              value={dateRange.startDate}
+              onChange={e => { setDateRange(p => ({ ...p, startDate: e.target.value })); setFilterType('custom'); }}
+              onFocus={() => setFilterType('custom')}
+              className="text-sm font-semibold text-white bg-transparent px-2 py-1 rounded-md outline-none"
+            />
+            <span className="text-purple-300">-</span>
+            <input
+              type="date"
+              value={dateRange.endDate}
+              onChange={e => { setDateRange(p => ({ ...p, endDate: e.target.value })); setFilterType('custom'); }}
+              onFocus={() => setFilterType('custom')}
+              className="text-sm font-semibold text-white bg-transparent px-2 py-1 rounded-md outline-none"
+            />
+          </div>
+
+          <button onClick={() => setFilterType('custom')}
+            className="flex items-center gap-1.5 bg-white text-purple-800 hover:bg-purple-50 transition px-5 py-2 rounded-lg text-sm font-bold">
+            Apply <ArrowRightIcon className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+        <StatCard title="Total User" value={totalUsers} icon={UsersIcon} />
+        <StatCard title="Total Manager" value={totalManagers} icon={BriefcaseIcon} />
+        <StatCard title="Total Employee" value={totalEmployees} icon={UserGroupIcon} />
+        <StatCard title="Total Task" value={totalTasks} icon={ClipboardDocumentListIcon} />
+        <StatCard title="Task Completed" value={tasksCompleted} icon={CheckBadgeIcon} />
+        <StatCard title="Pending Approvals" value={pendingApprovals} icon={ClockIcon} />
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Platform Task Overview */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-purple-100 dark:border-slate-700 p-6 shadow-sm animate-[fadeInUp_0.6s_ease-out]">
+          <h3 className="text-base font-bold text-slate-800 dark:text-white mb-1">Platform Task Overview</h3>
+          <p className="text-xs text-slate-400 mb-4">Task status breakdown for selected period</p>
+          <DonutChart
+            total={totalTasks}
+            segments={[
+              { label: 'Completed',          val: filteredTasks.filter(t => t.status === 'Completed').length,             color: '#86efac' },
+              { label: 'In Progress',        val: filteredTasks.filter(t => t.status === 'In Progress').length,           color: '#8E5FD0' },
+              { label: 'Pending',            val: filteredTasks.filter(t => t.status === 'Pending').length,               color: '#d8b4fe' },
+              { label: 'Verification',       val: filteredTasks.filter(t => t.status === 'Pending Verification').length,  color: '#f59e0b' },
+              { label: 'Not Completed',      val: filteredTasks.filter(t => t.status === 'Not Completed').length,         color: '#f97316' },
+            ].filter(s => s.val > 0)}
+          />
+        </div>
+
+        {/* Task Completion Trend */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-purple-100 dark:border-slate-700 p-6 shadow-sm animate-[fadeInUp_0.7s_ease-out]">
+          <h3 className="text-base font-bold text-slate-800 dark:text-white mb-2">Task Completion Trend</h3>
+          <div className="h-52 -ml-4 -mb-2">
+            <GoogleAreaChart data={trendData} colors={['#8E5FD0']} />
+          </div>
+        </div>
+
+        {/* User Distribution */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-purple-100 dark:border-slate-700 p-6 shadow-sm flex flex-col animate-[fadeInUp_0.8s_ease-out]">
+          <h3 className="text-base font-bold text-slate-800 dark:text-white mb-1">User Distribution</h3>
+          <p className="text-xs text-slate-400 mb-4">Breakdown of platform users by role</p>
+          <DonutChart
+            total={totalUsers}
+            segments={[
+              { label: 'Employees', val: totalEmployees, color: '#8E5FD0' },
+              { label: 'Managers',  val: totalManagers,  color: '#86efac' },
+            ].filter(s => s.val > 0)}
+          />
+        </div>
+      </div>
+
+      {/* Middle Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Top Performing Manager */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-purple-100 dark:border-slate-700 p-6 shadow-sm animate-[fadeInUp_0.7s_ease-out]">
+          <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">Top Performing Manager</h3>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-xs text-slate-400 border-b border-slate-100 dark:border-slate-700">
+                <th className="text-left pb-2 font-semibold">Performer</th>
+                <th className="text-center pb-2 font-semibold">Complete Task</th>
+                <th className="text-center pb-2 font-semibold">Completion Rate</th>
+                <th className="text-center pb-2 font-semibold">Performance</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50 dark:divide-slate-700">
+              {topManagers.length > 0 ? topManagers.map((m, i) => {
+                const p = perfLabel(Number(m.rate));
+                return (
+                  <tr key={i}>
+                    <td className="py-2">
+                      <div className="flex items-center gap-2">
+                        <img src={m.avatar} alt={m.name} className="h-8 w-8 rounded-full object-cover flex-shrink-0" />
+                        <div>
+                          <p className="font-semibold text-slate-800 dark:text-white text-xs leading-tight">{m.name}</p>
+                          <p className="text-[10px] text-slate-400">{m.role}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="text-center text-slate-700 dark:text-slate-300 font-semibold">{m.tasks}</td>
+                    <td className="text-center text-slate-700 dark:text-slate-300 font-semibold">{m.rate}%</td>
+                    <td className="text-center">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${p.cls}`}>{p.label}</span>
+                    </td>
+                  </tr>
+                );
+              }) : (
+                <tr><td colSpan={4} className="py-4 text-center text-slate-400 text-xs">No data available</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
 
         {/* Recent System Activities */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm dark:bg-slate-800 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-purple-100 dark:border-slate-700 p-6 shadow-sm animate-[fadeInUp_0.8s_ease-out]">
           <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">Recent System Activities</h3>
-          <div className="relative border-l-2 border-slate-100 dark:border-slate-700 ml-3 space-y-5">
-            {dynamicSystemActivities?.map(activity => (
-              <div key={activity.id} className="relative pl-6">
-                <span className={`absolute -left-[9px] top-1 h-4 w-4 rounded-full border-2 border-white dark:border-slate-800 ${activity.color}`}></span>
-                <p className="text-sm font-bold text-slate-800 dark:text-white leading-tight break-words pr-2">{activity.action}</p>
-                <div className="flex items-center justify-between mt-1">
-                  <p className="text-xs font-medium text-slate-500 truncate pr-2">{activity.user}</p>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex-shrink-0">{activity.time}</p>
+          <div className="relative border-l-2 border-purple-100 dark:border-slate-700 ml-4 space-y-4">
+            {systemActivities.map((a, i) => (
+              <div key={a.id} className="relative pl-5">
+                <img src={a.avatar} alt={a.sub} className="absolute -left-4 top-0 h-7 w-7 rounded-full object-cover border-2 border-white dark:border-slate-800" />
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-bold text-slate-800 dark:text-white leading-tight">{a.title}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">{a.sub}</p>
+                  </div>
+                  <span className="text-[10px] text-slate-400 whitespace-nowrap flex-shrink-0">{a.time}</span>
                 </div>
               </div>
             ))}
-            {(!dynamicSystemActivities || dynamicSystemActivities.length === 0) && <p className="text-sm text-slate-500 mt-2">No recent system activities recorded.</p>}
+            {systemActivities.length === 0 && <p className="text-xs text-slate-400 pl-5">No recent activities.</p>}
           </div>
+          <button onClick={() => onNavigate('view-tasks')} className="mt-4 flex items-center gap-1 text-xs font-semibold text-purple-600 hover:text-purple-800 transition">
+            View All <ChevronDownIcon className="h-3.5 w-3.5" />
+          </button>
         </div>
 
-        {/* Tasks Due for Approval */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm dark:bg-slate-800 dark:border-slate-700">
-          <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">Tasks Due for Approval</h3>
-          <div className="space-y-3">
-            {approvalTasks?.slice(0, 4).map((task, i) => (
-              <div key={i} className="flex justify-between items-center gap-3 border-b border-slate-100 dark:border-slate-700/50 pb-3 last:border-0 last:pb-0">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-slate-800 dark:text-white leading-tight truncate">{task.title}</p>
-                  <p className="text-[11px] font-medium text-slate-500 mt-1 truncate">{task.assignedTo?.name || 'Unknown'} • {safeDate(task.submittedForCompletionDate || task.updatedAt || task.createdAt).toLocaleDateString()}</p>
-                </div>
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 flex-shrink-0 whitespace-nowrap">
-                  {["Daily Report", "Weekly Report", "Task Completion", "Content Review"][i % 4]}
-                </span>
+        {/* Task Due For Approvals */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-purple-100 dark:border-slate-700 p-6 shadow-sm animate-[fadeInUp_0.9s_ease-out]">
+          <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">Task Due For Approvals</h3>
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-slate-400 border-b border-slate-100 dark:border-slate-700">
+                <th className="text-left pb-2 font-semibold">Employee</th>
+                <th className="text-left pb-2 font-semibold">Task</th>
+                <th className="text-left pb-2 font-semibold">Submitted On</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50 dark:divide-slate-700">
+              {approvalTasks.slice(0, 5).map((t, i) => (
+                <tr key={i}>
+                  <td className="py-2">
+                    <div className="flex items-center gap-2">
+                      <img src={t.assignedTo?.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.assignedTo?.name || 'U')}&background=8E5FD0&color=fff`}
+                        alt={t.assignedTo?.name} className="h-7 w-7 rounded-full object-cover flex-shrink-0" />
+                      <div>
+                        <p className="font-semibold text-slate-800 dark:text-white leading-tight">{t.assignedTo?.name || 'Unknown'}</p>
+                        <p className="text-[10px] text-slate-400">{t.assignedTo?.role || ''}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="text-slate-600 dark:text-slate-300 font-medium truncate max-w-[80px]">{t.title}</td>
+                  <td className="text-slate-400 whitespace-nowrap">{safeDate(t.submittedForCompletionDate || t.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                </tr>
+              ))}
+              {approvalTasks.length === 0 && <tr><td colSpan={3} className="py-4 text-center text-slate-400">No pending approvals</td></tr>}
+            </tbody>
+          </table>
+          <button onClick={() => onNavigate('task-approvals')} className="mt-4 flex items-center gap-1 text-xs font-semibold text-purple-600 hover:text-purple-800 transition">
+            View All <ChevronDownIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Bottom Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Overall Platform Analytics */}
+        <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl border border-purple-100 dark:border-slate-700 p-6 shadow-sm animate-[fadeInUp_0.8s_ease-out]">
+          <h3 className="text-base font-bold text-slate-800 dark:text-white mb-6">Overall Platform Analytics</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+            {[
+              { label: 'Task Completion', val: `${completionRate}%` },
+              { label: 'On Time Delivery', val: `${onTimeRate}%` },
+              { label: 'Attendance Rate', val: '96.6%' },
+              { label: 'Average Rating', val: `${avgRating}/5` },
+              { label: 'Improvement Rate', val: '+5.2%' },
+            ].map(({ label, val }) => (
+              <div key={label} className="flex flex-col gap-1">
+                <p className="text-xs text-slate-400 font-medium">{label}</p>
+                <p className="text-2xl font-extrabold text-slate-800 dark:text-white">{val}</p>
+                <div className="h-0.5 w-8 rounded-full" style={{ background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
               </div>
             ))}
-            {(!approvalTasks || approvalTasks.length === 0) && <p className="text-sm text-slate-500">No tasks pending approval.</p>}
           </div>
         </div>
-      </div>
 
-      {/* Lower Metrics Bar */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6"> {/* Adjusted background for consistency */}
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm dark:bg-slate-800 dark:border-slate-700">
-          <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-4">Overall Platform Analytics</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 divide-x divide-slate-100 dark:divide-slate-700"> {/* Adjusted divider color */}
-            <div className="px-4 first:pl-0"><p className="text-2xl font-black text-slate-800 dark:text-white">{platformAnalytics.completionRate}%</p><p className="text-xs font-semibold text-slate-500 mt-1">Task Completion</p></div>
-            <div className="px-4"><p className="text-2xl font-black text-slate-800 dark:text-white">{platformAnalytics.onTimeRate}%</p><p className="text-xs font-semibold text-slate-500 mt-1">On-Time Delivery</p></div>
-            <div className="px-4"><p className="text-2xl font-black text-slate-800 dark:text-white">92%</p><p className="text-xs font-semibold text-slate-500 mt-1">Attendance Rate</p></div>
-            <div className="px-4"><p className="text-2xl font-black text-slate-800 dark:text-white">{platformAnalytics.avgRating}<span className="text-base text-slate-400">/5</span></p><p className="text-xs font-semibold text-slate-500 mt-1">Avg Rating</p></div>
-            <div className="px-4"><p className="text-2xl font-black text-emerald-500">+5.2%</p><p className="text-xs font-semibold text-slate-500 mt-1">Improvement Rate</p></div>
+        {/* Platform Summary */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-purple-100 dark:border-slate-700 p-6 shadow-sm animate-[fadeInUp_0.9s_ease-out]">
+          <h3 className="text-base font-bold text-slate-800 dark:text-white mb-6">Platform Summary</h3>
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-col items-center">
+              <div className="h-10 w-10 rounded-full bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center mb-1">
+                <UsersIcon className="h-5 w-5 text-purple-500" />
+              </div>
+              <p className="text-xs text-slate-400">Active This Month</p>
+              <p className="text-3xl font-extrabold text-slate-800 dark:text-white">{activeUsers}</p>
+              <div className="h-0.5 w-8 rounded-full mt-1" style={{ background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-full bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
+                  <BuildingOffice2Icon className="h-4 w-4 text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400">Total Branch</p>
+                  <p className="text-xl font-extrabold text-slate-800 dark:text-white">4</p>
+                  <div className="h-0.5 w-6 rounded-full" style={{ background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-full bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
+                  <ClockIcon className="h-4 w-4 text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400">Inactive User</p>
+                  <p className="text-xl font-extrabold text-slate-800 dark:text-white">4</p>
+                  <div className="h-0.5 w-6 rounded-full" style={{ background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="lg:col-span-1 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-center dark:bg-slate-800 dark:border-slate-700"> {/* Adjusted background and border */}
-          <div className="flex justify-between items-center mb-3"> {/* Adjusted text color variables */}
-            <p className="text-[11px] font-bold text-wr-text-secondary uppercase tracking-wider">Platform Summary</p>
-            <div className="flex items-center gap-1.5"><span className="relative flex h-2.5 w-2.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span></span><span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">99.9% UPTIME</span></div>
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between"><span className="text-sm font-semibold text-slate-600 dark:text-slate-300">Total Branches</span><span className="text-sm font-bold text-slate-800 dark:text-white">4</span></div>
-            <div className="flex justify-between"><span className="text-sm font-semibold text-slate-600 dark:text-slate-300">Active This Month</span><span className="text-sm font-bold text-slate-800 dark:text-white">{platformAnalytics.activeUsers}</span></div>
-            <div className="flex justify-between"><span className="text-sm font-semibold text-slate-600 dark:text-slate-300">Inactive Users</span><span className="text-sm font-bold text-slate-800 dark:text-white">3</span></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="text-center py-6 mt-4 text-slate-400 dark:text-slate-500 text-xs font-semibold">
-        &copy; {new Date().getFullYear()} Work Radar Platform
       </div>
     </div>
   );

@@ -1,31 +1,19 @@
 import React, { useState, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
-import { ArrowPathIcon, UserIcon, LockClosedIcon, EyeIcon, EyeSlashIcon, ArrowRightOnRectangleIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
-import { useGetCompanyInfoQuery, useLoginMutation } from "../services/EmployeApi";
+import {
+  ArrowPathIcon, EyeIcon, EyeSlashIcon, ArrowRightOnRectangleIcon
+} from "@heroicons/react/24/outline";
+import { useLoginMutation } from "../services/EmployeApi";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setCredentials } from "../app/authSlice";
 import portalLogo from "../assets/portal_logo.png";
 
-// Unused legacy logo imports removed to satisfy lint rules
-const wishes = [
-  "Let's make today productive!",
-  "Ready to achieve great things?",
-  "Your hard work makes a difference.",
-  "Let's get started on a great day!",
-  "Time to shine!",
-  "Welcome! Let's make an impact."
-];
-
 const getGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) {
-    return "Good Morning";
-  }
-  if (hour >= 12 && hour < 18) {
-    return "Good Afternoon";
-  }
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return "Good Morning";
+  if (h >= 12 && h < 18) return "Good Afternoon";
   return "Good Evening";
 };
 
@@ -33,267 +21,382 @@ const Login = () => {
   const [employeeId, setEmployeeId] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [showLoader, setShowLoader] = useState(false);
   const isMounted = useRef(true);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  // companyInfo not currently used in the login screen
-
-  const [wish, setWish] = useState('');
 
   useEffect(() => {
-    setWish(wishes[Math.floor(Math.random() * wishes.length)]);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      isMounted.current = false;
-    };
+    const t = setTimeout(() => setMounted(true), 60);
+    return () => { clearTimeout(t); isMounted.current = false; };
   }, []);
 
   const [login, { isLoading }] = useLoginMutation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!employeeId || !password) {
-      toast.error("Please enter both employee ID and password.");
-      return;
-    }
-
+    if (!employeeId || !password) { toast.error("Please enter both employee ID and password."); return; }
+    setShowLoader(true);
+    const loaderStart = Date.now();
     try {
       const userData = await login({ employeeId, password }).unwrap();
+      // Keep loader visible for at least 2.5 seconds
+      const elapsed = Date.now() - loaderStart;
+      const remaining = Math.max(0, 2000 - elapsed);
+      await new Promise(res => setTimeout(res, remaining));
       dispatch(setCredentials(userData));
       toast.success(`Welcome back, ${userData.user.name}!`);
-
-      const dashboard = userData.user?.dashboardAccess || 'Employee Dashboard';
-      if (dashboard === 'Admin Dashboard') {
-        navigate('/admin-dashboard');
-      } else if (dashboard === 'Manager Dashboard') {
-        navigate('/manager-dashboard');
-      } else {
-        navigate('/employee-dashboard');
-      }
+      const d = userData.user?.dashboardAccess || "Employee Dashboard";
+      if (d === "Admin Dashboard") navigate("/admin-dashboard");
+      else if (d === "Manager Dashboard") navigate("/manager-dashboard");
+      else navigate("/employee-dashboard");
     } catch (err) {
-      if (err && err.status === 401) {
-        toast.error('Invalid credentials. Please check your ID and password.');
-      } else {
-        toast.error(err.data?.message || 'Login failed. Please try again.');
-      }
-      console.error("Failed to login:", err);
+      const elapsed = Date.now() - loaderStart;
+      const remaining = Math.max(0, 1500 - elapsed);
+      await new Promise(res => setTimeout(res, remaining));
+      setShowLoader(false);
+      if (err?.status === 401) toast.error("Invalid credentials. Please check your ID and password.");
+      else toast.error(err.data?.message || "Login failed. Please try again.");
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-manrope grid lg:grid-cols-2 overflow-hidden">
-      <style>
-        {`
-          @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Orbitron:wght@700;900&display=swap');
-          .font-manrope {
-            font-family: 'Manrope', sans-serif;
-          }
-          .font-orbitron {
-            font-family: 'Orbitron', sans-serif;
-          }
-          .animate-slide-in-left { animation: slideInLeft 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
-          @keyframes slideInLeft { 0% { transform: translateX(-100px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
-          .animation-delay-300 { animation-delay: 0.3s; }
-          
-          /* --- IMPROVED STAGGERED WAVE ANIMATION --- */
-          .wave-g {
-            transform-origin: bottom; /* Anchors the animation to the bottom */
-          }
-          .animate-wave-1 {
-            animation: wave 7s ease-in-out infinite;
-          }
-          .animate-wave-2 {
-            animation: wave 5s ease-in-out infinite .5s; /* Staggered start */
-          }
-          .animate-wave-3 {
-            animation: wave 3.5s ease-in-out infinite 1s; /* Staggered start */
-          }
-          @keyframes wave {
-            0%, 100% { transform: scaleY(1); }
-            50% { transform: scaleY(1.08); } /* Scales vertically */
-          }
-        `}
-      </style>
-      {/* Left side - Branding */}
-      <div className="flex flex-col items-center justify-center p-8 lg:p-12 bg-slate-900 text-white relative lg:rounded-r-3xl overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full">
-            {/* SVG definitions for gradients, reusable by all waves */}
-            <svg width="0" height="0" style={{position: 'absolute'}}>
-              <defs>
-                <linearGradient id="waveGradient1" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" style={{stopColor: '#1e293b', stopOpacity: 1}} />
-                  <stop offset="100%" style={{stopColor: '#0f172a', stopOpacity: 1}} />
-                </linearGradient>
-                <linearGradient id="waveGradient2" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" style={{stopColor: '#334155', stopOpacity: 1}} />
-                  <stop offset="100%" style={{stopColor: '#1e293b', stopOpacity: 1}} />
-                </linearGradient>
-              </defs>
-            </svg>
+    <div
+      className="min-h-screen font-manrope relative overflow-hidden flex flex-col"
+      style={{ background: 'linear-gradient(180deg, #1a0a35 0%, #2d1654 40%, #48306A 80%, #5c3598 100%)' }}
+    >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+        .font-manrope { font-family: 'Manrope', sans-serif; }
 
-            {/* Back wave (calmest) */}
-            <svg className="absolute bottom-0 left-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
-              <g className="wave-g animate-wave-1">
-                <path fill="url(#waveGradient1)" d="M0,96L48,112C96,128,192,160,288,149.3C384,139,480,85,576,74.7C672,64,768,96,864,122.7C960,149,1056,171,1152,154.7C1248,139,1344,85,1392,58.7L1440,32L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-              </g>
-            </svg>
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes logoPulse {
+          0% { transform: translateY(0) scale(1); }
+          50% { transform: translateY(-6px) scale(1.03); }
+          100% { transform: translateY(0) scale(1); }
+        }
+        @keyframes floatDot {
+          0%, 100% { transform: translateY(0); opacity: 0.4; }
+          50% { transform: translateY(-10px); opacity: 0.8; }
+        }
+        @keyframes spin-ring {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+        @keyframes pulse-logo {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.08); opacity: 0.85; }
+        }
+        @keyframes overlay-fade-in {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        .loading-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 24px;
+          background: linear-gradient(160deg, #1a0a35 0%, #2d1654 50%, #48306A 100%);
+          animation: overlay-fade-in 0.3s ease both;
+        }
+        .loading-ring {
+          position: absolute;
+          width: 110px;
+          height: 110px;
+          border-radius: 50%;
+          border: 3px solid transparent;
+          border-top-color: #8E5FD0;
+          border-right-color: rgba(142,95,208,0.4);
+          animation: spin-ring 0.9s linear infinite;
+        }
+        .loading-ring-outer {
+          position: absolute;
+          width: 134px;
+          height: 134px;
+          border-radius: 50%;
+          border: 2px solid transparent;
+          border-top-color: rgba(142,95,208,0.25);
+          border-left-color: rgba(192,132,252,0.2);
+          animation: spin-ring 1.4s linear infinite reverse;
+        }
+        .loading-logo {
+          animation: pulse-logo 1.5s ease-in-out infinite;
+        }
+        .loading-text {
+          color: rgba(255,255,255,0.7);
+          font-size: 14px;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          font-family: 'Manrope', sans-serif;
+        }
+        .loading-dots span {
+          display: inline-block;
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: rgba(142,95,208,0.8);
+          margin: 0 3px;
+          animation: floatDot 1.2s ease-in-out infinite;
+        }
+        .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+        .anim-fade-up { animation: fadeUp 0.7s cubic-bezier(0.22,1,0.36,1) both; }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+        .delay-5 { animation-delay: 0.5s; }
 
-            {/* Middle wave */}
-            <svg className="absolute bottom-0 left-0 opacity-70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
-              <g className="wave-g animate-wave-2">
-                <path fill="url(#waveGradient2)" d="M0,160L48,144C96,128,192,96,288,101.3C384,107,480,149,576,138.7C672,128,768,64,864,48C960,32,1056,64,1152,85.3C1248,107,1344,117,1392,122.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-              </g>
-            </svg>
-            
-            {/* Front wave (most active) */}
-            <svg className="absolute bottom-0 left-0 opacity-40" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
-              <g className="wave-g animate-wave-3">
-                <path fill="url(#waveGradient2)" d="M0,192L48,176C96,160,192,128,288,133.3C384,139,480,181,576,186.7C672,192,768,160,864,144C960,128,1056,128,1152,149.3C1248,171,1344,213,1392,234.7L1440,256L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-              </g>
-            </svg>
-        </div>
-        <div className="z-10 text-center animate-slide-in-left">
-          <div className="p-4 bg-white/10 rounded-full inline-block shadow-lg mb-6 backdrop-blur-sm border border-white/10">
-            <img src={portalLogo} alt="Logo" className="h-28 w-28" />
+        /* Logo animation */
+        .logo-pulse { animation: logoPulse 4s ease-in-out infinite; will-change: transform; }
+
+        .login-input {
+          width: 100%;
+          padding: 16px 20px;
+          border-radius: 10px;
+          border: 1.5px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.06);
+          color: white;
+          font-size: 15px;
+          font-family: 'Manrope', sans-serif;
+          outline: none;
+          transition: all 0.2s;
+        }
+        .login-input::placeholder { color: rgba(255,255,255,0.35); }
+        .login-input:focus {
+          border-color: rgba(142,95,208,0.6);
+          background: rgba(255,255,255,0.1);
+          box-shadow: 0 0 0 4px rgba(142,95,208,0.12);
+        }
+        .login-input-wrap {
+          position: relative;
+        }
+        .login-btn {
+          width: 100%;
+          padding: 18px 24px;
+          border-radius: 50px;
+          border: none;
+          cursor: pointer;
+          font-size: 16px;
+          font-weight: 800;
+          color: white;
+          background: linear-gradient(135deg, #48306A 0%, #7c3aed 50%, #8E5FD0 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          font-family: 'Manrope', sans-serif;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 8px 30px rgba(124,58,237,0.5), 0 2px 8px rgba(72,48,106,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+          transition: all 0.2s ease;
+        }
+        .login-btn::before {
+          content: '';
+          position: absolute;
+          top: 0; left: -75%;
+          width: 50%; height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+          transform: skewX(-20deg);
+          transition: left 0.5s ease;
+        }
+        .login-btn:hover:not(:disabled)::before {
+          left: 125%;
+        }
+        .login-btn:hover:not(:disabled) {
+          transform: translateY(-3px);
+          box-shadow: 0 16px 48px rgba(124,58,237,0.6), 0 4px 12px rgba(72,48,106,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+        .login-btn:active:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 8px 24px rgba(124,58,237,0.45);
+        }
+        .btn-spinner {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          border: 2px solid rgba(255,255,255,0.22);
+          border-top-color: rgba(255,255,255,0.95);
+          display: inline-block;
+          animation: spinSlow 0.95s linear infinite;
+        }
+        .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Floating decorative dots */
+        .dot { position: absolute; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.15); animation: floatDot 4s ease-in-out infinite; }
+      `}</style>
+
+      {/* ── Full-screen loading overlay with logo ── */}
+      {showLoader && (
+        <div className="loading-overlay">
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '140px', height: '140px' }}>
+            <div className="loading-ring-outer" />
+            <div className="loading-ring" />
+            <img src={portalLogo} alt="Work Radar" className="loading-logo"
+              style={{ width: '64px', height: '64px', objectFit: 'contain', filter: 'drop-shadow(0 4px 20px rgba(142,95,208,0.6))', position: 'relative', zIndex: 1 }} />
           </div>
-            <h1 className="text-6xl font-orbitron font-bold tracking-wider text-white drop-shadow-lg">Work Radar</h1>
-          <p className="mt-4 text-lg text-indigo-200 max-w-sm mx-auto">Your daily hub for productivity and progress.</p>
+          <p className="loading-text">Signing you in</p>
+          <div className="loading-dots">
+            <span /><span /><span />
+          </div>
         </div>
-        <div className="z-10 mt-12 text-left max-w-md animate-slide-in-left animation-delay-300">
-            <h2 className="text-xl font-bold text-white mb-4 border-b border-white/10 pb-2">Portal Guidelines</h2>
-            <ul className="space-y-3 text-indigo-200 text-sm">
-                <li className="flex items-start gap-3">
-                    <CheckCircleIcon className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
-                    <span>Submit your daily progress report once every working day before 7:00 PM.</span>
-                </li>
-                <li className="flex items-start gap-3">
-                    <CheckCircleIcon className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
-                    <span>For security, you will be automatically logged out after 15 minutes of inactivity.</span>
-                </li>
-                <li className="flex items-start gap-3">
-                    <CheckCircleIcon className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
-                    <span>Tasks past their due date will be automatically submitted for verification.</span>
-                </li>
-                <li className="flex items-start gap-3">
-                    <CheckCircleIcon className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
-                    <span>Once a task is graded by a manager, its status is final and cannot be changed.</span>
-                </li>
-                <li className="flex items-start gap-3">
-                    <CheckCircleIcon className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
-                    <span>Your performance, including task scores and timeliness, contributes to the 'Employee of the Month' selection.</span>
-                </li>
-            </ul>
-        </div>
+      )}
+
+      {/* Decorative floating dots */}
+      <div className="dot" style={{ width:10, height:10, top:'18%', left:'8%', animationDelay:'0s' }} />
+      <div className="dot" style={{ width:6, height:6, top:'35%', left:'15%', animationDelay:'0.8s' }} />
+      <div className="dot" style={{ width:14, height:14, top:'55%', left:'5%', animationDelay:'1.4s' }} />
+      <div className="dot" style={{ width:8, height:8, top:'72%', left:'20%', animationDelay:'0.4s' }} />
+      <div className="dot" style={{ width:12, height:12, top:'20%', right:'10%', animationDelay:'0.6s' }} />
+      <div className="dot" style={{ width:6, height:6, top:'40%', right:'6%', animationDelay:'1.2s' }} />
+      <div className="dot" style={{ width:10, height:10, top:'60%', right:'15%', animationDelay:'0.2s' }} />
+      <div className="dot" style={{ width:16, height:16, top:'75%', right:'8%', animationDelay:'1s' }} />
+      {/* Open circles */}
+      <div style={{ position:'absolute', width:24, height:24, top:'25%', left:'28%', borderRadius:'50%', border:'2px solid rgba(255,255,255,0.1)', animation:'floatDot 5s ease-in-out infinite 0.3s' }} />
+      <div style={{ position:'absolute', width:18, height:18, top:'65%', right:'28%', borderRadius:'50%', border:'2px solid rgba(255,255,255,0.1)', animation:'floatDot 6s ease-in-out infinite 1.1s' }} />
+      <div style={{ position:'absolute', width:30, height:30, top:'45%', left:'32%', borderRadius:'50%', border:'2px solid rgba(255,255,255,0.08)', animation:'floatDot 7s ease-in-out infinite 0.7s' }} />
+
+      {/* Top bar — logo + name */}
+      <div className={`${mounted ? 'anim-fade-up' : 'opacity-0'}`}
+        style={{ padding:'28px 40px', display:'flex', alignItems:'center', gap:'12px', position:'relative', zIndex:10 }}>
+        <img src={portalLogo} alt="Work Radar" className="logo-pulse" style={{ width:'64px', height:'64px', objectFit:'contain' }} />
+        <span style={{ color:'white', fontWeight:800, fontSize:'20px', letterSpacing:'-0.01em' }}>Work Radar</span>
       </div>
 
-      {/* Right side - Login Form */}
-      <div className="flex items-center justify-center p-4 sm:p-8 bg-slate-50 dark:bg-slate-900">
-        <div className="relative z-10 w-full max-w-md p-8 sm:p-10 space-y-8 bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-200/50 dark:border-slate-700/50 transition-transform duration-300 hover:-translate-y-1 hover:shadow-3xl">
-          <div className="text-center">
-            <div className="mx-auto mb-4 flex items-center justify-center h-24 w-24 rounded-full bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 dark:from-blue-900/50 dark:via-indigo-900/50 dark:to-purple-900/50 shadow-lg ring-4 ring-white/20 animate-bounce-slow">
-              <img src={portalLogo} alt="Logo" className="h-20 w-20" />
-            </div>
-            <h1 className="text-4xl font-extrabold text-slate-800 dark:text-indigo-300 drop-shadow-md mb-2 tracking-tight animate-fade-in">
-              {getGreeting()}!
-            </h1>
-            <p className="text-slate-500 dark:text-slate-400 text-base mb-2 animate-fade-in">{wish}</p>
+      {/* Centered form */}
+      <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', position:'relative', zIndex:10 }}>
+        <div style={{ width:'100%', maxWidth:'440px' }}>
+
+          {/* Logo */}
+          <div className={`${mounted ? 'anim-fade-up delay-1' : 'opacity-0'} flex justify-center mb-6`}>
+            <img src={portalLogo} alt="" className="logo-pulse" style={{ width:'220px', height:'220px', objectFit:'contain', filter:'drop-shadow(0 10px 44px rgba(142,95,208,0.65))' }} />
           </div>
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div>
-              <label htmlFor="employeeId" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Employee ID
-              </label>
-              <div className="relative mt-1">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <UserIcon className="h-5 w-5 text-slate-400" />
-                </div>
-                <input
-                  id="employeeId"
-                  name="employeeId"
-                  type="text"
-                  autoComplete="employeeId"
-                  required
-                  value={employeeId}
-                  onChange={(e) => setEmployeeId(e.target.value)}
-                  className="block w-full pl-10 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/80 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 transition-all duration-200"
-                  placeholder="ST-001"
-                />
-              </div>
+
+          {/* Title */}
+          <div className={`${mounted ? 'anim-fade-up delay-2' : 'opacity-0'} text-center mb-2`}>
+            <h1 style={{ color:'white', fontWeight:700, fontSize:'40px', lineHeight:1.2, letterSpacing:'-0.02em' }}>
+              {getGreeting()}
+            </h1>
+          </div>
+
+          <div className={`${mounted ? 'anim-fade-up delay-3' : 'opacity-0'} text-center mb-10`}>
+            <p style={{ color:'rgba(255,255,255,0.45)', fontSize:'16px' }}>
+              Sign in and start tracking your performance!
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'16px' }}>
+
+            {/* Employee ID */}
+            <div className={`${mounted ? 'anim-fade-up delay-3' : 'opacity-0'} login-input-wrap`}>
+              <input
+                type="text"
+                autoComplete="off"
+                required
+                value={employeeId}
+                onChange={(e) => setEmployeeId(e.target.value)}
+                placeholder="Employee ID"
+                className="login-input"
+              />
             </div>
-            <div>
-              <label htmlFor="password" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Password
-              </label>
-              <div className="relative mt-1">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <LockClosedIcon className="h-5 w-5 text-slate-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-10 py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/80 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 transition-all duration-200"
-                  placeholder="••••••••"
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600">
-                  {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
-                </button>
-              </div>
-            </div>
-            <div>
+
+            {/* Password */}
+            <div className={`${mounted ? 'anim-fade-up delay-4' : 'opacity-0'} login-input-wrap`}>
+              <input
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                className="login-input"
+                style={{ paddingRight:'52px' }}
+              />
               <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full group inline-flex items-center justify-center py-3 px-4 rounded-xl shadow-lg font-semibold text-white bg-gradient-to-r from-slate-700 via-slate-800 to-slate-900 hover:from-slate-800 hover:to-slate-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-blue-500 disabled:from-slate-500 disabled:to-slate-600 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 hover:shadow-blue-500/20"
-              >
-                {isLoading && <ArrowPathIcon className="animate-spin h-5 w-5 mr-3" />}
-                {!isLoading && <ArrowRightOnRectangleIcon className="h-5 w-5 mr-2 transition-transform duration-300 group-hover:translate-x-1" />}
-                <span>{isLoading ? "Signing In..." : "Sign In"}</span>
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{ position:'absolute', right:'16px', top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.4)', display:'flex', padding:0 }}>
+                {showPassword ? <EyeSlashIcon style={{ width:'18px', height:'18px' }} /> : <EyeIcon style={{ width:'18px', height:'18px' }} />}
               </button>
             </div>
-            <div className="text-center">
-              <Link to="/forgot-password" className="text-sm font-medium text-blue-600 hover:text-blue-800">
-                Forgot your password?
+
+            {/* Forgot password */}
+            <div className={`${mounted ? 'anim-fade-up delay-4' : 'opacity-0'}`}
+              style={{ display:'flex', justifyContent:'flex-end' }}>
+              <Link to="/forgot-password"
+                style={{ fontSize:'13px', fontWeight:600, color:'#c084fc', textDecoration:'none' }}>
+                Forgot password?
               </Link>
             </div>
+
+            {/* Submit */}
+            <div className={`${mounted ? 'anim-fade-up delay-5' : 'opacity-0'}`}>
+              <button type="submit" disabled={isLoading || showLoader} className="login-btn">
+                {(isLoading || showLoader)
+                  ? <><span className="btn-spinner" aria-hidden="true" /> Signing In...</>
+                  : <><ArrowRightOnRectangleIcon style={{ width:'20px', height:'20px' }} /> Sign In</>
+                }
+              </button>
+            </div>
           </form>
-          <div className="text-center text-xs text-slate-400 dark:text-slate-500 mt-2">
-            &copy; {new Date().getFullYear()} Work Radar
-          </div>
+
+          <p className={`${mounted ? 'anim-fade-up delay-5' : 'opacity-0'} text-center`}
+            style={{ marginTop:'32px', fontSize:'12px', color:'#ffffff' }}>
+            &copy; {new Date().getFullYear()} Work Radar. All rights reserved.
+          </p>
         </div>
       </div>
-      {/* Custom animations */}
-      <style>
-        {`
-          @keyframes blob { 0% { transform: translate(0px, 0px) scale(1); } 33% { transform: translate(30px, -50px) scale(1.1); } 66% { transform: translate(-20px, 20px) scale(0.9); } 100% { transform: translate(0px, 0px) scale(1); } }
-          .animate-blob { animation: blob 7s infinite; }
-          .animation-delay-2000 { animation-delay: 2s; }
-          .animation-delay-4000 { animation-delay: 4s; }
-          .animate-bounce-slow {
-            animation: bounce 2.5s infinite;
-          }
-          @keyframes bounce {
-            0%, 100% { transform: translateY(0);}
-            50% { transform: translateY(-10px);}
-          }
-          .animate-fade-in {
-            animation: fadeIn 1.2s ease;
-          }
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px);}
-            to { opacity: 1; transform: translateY(0);}
-          }
-          .hover\\:shadow-3xl:hover {
-            box-shadow: 0 12px 32px 0 rgba(59,130,246,0.25), 0 1.5px 6px 0 rgba(99,102,241,0.10);
-          }
-        `}
-      </style>
+
+      {/* Bottom wave decoration — animated tall purple waves */}
+      <div style={{ position:'relative', zIndex:5, marginTop:'auto', lineHeight:0 }}>
+        <svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg" style={{ display:'block', width:'100%' }}>
+          <defs>
+            <style>{`
+              @keyframes wave-back {
+                0% { d: path("M0,160 C180,80 360,240 540,160 C720,80 900,240 1080,160 C1260,80 1380,200 1440,160 L1440,320 L0,320 Z"); }
+                50% { d: path("M0,200 C200,100 400,280 600,190 C800,100 1000,260 1200,180 C1340,120 1400,220 1440,200 L1440,320 L0,320 Z"); }
+                100% { d: path("M0,160 C180,80 360,240 540,160 C720,80 900,240 1080,160 C1260,80 1380,200 1440,160 L1440,320 L0,320 Z"); }
+              }
+              @keyframes wave-mid {
+                0% { d: path("M0,200 C200,120 400,260 600,190 C800,120 1000,250 1200,180 C1340,140 1400,210 1440,195 L1440,320 L0,320 Z"); }
+                50% { d: path("M0,170 C180,100 360,230 540,170 C720,110 900,230 1080,170 C1260,110 1380,190 1440,170 L1440,320 L0,320 Z"); }
+                100% { d: path("M0,200 C200,120 400,260 600,190 C800,120 1000,250 1200,180 C1340,140 1400,210 1440,195 L1440,320 L0,320 Z"); }
+              }
+              @keyframes wave-front {
+                0% { d: path("M0,230 C160,170 320,270 480,220 C640,170 800,260 960,218 C1120,176 1300,248 1440,225 L1440,320 L0,320 Z"); }
+                50% { d: path("M0,210 C180,160 340,260 500,210 C660,160 820,250 980,205 C1140,160 1310,240 1440,215 L1440,320 L0,320 Z"); }
+                100% { d: path("M0,230 C160,170 320,270 480,220 C640,170 800,260 960,218 C1120,176 1300,248 1440,225 L1440,320 L0,320 Z"); }
+              }
+              .wave-back { animation: wave-back 6s ease-in-out infinite; }
+              .wave-mid  { animation: wave-mid  5s ease-in-out infinite 0.5s; }
+              .wave-front{ animation: wave-front 4s ease-in-out infinite 1s; }
+            `}</style>
+          </defs>
+          {/* Back wave — darkest purple */}
+          <path className="wave-back"
+            d="M0,160 C180,80 360,240 540,160 C720,80 900,240 1080,160 C1260,80 1380,200 1440,160 L1440,320 L0,320 Z"
+            fill="rgba(72,48,106,0.7)" />
+          {/* Middle wave */}
+          <path className="wave-mid"
+            d="M0,200 C200,120 400,260 600,190 C800,120 1000,250 1200,180 C1340,140 1400,210 1440,195 L1440,320 L0,320 Z"
+            fill="rgba(92,53,152,0.6)" />
+          {/* Front wave — most visible */}
+          <path className="wave-front"
+            d="M0,230 C160,170 320,270 480,220 C640,170 800,260 960,218 C1120,176 1300,248 1440,225 L1440,320 L0,320 Z"
+            fill="rgba(142,95,208,0.55)" />
+        </svg>
+      </div>
     </div>
   );
 };

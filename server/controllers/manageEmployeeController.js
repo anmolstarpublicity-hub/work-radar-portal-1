@@ -20,7 +20,7 @@ class ManageEmployeeController {
       name, email, password, role, employeeId,
       address, gender, country, city, qualification,
       experience, workType, company, joiningDate, dashboardAccess, department,
-      workLocation, shift 
+      workLocation, shift, monitoringName 
     } = req.body;
 
     // Profile picture will be in req.file if uploaded
@@ -40,7 +40,7 @@ class ManageEmployeeController {
         name, email, password, role, employeeId,
         profilePicture, address, gender, country, city,
         qualification, experience, workType, company, dashboardAccess, department,
-        joiningDate, workLocation, shift
+        joiningDate, workLocation, shift, monitoringName,
       });
 
       await newEmployee.save();
@@ -67,7 +67,7 @@ class ManageEmployeeController {
       'qualification', 'experience', 'workType', 'company', 'joiningDate',
       'dashboardAccess', 'department', 'workLocation', 'shift', 'canEditProfile', 'canViewTeam',
       'canUpdateTask', 'canApproveTask', 'canAssignTask', 'canDeleteTask', 'canViewAnalytics', 'themePreference',
-      'hasAttendancePower', 'manualAttendanceStatus', 'manualAttendanceDate'
+      'hasAttendancePower', 'manualAttendanceStatus', 'manualAttendanceDate', 'monitoringName'
     ];
 
     // Iterate over the fields and add them to updateData if they exist in the request body
@@ -83,8 +83,8 @@ class ManageEmployeeController {
             updateData[field] = field === 'email' ? value.toLowerCase().trim() : value.trim();
           }
         } else {
-          // Optional fields: include if not empty
-          if (value !== '' && value !== null && value !== undefined) {
+          // Optional fields: include if not undefined/null (allow empty string to clear values)
+          if (value !== null && value !== undefined) {
             updateData[field] = value;
           }
         }
@@ -340,7 +340,7 @@ class ManageEmployeeController {
             _id: 1, name: 1, email: 1, role: 1, employeeId: 1, 
             profilePicture: 1, address: 1, gender: 1, country: 1, city: 1, qualification: 1, dashboardAccess: 1, department: 1, experience: 1, workType: 1, company: 1, joiningDate: 1, workLocation: 1, shift: 1, 
             canEditProfile: 1, canViewTeam: 1, canUpdateTask: 1, canApproveTask: 1, canAssignTask: 1, canDeleteTask: 1, canViewAnalytics: 1,
-            hasAttendancePower: 1, manualAttendanceStatus: 1, manualAttendanceDate: 1,
+            hasAttendancePower: 1, manualAttendanceStatus: 1, manualAttendanceDate: 1, monitoringName: 1,
             assignmentInfo: 1, // Include the full assignmentInfo object
             // Optionally, you can still have a top-level 'department' and 'teamLead' for convenience if needed elsewhere
             department: { $ifNull: ['$assignmentInfo.department', '$department'] }, 

@@ -33,6 +33,82 @@ const safeDate = (dateVal) => {
   return isNaN(d.getTime()) ? new Date() : d;
 };
 
+const DonutChart = ({ segments, total, size = 160 }) => {
+  const [hovered, setHovered] = React.useState(null);
+  const cx = size / 2, cy = size / 2;
+  const r = Math.floor(size * 0.36), strokeW = Math.floor(size * 0.175), gapDeg = 6;
+  const circ = 2 * Math.PI * r;
+  const gapFrac = gapDeg / 360;
+
+  const slices = React.useMemo(() => {
+    let cum = 0;
+    return segments.map(s => {
+      const pct     = s.val / (total || 1);
+      const arcFrac = Math.max(pct - gapFrac, 0.01);
+      const dash    = arcFrac * circ;
+      const offset  = -(cum * circ) + circ * 0.25;
+      cum += pct;
+      return { ...s, dash, offset };
+    });
+  }, [segments, total, circ, gapFrac]);
+
+  return (
+    <div className="flex items-center gap-6">
+      <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} onMouseLeave={() => setHovered(null)}>
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f3f0fa" strokeWidth={strokeW} />
+          {slices.map((s) => {
+            const isHov = hovered === s.label;
+            return (
+              <circle key={s.label} cx={cx} cy={cy} r={r} fill="none"
+                stroke={s.color}
+                strokeWidth={isHov ? strokeW + 6 : strokeW}
+                strokeDasharray={`${s.dash} ${circ - s.dash}`}
+                strokeDashoffset={s.offset}
+                strokeLinecap="round"
+                style={{ filter: `drop-shadow(0px ${isHov ? 6 : 4}px ${isHov ? 10 : 6}px rgba(0,0,0,${isHov ? 0.25 : 0.15}))`, transition: 'stroke-width 0.15s ease', cursor: 'pointer' }}
+                onMouseEnter={() => setHovered(s.label)}
+              />
+            );
+          })}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          {hovered ? (
+            <>
+              <span className="text-xl font-extrabold text-slate-800 leading-none">{slices.find(s => s.label === hovered)?.val}</span>
+              <span className="text-[10px] font-semibold text-slate-400 mt-0.5 text-center px-2 leading-tight">{hovered}</span>
+            </>
+          ) : (
+            <>
+              <span className="text-2xl font-extrabold text-slate-800 leading-none">{total}</span>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mt-0.5">Total</span>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-col gap-3 flex-1">
+        {slices.map(s => {
+          const pct = total > 0 ? ((s.val / total) * 100).toFixed(0) : 0;
+          const isHov = hovered === s.label;
+          return (
+            <div key={s.label}
+              className={`flex items-center justify-between rounded-xl px-2 py-1 transition-all cursor-pointer ${isHov ? 'bg-purple-50' : ''}`}
+              onMouseEnter={() => setHovered(s.label)}
+              onMouseLeave={() => setHovered(null)}
+            >
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
+                <span className={`text-xs font-medium transition-colors ${isHov ? 'text-slate-800 font-bold' : 'text-slate-500'}`}>{s.label}</span>
+              </div>
+              <span className={`text-xs font-bold ${isHov ? 'text-slate-800' : 'text-slate-400'}`}>{pct}%</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const formatDueDate = (dateObj) => {
   if (!dateObj) return 'N/A';
   const today = new Date();
@@ -300,59 +376,64 @@ const ManagerDashboardContent = ({ user, onNavigate }) => {
   }, [allTasks, teamMemberIds, dateRange]);
 
   if (isLoadingTasks || isLoadingEmployees || isLoadingApprovals) {
-    return <div className="p-8 text-center">Loading dashboard...</div>;
+    return (
+      <div className="min-h-full flex items-center justify-center" style={{ backgroundColor: '#DFCDFE' }}>
+        <p className="text-slate-500 font-medium">Loading dashboard...</p>
+      </div>
+    );
   }
 
-  // --- Clean Executive Manager Dashboard ---
-  return ( // Changed main background and text color variables to direct Tailwind classes
-    <div className="min-h-screen bg-slate-50 p-6 font-manrope text-slate-800 dark:bg-slate-900 dark:text-white lg:p-8">
+  // --- Manager Dashboard ---
+  return (
+    <div className="min-h-screen p-6 lg:p-8 font-manrope" style={{ backgroundColor: '#DFCDFE' }}>
       <AnnouncementWidget />
 
-      {/* Blueprint Banner */}
-      <div className="mb-8 flex flex-col flex-wrap items-start justify-between gap-6 rounded-[24px] border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 p-6 text-white shadow-sm md:flex-row md:items-center dark:border-slate-700">
+      {/* Welcome Banner — purple gradient */}
+      <div className="mb-8 flex flex-col md:flex-row items-center justify-between gap-6 rounded-2xl px-8 py-8 text-white"
+        style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
         <div>
-          <h1 className="text-2xl font-extrabold">Welcome back, {user?.name?.split(' ')[0] || 'Devika'}! 👋</h1>
-          <p className="text-sm mt-1">Here's what's happening with your team for the selected period.</p>
+          <h1 className="text-2xl font-extrabold uppercase tracking-wide">Welcome Back, {user?.name?.split(' ')[0] || 'Manager'}!</h1>
+          <p className="text-sm mt-2 text-purple-200">Monitor Your Team's Performance, Task Progress And Activities From One Place</p>
         </div>
-        <div className="mt-4 md:mt-0 flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
-          <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto md:mr-2">
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="w-full sm:w-auto bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 outline-none cursor-pointer shadow-sm"
-            >
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="custom">Custom Range</option>
-            </select>
-            {filterType === 'custom' ? (
-              <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 shadow-sm">
-                <CalendarIcon className="h-4 w-4 text-slate-400" />
-                <input type="date" value={dateRange.startDate} onChange={e => setDateRange(prev => ({...prev, startDate: e.target.value}))} className="w-full sm:w-auto bg-transparent border-none text-xs font-bold text-slate-600 dark:text-slate-300 outline-none cursor-pointer" />
-                <span className="text-slate-400">-</span>
-                <input type="date" value={dateRange.endDate} onChange={e => setDateRange(prev => ({...prev, endDate: e.target.value}))} className="w-full sm:w-auto bg-transparent border-none text-xs font-bold text-slate-600 dark:text-slate-300 outline-none cursor-pointer" />
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-2 w-full sm:w-auto bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 shadow-sm">
-                <CalendarIcon className="h-4 w-4 text-slate-400" />
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{dateRange.startDate ? new Date(dateRange.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''} - {dateRange.endDate ? new Date(dateRange.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}</span>
-              </div>
-            )}
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          {/* Week/Month/Custom toggle */}
+          <div className="flex items-center bg-white/10 rounded-xl p-1">
+            {['week','month','custom'].map(t => (
+              <button key={t} onClick={() => setFilterType(t)}
+                className={`px-4 py-2 rounded-lg text-sm font-bold capitalize transition-all ${
+                  filterType === t
+                    ? 'bg-white text-purple-800 shadow-sm'
+                    : 'text-white/80 hover:text-white hover:bg-white/10'
+                }`}>
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </button>
+            ))}
           </div>
-          <div className="text-right hidden sm:block mr-3 border-l border-slate-200 dark:border-slate-700 pl-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-700 dark:text-indigo-400 font-bold border border-indigo-200 dark:border-indigo-800">
-                {user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'DS'}
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-bold text-white">{user?.name || 'Devika Sharma'}</p>
-                <p className="text-[11px] font-semibold text-slate-300">Branch Manager</p>
-              </div>
-            </div>
+
+          {/* Date range */}
+          <div className="flex items-center gap-2 bg-white/10 rounded-xl px-4 py-2.5">
+            <CalendarIcon className="h-4 w-4 text-purple-200 flex-shrink-0" />
+            <input
+              type="date"
+              value={dateRange.startDate}
+              onChange={e => { setDateRange(p => ({ ...p, startDate: e.target.value })); setFilterType('custom'); }}
+              onFocus={() => setFilterType('custom')}
+              className="text-sm font-semibold text-white bg-transparent px-1 py-0.5 rounded outline-none [color-scheme:dark]"
+            />
+            <span className="text-purple-300 font-bold">-</span>
+            <input
+              type="date"
+              value={dateRange.endDate}
+              onChange={e => { setDateRange(p => ({ ...p, endDate: e.target.value })); setFilterType('custom'); }}
+              onFocus={() => setFilterType('custom')}
+              className="text-sm font-semibold text-white bg-transparent px-1 py-0.5 rounded outline-none [color-scheme:dark]"
+            />
           </div>
-          <button onClick={() => onNavigate('assign-task')} className="w-full sm:w-auto justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all flex items-center gap-2">
-             <PlusIcon className="h-5 w-5" />
-             <span>Assign Task</span>
+
+          {/* Assign Task */}
+          <button onClick={() => onNavigate('assign-task')}
+            className="flex items-center gap-2 bg-white text-purple-800 hover:bg-purple-50 font-bold py-2.5 px-5 rounded-xl shadow-sm transition text-sm whitespace-nowrap">
+            <PlusIcon className="h-4 w-4" /> Assign Task
           </button>
         </div>
       </div>
@@ -366,171 +447,170 @@ const ManagerDashboardContent = ({ user, onNavigate }) => {
         <StatCard title="Team Progress" value={`${trendData.length > 1 ? trendData[trendData.length - 1][1] : 0}%`} trend="Overall Progress" icon={ArrowTrendingUpIcon} isInfo />
       </div>
 
-      {/* 3-Column Mid Grid */}
+      {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* Team Task Status Chart */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm flex flex-col justify-center">
-          <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">Team Task Status</h3>
-          <div className="flex-1 flex flex-col sm:flex-row items-center gap-4 sm:gap-0">
-            <div className="relative h-48 w-48 flex-shrink-0 mx-auto sm:mx-0">
-              <GooglePieChart 
-                data={taskChartData.length > 0 ? taskChartData : [{name: 'No Tasks', value: 1}]} 
-                title="" 
-                colors={taskChartData.length > 0 ? TASK_COLORS : {'No Tasks': '#e2e8f0'}} 
-                pieHole={0.65} is3D={false} hideLegend={true} 
-              />
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-1">
-                <p className="text-2xl font-black text-slate-800 dark:text-white leading-none">{stats?.totalTeamTasks ?? 0}</p>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Total</p>
-              </div>
-            </div>
-            <div className="flex-1 flex flex-col justify-center gap-3 sm:pl-6 w-full">
-              {taskChartData.map(d => {
-                const pct = stats?.totalTeamTasks > 0 ? Math.round((d.value / stats.totalTeamTasks) * 100) : 0;
-                return (
-                  <div key={d.name} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2"><span className="h-3 w-3 rounded-full" style={{ backgroundColor: TASK_COLORS[d.name] }}></span><span className="font-semibold text-slate-600 dark:text-slate-300">{d.name}</span></div>
-                    <span className="font-bold text-slate-800 dark:text-white">{d.value} - {pct}%</span>
-                  </div>
-                );
-              })}
-            </div>
+        {/* Team Task Status */}
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6 flex flex-col">
+          <h3 className="text-base font-bold text-slate-800 mb-1">Team Task Status</h3>
+          <p className="text-xs text-slate-400 mb-4">Task breakdown for selected period</p>
+          <div className="flex-1 mt-2">
+            <DonutChart
+              total={stats?.totalTeamTasks ?? 0}
+              size={220}
+              segments={taskChartData.map(d => ({ label: d.name, val: d.value, color: TASK_COLORS[d.name] }))}
+            />
           </div>
         </div>
-        
+
         {/* Pending Approvals */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm flex flex-col">
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6 flex flex-col">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white">Pending Approvals</h3>
-            <button onClick={() => onNavigate('task-approvals')} className="text-xs font-bold text-indigo-600 hover:underline">View All</button>
+            <h3 className="text-base font-bold text-slate-800">Pending Approvals</h3>
+            <button onClick={() => onNavigate('task-approvals')}
+              className="text-xs font-bold px-3 py-1 rounded-lg text-white transition"
+              style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+              View All
+            </button>
           </div>
-          <div className="space-y-3 flex-1 overflow-y-auto pr-2">
-            {stats?.pendingApprovalTasks?.length > 0 ? (
-              stats?.pendingApprovalTasks?.map((task, i) => (
-                <div key={task._id} className="p-3 border border-slate-100 dark:border-slate-700/50 rounded-xl flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" onClick={() => onNavigate('task-approvals')}>
-                  <div className="flex items-center gap-3">
-                    <img src={task.assignedTo?.profilePicture || `https://ui-avatars.com/api/?name=${task.assignedTo?.name || 'User'}`} className="h-8 w-8 rounded-full object-cover border border-slate-200 dark:border-slate-700" alt="User" />
-                    <div>
-                      <p className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate leading-tight max-w-[120px]">{task.assignedTo?.name}</p>
-                      <p className="text-[10px] font-medium text-slate-500 mt-0.5">{safeDate(task.submittedForCompletionDate || task.updatedAt || task.createdAt).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                      {i % 2 === 0 ? 'Daily Report' : 'Task Update'}
-                    </span>
-                    <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline">Review</span>
+          <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+            {stats?.pendingApprovalTasks?.length > 0 ? stats.pendingApprovalTasks.map((task) => (
+              <div key={task._id} onClick={() => onNavigate('task-approvals')}
+                className="p-3 border border-purple-100 rounded-xl flex items-center justify-between hover:bg-purple-50 transition cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <img src={task.assignedTo?.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(task.assignedTo?.name || 'User')}&background=8E5FD0&color=fff`}
+                    className="h-8 w-8 rounded-full object-cover border-2 border-purple-100 flex-shrink-0" alt="User"
+                    onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(task.assignedTo?.name || 'User')}&background=8E5FD0&color=fff`; }} />
+                  <div>
+                    <p className="font-bold text-sm text-slate-800 truncate max-w-[130px]">{task.assignedTo?.name}</p>
+                    <p className="text-[10px] text-slate-400">{safeDate(task.submittedForCompletionDate || task.updatedAt || task.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-12 text-slate-400 h-full flex flex-col items-center justify-center">
-                <CheckCircleIcon className="h-10 w-10 mx-auto text-emerald-400 mb-2" />
+                <span className="text-xs font-bold text-purple-600 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full">Review</span>
+              </div>
+            )) : (
+              <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+                <CheckCircleIcon className="h-10 w-10 text-emerald-400 mb-2" />
                 <p className="font-semibold text-sm">All caught up!</p>
               </div>
             )}
           </div>
         </div>
-        
-        {/* Team Performance Trend */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
-          <h3 className="text-base font-bold text-slate-800 dark:text-white mb-2">Team Performance Trend</h3>
+
+        {/* Performance Trend */}
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+          <h3 className="text-base font-bold text-slate-800 mb-2">Team Performance Trend</h3>
           <div className="relative h-60 -ml-4 -mb-2">
-            <GoogleAreaChart data={trendData} colors={['#4f46e5']} />
+            <GoogleAreaChart data={trendData} colors={['#8E5FD0']} />
           </div>
         </div>
       </div>
 
-      {/* 3-Column Lower Grid */}
+      {/* Lower Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* My Team Overview */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm flex flex-col"> {/* Added flex-col for proper spacing of footer button */}
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6 flex flex-col">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white">My Team Overview</h3>
-            <button onClick={() => onNavigate('team-info')} className="text-xs font-bold text-indigo-600 hover:underline">View All</button>
+            <h3 className="text-base font-bold text-slate-800">My Team Overview</h3>
+            <button onClick={() => onNavigate('team-info')}
+              className="text-xs font-bold px-3 py-1 rounded-lg text-white transition"
+              style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+              View All
+            </button>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-4 flex-1">
             {topTeamMembers?.map((member, i) => (
               <div key={i} className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-3 min-w-0">
-                  <img src={member.employee?.profilePicture || `https://ui-avatars.com/api/?name=${member.employee?.name || 'User'}`} alt="Avatar" className="h-10 w-10 rounded-full object-cover border border-slate-200 flex-shrink-0" />
+                  <img
+                    src={member.employee?.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.employee?.name || 'User')}&background=8E5FD0&color=fff`}
+                    alt="Avatar"
+                    onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.employee?.name || 'User')}&background=8E5FD0&color=fff`; }}
+                    className="h-9 w-9 rounded-full object-cover border-2 border-purple-100 flex-shrink-0"
+                  />
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{member.employee?.name || 'Unknown'}</p>
-                    <p className="text-[11px] font-semibold text-slate-500 truncate">{member.employee?.role || 'N/A'}</p>
+                    <p className="text-sm font-bold text-slate-800 truncate">{member.employee?.name || 'Unknown'}</p>
+                    <p className="text-[11px] text-slate-400 truncate">{member.employee?.role || 'N/A'}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-20 h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(member.totalScore, 100)}%` }}></div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="w-20 h-1.5 bg-purple-100 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${Math.min(member.totalScore, 100)}%`, background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
                   </div>
-                  <span className="text-xs font-bold text-emerald-600">{Math.min(member.totalScore, 100).toFixed(0)}%</span>
+                  <span className="text-xs font-bold text-purple-600">{Math.min(member.totalScore, 100).toFixed(0)}%</span>
                 </div>
               </div>
             ))}
-            {(!topTeamMembers || topTeamMembers.length === 0) && <p className="text-sm text-slate-500">No team data available.</p>}
-            <button onClick={() => onNavigate('team-info')} className="w-full text-center text-xs font-bold text-indigo-600 dark:text-indigo-400 mt-auto pt-4 border-t border-slate-100 dark:border-slate-700 hover:underline">View Full Team</button> {/* Kept the one with better styling */}
+            {(!topTeamMembers || topTeamMembers.length === 0) && <p className="text-sm text-slate-400">No team data available.</p>}
+            <button onClick={() => onNavigate('team-info')} className="w-full text-center text-xs font-bold text-purple-600 mt-auto pt-4 border-t border-purple-50 hover:underline">View Full Team</button>
           </div>
         </div>
+
         {/* Tasks Due This Period */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white">Tasks Due This Period</h3>
-            <button onClick={() => onNavigate('view-team-tasks')} className="text-xs font-bold text-indigo-600 hover:underline">View All</button>
+            <h3 className="text-base font-bold text-slate-800">Tasks Due This Period</h3>
+            <button onClick={() => onNavigate('view-team-tasks')}
+              className="text-xs font-bold px-3 py-1 rounded-lg text-white transition"
+              style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+              View All
+            </button>
           </div>
           <div className="space-y-3">
             {tasksDueThisPeriod?.map(task => (
-              <div key={task._id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 flex justify-between items-center gap-3">
-                <div className="flex-1 min-w-0 pr-3">
-                  <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{task.title}</p>
-                  <p className="text-[11px] text-slate-500 truncate">{new Date(task.dueDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+              <div key={task._id} className="p-3 rounded-xl bg-purple-50 border border-purple-100 flex justify-between items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-slate-800 truncate">{task.title}</p>
+                  <p className="text-[11px] text-slate-400">{new Date(task.dueDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
                 </div>
-                <span className={`px-3 py-1 text-[10px] font-bold uppercase rounded-full flex-shrink-0 whitespace-nowrap ${task.priority === 'High' ? 'bg-red-100 text-red-700' : task.priority === 'Medium' ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full flex-shrink-0 ${task.priority === 'High' ? 'bg-red-100 text-red-700 border border-red-200' : task.priority === 'Medium' ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-emerald-100 text-emerald-700 border border-emerald-200'}`}>
                   {task.priority || 'Medium'}
                 </span>
               </div>
             ))}
-            {(!tasksDueThisPeriod || tasksDueThisPeriod.length === 0) && <p className="text-sm text-slate-500">No tasks due in this period.</p>}
+            {(!tasksDueThisPeriod || tasksDueThisPeriod.length === 0) && <p className="text-sm text-slate-400">No tasks due in this period.</p>}
           </div>
         </div>
 
         {/* Recent Activities */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
-          <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">Recent Activities</h3>
-          <div className="relative border-l-2 border-slate-100 dark:border-slate-700 ml-3 space-y-5">
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+          <h3 className="text-base font-bold text-slate-800 mb-4">Recent Activities</h3>
+          <div className="relative border-l-2 border-purple-100 ml-3 space-y-5">
             {dynamicSystemActivities?.map(activity => (
               <div key={activity.id} className="relative pl-6">
-                <span className={`absolute -left-[9px] top-1 h-4 w-4 rounded-full border-2 border-white dark:border-slate-800 ${activity.color}`}></span>
-                <p className="text-sm font-bold text-slate-800 dark:text-white leading-tight break-words pr-2">{activity.action}</p>
+                <span className="absolute -left-[9px] top-1 h-4 w-4 rounded-full border-2 border-white"
+                  style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }} />
+                <p className="text-sm font-bold text-slate-800 leading-tight break-words pr-2">{activity.action}</p>
                 <div className="flex items-center justify-between mt-1">
+                  <p className="text-[10px] font-bold text-purple-400">{activity.user}</p>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{activity.time}</p>
                 </div>
               </div>
             ))}
-            {(!dynamicSystemActivities || dynamicSystemActivities.length === 0) && <p className="text-sm text-slate-500">No recent activities.</p>}
+            {(!dynamicSystemActivities || dynamicSystemActivities.length === 0) && <p className="text-sm text-slate-400">No recent activities.</p>}
           </div>
         </div>
       </div>
 
-      {/* Bottom Team Attendance Widget */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+      {/* Team Attendance */}
+      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
           <div className="flex-1 w-full">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">Team Attendance</h3>
+            <h3 className="text-base font-bold text-slate-800 mb-4">Team Attendance</h3>
             <div className="flex justify-between items-center w-full px-2 overflow-x-auto pb-2">
               {teamAttendanceData.days.map((day, idx) => (
-                <div key={idx} className="flex flex-col items-center gap-2 flex-shrink-0 px-3 sm:px-1">
-                <div className={`h-8 w-8 sm:h-12 sm:w-12 rounded-full border-[3px] flex items-center justify-center ${day.presentCount > 0 ? 'border-emerald-500 text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : day.isFuture ? 'border-slate-100 border-dashed dark:border-slate-800' : 'border-slate-200 border-dashed text-slate-300 dark:border-slate-700 dark:bg-slate-800'}`}>
-                    {day.presentCount > 0 && <CheckCircleIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+                <div key={idx} className="flex flex-col items-center gap-2 flex-shrink-0 px-2">
+                  <div className={`h-10 w-10 rounded-full border-2 flex items-center justify-center ${day.presentCount > 0 ? 'border-purple-400 bg-purple-50' : day.isFuture ? 'border-slate-200 border-dashed' : 'border-slate-200 border-dashed'}`}>
+                    {day.presentCount > 0 && <CheckCircleIcon className="h-5 w-5 text-purple-500" />}
                   </div>
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">{day.dayStr}</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">{day.dayStr}</span>
                 </div>
               ))}
             </div>
           </div>
-          <div className="w-full lg:w-auto lg:border-l border-slate-100 dark:border-slate-700 lg:pl-8 grid grid-cols-2 gap-4 min-w-[300px]">
-            <div><p className="text-xl font-black text-emerald-500">{teamAttendanceData.overallPresent}%</p><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Overall Present</p></div>
-            <div><p className="text-xl font-black text-slate-800 dark:text-white">{teamAttendanceData.totalPresentDays}/{teamAttendanceData.totalWorkingDays}</p><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Total Presence</p></div>
-            <div><p className="text-xl font-black text-slate-800 dark:text-white">{teamAttendanceData.totalPresentDays * 8}h</p><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Working Hours</p></div>
+          <div className="w-full lg:w-auto lg:border-l border-purple-100 lg:pl-8 grid grid-cols-2 gap-4 min-w-[280px]">
+            <div><p className="text-xl font-black text-purple-600">{teamAttendanceData.overallPresent}%</p><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Overall Present</p></div>
+            <div><p className="text-xl font-black text-slate-800">{teamAttendanceData.totalPresentDays}/{teamAttendanceData.totalWorkingDays}</p><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Total Presence</p></div>
+            <div><p className="text-xl font-black text-slate-800">{teamAttendanceData.totalPresentDays * 8}h</p><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Working Hours</p></div>
             <div><p className="text-xl font-black text-orange-500">0</p><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Total Leaves</p></div>
           </div>
         </div>
@@ -648,7 +728,7 @@ const ManagerDashboard = () => {
     };
 
     return (
-    <div className="flex min-h-screen bg-slate-100 dark:bg-slate-900 font-manrope">
+    <div className="flex min-h-screen font-manrope p-3 gap-3" style={{ backgroundColor: '#DFCDFE' }}>
         <style>
           {`
             @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
@@ -667,11 +747,11 @@ const ManagerDashboard = () => {
       />
         {/* Overlay for mobile sidebar */}
         {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)}></div>}
-      <div className="flex-1 flex flex-col overflow-hidden transition-all duration-300">
+      <div className="flex flex-1 flex-col overflow-hidden rounded-2xl bg-white shadow-sm">
         <AppHeader pageTitle={pageTitles[activeView.component] || 'Dashboard'} onMenuClick={() => setSidebarOpen(true)} setActiveComponent={handleNavigation} />
-          <main className="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-900">{renderActiveComponent()}</main>
-        </div>
+        <main className="flex-1 overflow-y-auto" style={{ backgroundColor: '#DFCDFE' }}>{renderActiveComponent()}</main>
       </div>
+    </div>
     );
   }
 
