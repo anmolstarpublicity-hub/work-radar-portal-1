@@ -5,7 +5,7 @@ import 'react-calendar/dist/Calendar.css';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../app/authSlice';
 import toast from 'react-hot-toast';
-import { useGetAttendanceForMonthQuery, useGetPCStartTimeQuery, useGetReportsByEmployeeQuery, useGetAllTasksQuery, useGetPCDaysForMonthQuery, useGetPunchDataQuery, useGetEmployeeScoreQuery, useSetEmployeeScoreMutation } from '../services/EmployeApi';
+import { useGetAttendanceForMonthQuery, useGetPCStartTimeQuery, useGetPCShutdownTimeQuery, useGetReportsByEmployeeQuery, useGetAllTasksQuery, useGetPCDaysForMonthQuery, useGetPunchDataQuery, useGetEmployeeScoreQuery, useSetEmployeeScoreMutation } from '../services/EmployeApi';
 import { ChevronLeftIcon, ChevronRightIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import { ComputerDesktopIcon, ClockIcon, CheckCircleIcon, ArrowRightEndOnRectangleIcon, UserGroupIcon } from '@heroicons/react/24/outline';
 
@@ -62,6 +62,12 @@ const PerformanceReportModal = ({ isOpen, onClose, employee, date, attendanceSta
     { skip: !isOpen || !employee?.monitoringName || !normalizedDate }
   );
   const pcStartTime = pcData?.pcStartTime;
+
+  const { data: pcShutdownData } = useGetPCShutdownTimeQuery(
+    { employeeId: employee?._id, date: normalizedDate },
+    { skip: !isOpen || !employee?.monitoringName || !normalizedDate }
+  );
+  const pcShutdownTime = pcShutdownData?.pcShutdownTime;
 
   const normalizedPunchDate = normalizedDate;
   const { data: punchData } = useGetPunchDataQuery(
@@ -141,7 +147,7 @@ const PerformanceReportModal = ({ isOpen, onClose, employee, date, attendanceSta
                 { icon: ArrowRightEndOnRectangleIcon, label: 'Punch In', value: punchIn ? formatTime(punchIn) : 'N/A', color: 'text-purple-500', bg: 'bg-purple-50' },
                 { icon: ArrowRightEndOnRectangleIcon, label: 'Punch Out', value: punchOut ? formatTime(punchOut) : 'N/A', color: 'text-purple-500', bg: 'bg-purple-50', rotate: true },
                 { icon: ComputerDesktopIcon, label: 'PC Start', value: formatTime(pcStartTime), color: 'text-emerald-500', bg: 'bg-emerald-50' },
-                { icon: ComputerDesktopIcon, label: 'PC Shutdown', value: 'N/A', color: 'text-slate-400', bg: 'bg-slate-50' },
+                { icon: ComputerDesktopIcon, label: 'PC Shutdown', value: formatTime(pcShutdownTime), color: 'text-red-400', bg: 'bg-red-50' },
               ].map(({ icon: Icon, label, value, color, bg, rotate }) => (
                 <div key={label} className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">

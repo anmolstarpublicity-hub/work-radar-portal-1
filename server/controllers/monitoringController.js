@@ -1,5 +1,5 @@
 const Employee = require('../models/employee');
-const { getActivityLogs, getPCStartTime, getAppUsageSummary, getPCDaysForMonth } = require('./supabaseService');
+const { getActivityLogs, getPCStartTime, getPCShutdownTime, getAppUsageSummary, getPCDaysForMonth } = require('./supabaseService');
 
 // GET /monitoring/:employeeId/pc-start?date=YYYY-MM-DD
 const getPCStartTimeForEmployee = async (req, res) => {
@@ -45,4 +45,18 @@ const getPCDaysForEmployee = async (req, res) => {
   }
 };
 
-module.exports = { getPCStartTimeForEmployee, getActivityLogsForEmployee, getPCDaysForEmployee };
+// GET /monitoring/:employeeId/pc-shutdown?date=YYYY-MM-DD
+const getPCShutdownTimeForEmployee = async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.params.employeeId);
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+    if (!employee.monitoringName) return res.status(200).json({ pcShutdownTime: null, message: 'No monitoring name set' });
+    const date = req.query.date || new Date().toISOString().split('T')[0];
+    const pcShutdownTime = await getPCShutdownTime(employee.monitoringName, date);
+    res.json({ pcShutdownTime, employeeName: employee.monitoringName, date });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { getPCStartTimeForEmployee, getPCShutdownTimeForEmployee, getActivityLogsForEmployee, getPCDaysForEmployee };

@@ -326,6 +326,10 @@ export const extendedApi = apiSlice.injectEndpoints({
       query: ({ employeeId, date }) => `/monitoring/${employeeId}/pc-start?date=${date}`,
       providesTags: ['Monitoring'],
     }),
+    getPCShutdownTime: builder.query({
+      query: ({ employeeId, date }) => `/monitoring/${employeeId}/pc-shutdown?date=${date}`,
+      providesTags: ['Monitoring'],
+    }),
     getActivityLogs: builder.query({
       query: ({ employeeId, date }) => `/monitoring/${employeeId}/activity?date=${date}`,
       providesTags: ['Monitoring'],
@@ -424,6 +428,7 @@ export const {
   useGetHolidaysQuery,
   useGetCompanyInfoQuery,
   useGetPCStartTimeQuery,
+  useGetPCShutdownTimeQuery,
   useGetActivityLogsQuery,
   useGetPCDaysForMonthQuery,
   useGetPunchDataQuery,

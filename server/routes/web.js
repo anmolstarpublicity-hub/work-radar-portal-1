@@ -86,6 +86,7 @@ router.post('/tasks/process-due-tasks', protect, TaskController.processPastDueTa
 
 // Monitoring Routes (Portal 3 - Supabase)
 router.get('/monitoring/:employeeId/pc-start', protect, MonitoringController.getPCStartTimeForEmployee);
+router.get('/monitoring/:employeeId/pc-shutdown', protect, MonitoringController.getPCShutdownTimeForEmployee);
 router.get('/monitoring/:employeeId/activity', protect, MonitoringController.getActivityLogsForEmployee);
 router.get('/monitoring/:employeeId/pc-days', protect, MonitoringController.getPCDaysForEmployee);
 

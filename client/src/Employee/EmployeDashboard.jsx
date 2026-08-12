@@ -356,13 +356,13 @@ export const Dashboard = ({ user, onNavigate }) => {
   const performanceScore = totalPct ? Math.round((stats.taskStats.completed / stats.totalTasks) * 100) : 0;
 
   const donutData = [
-    { name: 'Completed', value: tasks.filter(t => t.status === 'Completed').length },
-    { name: 'In Progress', value: tasks.filter(t => t.status === 'In Progress').length },
-    { name: 'Pending', value: tasks.filter(t => t.status === 'Pending').length },
-    { name: 'Not Completed', value: tasks.filter(t => t.status === 'Not Completed').length },
-    { name: 'Pending Verification', value: tasks.filter(t => t.status === 'Pending Verification').length },
+    { name: 'Completed', value: filteredTasks.filter(t => t.status === 'Completed').length },
+    { name: 'In Progress', value: filteredTasks.filter(t => t.status === 'In Progress').length },
+    { name: 'Pending', value: filteredTasks.filter(t => t.status === 'Pending').length },
+    { name: 'Not Completed', value: filteredTasks.filter(t => t.status === 'Not Completed').length },
+    { name: 'Pending Verification', value: filteredTasks.filter(t => t.status === 'Pending Verification').length },
   ].filter(d => d.value > 0);
-  const donutTotal = tasks.length;
+  const donutTotal = filteredTasks.length;
   const DONUT_COLORS = { 'Completed': '#10b981', 'In Progress': '#3b82f6', 'Pending': '#f97316', 'Not Completed': '#ef4444', 'Pending Verification': '#8E5FD0', 'No Tasks': '#e2e8f0' };
 
   if (isLoading) return <div className="p-8 text-center">Loading dashboard...</div>;
@@ -1406,7 +1406,7 @@ export const TeamInformation = ({ seniorId }) => {
                 </div>
               </div>
               <h3 className="text-lg font-semibold text-slate-800 mb-4">Attendance Calendar</h3>
-              <AttendanceCalendar employeeId={selectedEmployee._id} />
+              <AttendanceCalendar employeeId={selectedEmployee._id} employee={selectedEmployee} />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-slate-500 bg-white rounded-2xl border-2 border-dashed p-8">

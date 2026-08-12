@@ -27,6 +27,14 @@ const getPCStartTime = async (employeeName, date) => {
   return logs.length > 0 ? logs[0].timestamp : null;
 };
 
+// Get PC shutdown time = latest timestamp for employee on that date
+const getPCShutdownTime = async (employeeName, date) => {
+  const logs = await supabaseFetch(
+    `activity_logs?employee_name=eq.${encodeURIComponent(employeeName)}&date=eq.${date}&order=timestamp.desc&limit=1`
+  );
+  return logs.length > 0 ? logs[0].timestamp : null;
+};
+
 // Get total app usage summary for an employee on a date
 const getAppUsageSummary = async (employeeName, date) => {
   const logs = await supabaseFetch(
@@ -47,4 +55,4 @@ const getPCDaysForMonth = async (employeeName, year, month) => {
   return uniqueDates.size;
 };
 
-module.exports = { getActivityLogs, getPCStartTime, getAppUsageSummary, getPCDaysForMonth };
+module.exports = { getActivityLogs, getPCStartTime, getPCShutdownTime, getAppUsageSummary, getPCDaysForMonth };
