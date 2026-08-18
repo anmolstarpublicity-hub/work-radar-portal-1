@@ -68,8 +68,6 @@ const employeeMenuGroups = [
   { title: 'My Work', items: [{ id: 'my-tasks', icon: ClipboardDocumentListIcon, label: 'My Tasks' }, { id: 'my-report', icon: DocumentTextIcon, label: "Today's Progress Report" }, { id: 'my-history', icon: ArchiveBoxIcon, label: 'My Report History' }] },
   { title: 'Analytics', items: [{ id: 'attendance', icon: CalendarDaysIcon, label: 'My Attendance' }, { id: 'analytics', icon: ChartBarIcon, label: 'My Performance Analytics' }] },
 ];
-
-// Floating popover for collapsed group items
 function CollapsedGroupPopover({ group, activeComponent, setActiveComponent, setSidebarOpen, anchorRef }) {
   const [pos, setPos] = useState({ top: 0 });
 
@@ -141,10 +139,25 @@ const Sidebar = memo(({ activeComponent, setActiveComponent, sidebarOpen, setSid
   const [logout] = useLogoutMutation();
 
   const displayMenuGroups = useMemo(() => {
-    if (user?.role === 'Employee' || user?.dashboardAccess === 'Employee Dashboard') return employeeMenuGroups;
+    if (user?.role === 'Employee' || user?.dashboardAccess === 'Employee Dashboard') {
+      // If canAssignTask is ON, inject Assign Task item into My Work group
+      if (user?.canAssignTask) {
+        return [
+          { title: 'General', items: [{ id: 'dashboard', icon: HomeIcon, label: 'Dashboard' }] },
+          { title: 'My Work', items: [
+            { id: 'my-tasks', icon: ClipboardDocumentListIcon, label: 'My Tasks' },
+            { id: 'assign-task', icon: PencilSquareIcon, label: 'Assign Task' },
+            { id: 'my-report', icon: DocumentTextIcon, label: "Today's Progress Report" },
+            { id: 'my-history', icon: ArchiveBoxIcon, label: 'My Report History' },
+          ]},
+          { title: 'Analytics', items: [{ id: 'attendance', icon: CalendarDaysIcon, label: 'My Attendance' }, { id: 'analytics', icon: ChartBarIcon, label: 'My Performance Analytics' }] },
+        ];
+      }
+      return employeeMenuGroups;
+    }
     if (user?.role === 'Manager' || user?.dashboardAccess === 'Manager Dashboard') return managerMenuGroups;
     return adminMenuGroups;
-  }, [user?.role, user?.dashboardAccess]);
+  }, [user?.role, user?.dashboardAccess, user?.canAssignTask]);
 
   const [openGroups, setOpenGroups] = useState({});
 

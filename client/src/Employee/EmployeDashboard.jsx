@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useGetTodaysReportQuery, useUpdateTodaysReportMutation, useGetEmployeesQuery, useGetHolidaysQuery, useGetMyTasksQuery, useGetAllTasksQuery, useGetAllMyReportsQuery, useGetActiveAnnouncementQuery, useGetEmployeeEOMHistoryQuery, useProcessPastDueTasksMutation, useUpdateEmployeeMutation } from '../services/EmployeApi';
+import { useGetTodaysReportQuery, useUpdateTodaysReportMutation, useGetEmployeesQuery, useGetHolidaysQuery, useGetMyTasksQuery, useGetAllTasksQuery, useGetAllMyReportsQuery, useGetActiveAnnouncementQuery, useGetEmployeeEOMHistoryQuery, useProcessPastDueTasksMutation, useUpdateEmployeeMutation, useCreateMultipleTasksMutation } from '../services/EmployeApi';
 import { apiSlice, useLogoutMutation } from '../services/apiSlice';
 import toast from 'react-hot-toast';
-import { ArrowPathIcon, PaperAirplaneIcon, DocumentTextIcon, BriefcaseIcon, CheckCircleIcon, HomeIcon, ChartBarIcon, UserGroupIcon, InformationCircleIcon, CalendarDaysIcon, ClipboardDocumentListIcon, CheckBadgeIcon, ArchiveBoxIcon, TrophyIcon, StarIcon, ShieldCheckIcon, ExclamationTriangleIcon, ClockIcon, CalendarIcon, ChevronDoubleLeftIcon, ChevronDownIcon, ArrowRightOnRectangleIcon, Cog8ToothIcon, ArrowDownTrayIcon, ChevronRightIcon, CameraIcon, TrashIcon, UserIcon, EnvelopeIcon, MapPinIcon, BuildingOfficeIcon, AcademicCapIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, PaperAirplaneIcon, DocumentTextIcon, BriefcaseIcon, CheckCircleIcon, HomeIcon, ChartBarIcon, UserGroupIcon, InformationCircleIcon, CalendarDaysIcon, ClipboardDocumentListIcon, CheckBadgeIcon, ArchiveBoxIcon, TrophyIcon, StarIcon, ShieldCheckIcon, ExclamationTriangleIcon, ClockIcon, CalendarIcon, ChevronDoubleLeftIcon, ChevronDownIcon, ArrowRightOnRectangleIcon, Cog8ToothIcon, ArrowDownTrayIcon, ChevronRightIcon, CameraIcon, TrashIcon, UserIcon, EnvelopeIcon, MapPinIcon, BuildingOfficeIcon, AcademicCapIcon, GlobeAltIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { EyeIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentUser, setCredentials, selectCurrentToken } from '../app/authSlice'; // Removed useForgotPasswordMutation as it's not used here
@@ -1917,6 +1917,168 @@ const EmployeeProfileContent = ({ user }) => {
 // The skip conditions in parent queries prevent re-renders
 export const EmployeeProfile = EmployeeProfileContent;
 
+// ── Employee Assign Task (only to other employees, not managers/admins) ──────
+export const EmployeeAssignTask = () => {
+  const { data: allEmployees = [], isLoading } = useGetEmployeesQuery();
+  const user = useSelector(selectCurrentUser);
+  const [createMultipleTasks, { isLoading: isAssigning }] = useCreateMultipleTasksMutation();
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [selectedEmployee, setSelectedEmployee] = React.useState(null);
+  const [tasks, setTasks] = React.useState([{ id: Date.now(), title: '', description: '', startDate: '', dueDate: '', priority: 'Medium' }]);
+
+  // Only show employees (not admins, not managers, not self)
+  const eligibleEmployees = React.useMemo(() =>
+    allEmployees.filter(e =>
+      e.dashboardAccess === 'Employee Dashboard' &&
+      String(e._id) !== String(user?._id)
+    ),
+  [allEmployees, user]);
+
+  const filteredEmployees = React.useMemo(() =>
+    eligibleEmployees.filter(e =>
+      e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (e.employeeId && e.employeeId.toLowerCase().includes(searchTerm.toLowerCase()))
+    ),
+  [eligibleEmployees, searchTerm]);
+
+  const inputCls = "w-full text-sm border border-purple-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none bg-slate-50";
+
+  const handleAssign = async (e) => {
+    e.preventDefault();
+    if (!selectedEmployee) { toast.error('Please select an employee.'); return; }
+    if (tasks.some(t => !t.title.trim())) { toast.error('Each task must have a title.'); return; }
+    try {
+      await createMultipleTasks({ tasks: tasks.map(t => ({ ...t, assignedTo: selectedEmployee._id })) }).unwrap();
+      toast.success(`${tasks.length} task(s) assigned to ${selectedEmployee.name}!`);
+      setSelectedEmployee(null);
+      setTasks([{ id: Date.now(), title: '', description: '', startDate: '', dueDate: '', priority: 'Medium' }]);
+    } catch (err) {
+      toast.error(err.data?.message || 'Failed to assign task.');
+    }
+  };
+
+  if (isLoading) return <div className="p-8 text-center text-slate-500">Loading...</div>;
+
+  return (
+    <div className="min-h-screen p-6 lg:p-8 font-manrope" style={{ backgroundColor: '#DFCDFE' }}>
+      <div className="mb-6">
+        <h1 className="text-2xl font-extrabold text-slate-800 uppercase tracking-wide">Assign Task</h1>
+        <p className="text-sm text-slate-500 mt-1">Assign tasks to your colleagues</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Employee list */}
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
+          <h3 className="text-sm font-bold text-slate-700 mb-3">Select Employee</h3>
+          <div className="relative mb-3">
+            <ClipboardDocumentListIcon className="h-4 w-4 text-slate-400 absolute top-1/2 left-3 -translate-y-1/2" />
+            <input type="text" placeholder="Search by name or ID..."
+              value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-purple-200 bg-white focus:outline-none focus:ring-2 focus:ring-purple-300" />
+          </div>
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {filteredEmployees.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-8">No employees found.</p>
+            ) : filteredEmployees.map(emp => (
+              <button key={emp._id} onClick={() => setSelectedEmployee(emp)}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition ${String(selectedEmployee?._id) === String(emp._id) ? 'text-white' : 'hover:bg-purple-50 text-slate-700'}`}
+                style={String(selectedEmployee?._id) === String(emp._id) ? { background: 'linear-gradient(135deg,#48306A,#8E5FD0)' } : {}}>
+                <img src={emp.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.name)}&background=8E5FD0&color=fff`}
+                  alt={emp.name} className="h-9 w-9 rounded-full object-cover flex-shrink-0 border-2 border-purple-100" />
+                <div className="min-w-0">
+                  <p className="font-bold text-sm truncate">{emp.name}</p>
+                  <p className={`text-[11px] truncate ${String(selectedEmployee?._id) === String(emp._id) ? 'text-purple-200' : 'text-slate-400'}`}>{emp.employeeId}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Task form */}
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
+          {!selectedEmployee ? (
+            <div className="flex flex-col items-center justify-center h-full py-20 text-slate-400">
+              <ClipboardDocumentListIcon className="h-12 w-12 text-purple-200 mb-3" />
+              <p className="font-bold text-slate-500">Select an employee to assign tasks</p>
+            </div>
+          ) : (
+            <form onSubmit={handleAssign}>
+              {/* Selected employee header */}
+              <div className="flex items-center gap-3 mb-5 p-3 rounded-xl bg-purple-50 border border-purple-100">
+                <img src={selectedEmployee.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedEmployee.name)}&background=8E5FD0&color=fff`}
+                  alt={selectedEmployee.name} className="h-10 w-10 rounded-full object-cover border-2 border-purple-200" />
+                <div>
+                  <p className="font-bold text-slate-800">{selectedEmployee.name}</p>
+                  <p className="text-xs text-purple-500 font-semibold">{selectedEmployee.role} · {selectedEmployee.department || 'N/A'}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
+                {tasks.map((task, i) => (
+                  <div key={task.id} className="relative rounded-2xl bg-purple-50 border border-purple-100 p-4 space-y-3">
+                    {tasks.length > 1 && (
+                      <button type="button" onClick={() => setTasks(p => p.filter((_, idx) => idx !== i))}
+                        className="absolute -top-2 -right-2 p-1.5 bg-white rounded-full text-slate-400 hover:text-red-500 border border-purple-100 shadow-sm transition">
+                        <XMarkIcon className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    <input type="text" name="title" required value={task.title}
+                      onChange={e => { const n = [...tasks]; n[i].title = e.target.value; setTasks(n); }}
+                      placeholder="Task Title *" className={inputCls} />
+                    <textarea name="description" value={task.description}
+                      onChange={e => { const n = [...tasks]; n[i].description = e.target.value; setTasks(n); }}
+                      placeholder="Description (optional)" rows={2} className={inputCls} />
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Start Date</label>
+                        <input type="date" value={task.startDate}
+                          onChange={e => { const n = [...tasks]; n[i].startDate = e.target.value; setTasks(n); }}
+                          className={`${inputCls} mt-1`} />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Due Date</label>
+                        <input type="date" value={task.dueDate}
+                          onChange={e => { const n = [...tasks]; n[i].dueDate = e.target.value; setTasks(n); }}
+                          className={`${inputCls} mt-1`} />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Priority</label>
+                        <select value={task.priority}
+                          onChange={e => { const n = [...tasks]; n[i].priority = e.target.value; setTasks(n); }}
+                          className={`${inputCls} mt-1`}>
+                          <option>Low</option><option>Medium</option><option>High</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button type="button" onClick={() => setTasks(p => [...p, { id: Date.now(), title: '', description: '', startDate: '', dueDate: '', priority: 'Medium' }])}
+                className="w-full mt-3 flex items-center justify-center gap-2 text-sm font-bold border-2 border-dashed border-purple-300 hover:border-purple-400 text-purple-500 rounded-2xl py-2.5 transition">
+                <PlusIcon className="h-4 w-4" /> Add Another Task
+              </button>
+
+              <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-purple-50">
+                <button type="button" onClick={() => setSelectedEmployee(null)}
+                  className="px-5 py-2 text-sm font-semibold text-slate-600 border border-purple-200 rounded-xl hover:bg-purple-50 transition">
+                  Cancel
+                </button>
+                <button type="submit" disabled={isAssigning}
+                  className="inline-flex items-center gap-2 px-6 py-2 text-sm font-bold text-white rounded-xl disabled:opacity-60"
+                  style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+                  {isAssigning && <ArrowPathIcon className="animate-spin h-4 w-4" />}
+                  Assign Tasks
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const EmployeeDashboard = () => {
   const user = useSelector(selectCurrentUser);
   const dispatch = useDispatch();
@@ -1947,6 +2109,7 @@ const EmployeeDashboard = () => {
     'my-history': 'My Report History',
     analytics: 'My Performance Analytics',
     profile: 'My Profile',
+    'assign-task': 'Assign Task',
   };
 
   const handleRefresh = () => {
@@ -1980,6 +2143,8 @@ const EmployeeDashboard = () => {
         return <MyAttendance employeeId={user._id} />;
       case 'my-tasks':
         return <MyTasks />;
+      case 'assign-task':
+        return <EmployeeAssignTask />;
       default:
         return <Dashboard user={user} onNavigate={setActiveComponent} />;
     }
