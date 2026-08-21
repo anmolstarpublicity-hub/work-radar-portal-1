@@ -63,7 +63,7 @@ const Login = () => {
 
   return (
     <div
-      className="min-h-screen font-manrope relative overflow-hidden flex flex-col"
+      className="h-screen min-h-[100svh] font-manrope relative overflow-hidden flex flex-col"
       style={{ background: 'linear-gradient(180deg, #1a0a35 0%, #2d1654 40%, #48306A 80%, #5c3598 100%)' }}
     >
       <style>{`
@@ -160,12 +160,13 @@ const Login = () => {
 
         .login-input {
           width: 100%;
-          padding: 16px 20px;
+          box-sizing: border-box;
+          padding: 14px 16px;
           border-radius: 10px;
           border: 1.5px solid rgba(255,255,255,0.08);
           background: rgba(255,255,255,0.06);
           color: white;
-          font-size: 15px;
+          font-size: 14px;
           font-family: 'Manrope', sans-serif;
           outline: none;
           transition: all 0.2s;
@@ -181,11 +182,12 @@ const Login = () => {
         }
         .login-btn {
           width: 100%;
-          padding: 18px 24px;
+          box-sizing: border-box;
+          padding: 15px 20px;
           border-radius: 50px;
           border: none;
           cursor: pointer;
-          font-size: 16px;
+          font-size: 14px;
           font-weight: 800;
           color: white;
           background: linear-gradient(135deg, #48306A 0%, #7c3aed 50%, #8E5FD0 100%);
@@ -234,6 +236,31 @@ const Login = () => {
 
         /* Floating decorative dots */
         .dot { position: absolute; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.15); animation: floatDot 4s ease-in-out infinite; }
+        .login-title-wrap { margin-top: -22px; }
+
+        @media (max-width: 640px) {
+          .dot { display: none; }
+          .login-panel { padding: 12px 16px 24px !important; min-height: 0; }
+          .login-panel > div { max-width: 320px !important; }
+          .login-logo { width: 92px !important; height: 92px !important; margin-bottom: 4px !important; }
+          .login-title-wrap { margin-top: -14px; }
+          .login-title { font-size: 20px !important; }
+          .login-subtitle { font-size: 10px !important; }
+          .login-form { gap: 10px !important; }
+          .login-form .login-input,
+          .login-form .login-btn { font-size: 12px; }
+          .login-form .login-input { padding: 10px 12px; }
+          .login-form .login-btn { padding: 11px 16px; }
+          .login-forgot { font-size: 10px !important; }
+          .login-form + .login-footer { font-size: 9px !important; }
+          .login-footer { margin-top: 12px !important; }
+          .login-wave { display: none; }
+        }
+
+        @media (max-height: 700px) and (min-width: 641px) {
+          .login-logo { width: 130px !important; height: 130px !important; margin-bottom: 8px !important; }
+          .login-panel { padding-top: 10px !important; padding-bottom: 20px !important; }
+        }
       `}</style>
 
       {/* ── Full-screen loading overlay with logo ── */}
@@ -266,37 +293,30 @@ const Login = () => {
       <div style={{ position:'absolute', width:18, height:18, top:'65%', right:'28%', borderRadius:'50%', border:'2px solid rgba(255,255,255,0.1)', animation:'floatDot 6s ease-in-out infinite 1.1s' }} />
       <div style={{ position:'absolute', width:30, height:30, top:'45%', left:'32%', borderRadius:'50%', border:'2px solid rgba(255,255,255,0.08)', animation:'floatDot 7s ease-in-out infinite 0.7s' }} />
 
-      {/* Top bar — logo + name */}
-      <div className={`${mounted ? 'anim-fade-up' : 'opacity-0'}`}
-        style={{ padding:'28px 40px', display:'flex', alignItems:'center', gap:'12px', position:'relative', zIndex:10 }}>
-        <img src={portalLogo} alt="Work Radar" className="logo-pulse" style={{ width:'64px', height:'64px', objectFit:'contain' }} />
-        <span style={{ color:'white', fontWeight:800, fontSize:'20px', letterSpacing:'-0.01em' }}>Work Radar</span>
-      </div>
-
       {/* Centered form */}
-      <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', position:'relative', zIndex:10 }}>
-        <div style={{ width:'100%', maxWidth:'440px' }}>
+      <div className="login-panel" style={{ flex:1, minHeight:0, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', position:'relative', zIndex:10 }}>
+        <div style={{ width:'100%', maxWidth:'400px' }}>
 
           {/* Logo */}
-          <div className={`${mounted ? 'anim-fade-up delay-1' : 'opacity-0'} flex justify-center mb-6`}>
-            <img src={portalLogo} alt="" className="logo-pulse" style={{ width:'220px', height:'220px', objectFit:'contain', filter:'drop-shadow(0 10px 44px rgba(142,95,208,0.65))' }} />
+          <div className={`${mounted ? 'anim-fade-up delay-1' : 'opacity-0'} flex justify-center mb-1`}>
+            <img src={portalLogo} alt="" className="logo-pulse login-logo" style={{ width:'150px', height:'150px', objectFit:'contain', filter:'drop-shadow(0 10px 44px rgba(142,95,208,0.65))' }} />
           </div>
 
           {/* Title */}
-          <div className={`${mounted ? 'anim-fade-up delay-2' : 'opacity-0'} text-center mb-2`}>
-            <h1 style={{ color:'white', fontWeight:700, fontSize:'40px', lineHeight:1.2, letterSpacing:'-0.02em' }}>
+          <div className={`${mounted ? 'anim-fade-up delay-2' : 'opacity-0'} text-center mb-1 login-title-wrap`}>
+            <h1 className="login-title" style={{ color:'white', fontWeight:700, fontSize:'30px', lineHeight:1.2, letterSpacing:'-0.02em' }}>
               {getGreeting()}
             </h1>
           </div>
 
           <div className={`${mounted ? 'anim-fade-up delay-3' : 'opacity-0'} text-center mb-10`}>
-            <p style={{ color:'rgba(255,255,255,0.45)', fontSize:'16px' }}>
+            <p className="login-subtitle" style={{ color:'rgba(255,255,255,0.45)', fontSize:'13px' }}>
               Sign in and start tracking your performance!
             </p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'16px' }}>
+          <form className="login-form" onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'16px' }}>
 
             {/* Employee ID */}
             <div className={`${mounted ? 'anim-fade-up delay-3' : 'opacity-0'} login-input-wrap`}>
@@ -334,7 +354,7 @@ const Login = () => {
             {/* Forgot password */}
             <div className={`${mounted ? 'anim-fade-up delay-4' : 'opacity-0'}`}
               style={{ display:'flex', justifyContent:'flex-end' }}>
-              <Link to="/forgot-password"
+              <Link to="/forgot-password" className="login-forgot"
                 style={{ fontSize:'13px', fontWeight:600, color:'#c084fc', textDecoration:'none' }}>
                 Forgot password?
               </Link>
@@ -351,7 +371,7 @@ const Login = () => {
             </div>
           </form>
 
-          <p className={`${mounted ? 'anim-fade-up delay-5' : 'opacity-0'} text-center`}
+          <p className={`${mounted ? 'anim-fade-up delay-5' : 'opacity-0'} text-center login-footer`}
             style={{ marginTop:'32px', fontSize:'12px', color:'#ffffff' }}>
             &copy; {new Date().getFullYear()} Work Radar. All rights reserved.
           </p>
@@ -359,8 +379,8 @@ const Login = () => {
       </div>
 
       {/* Bottom wave decoration — animated tall purple waves */}
-      <div style={{ position:'relative', zIndex:5, marginTop:'auto', lineHeight:0 }}>
-        <svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg" style={{ display:'block', width:'100%' }}>
+      <div className="login-wave" style={{ position:'absolute', left:0, right:0, bottom:0, zIndex:5, lineHeight:0, pointerEvents:'none' }}>
+        <svg viewBox="0 0 1440 320" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style={{ display:'block', width:'100%', height:'150px' }}>
           <defs>
             <style>{`
               @keyframes wave-back {
