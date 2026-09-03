@@ -54,6 +54,11 @@ const taskSchema = new mongoose.Schema({
     enum: ['Pending', 'Low', 'Moderate', 'Completed', 'N/A'],
     default: 'N/A',
   },
+  approvedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Employee',
+    default: null,
+  },
   comments: [
     {
       author: {

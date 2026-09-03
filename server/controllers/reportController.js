@@ -236,6 +236,8 @@ class ReportController {
                     path: 'comments',
                     populate: { path: 'author', select: 'name profilePicture' }
                   })
+                  .populate('assignedBy', 'name role')
+                  .populate('approvedBy', 'name role')
                   .lean();
                 update.taskId = taskDetails; // Replace ID with full task object
               }

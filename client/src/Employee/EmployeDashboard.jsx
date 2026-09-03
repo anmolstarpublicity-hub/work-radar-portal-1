@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useGetTodaysReportQuery, useUpdateTodaysReportMutation, useGetEmployeesQuery, useGetHolidaysQuery, useGetMyTasksQuery, useGetAllTasksQuery, useGetAllMyReportsQuery, useGetActiveAnnouncementQuery, useGetEmployeeEOMHistoryQuery, useProcessPastDueTasksMutation, useUpdateEmployeeMutation, useCreateMultipleTasksMutation } from '../services/EmployeApi';
+import { useGetTodaysReportQuery, useUpdateTodaysReportMutation, useGetEmployeesQuery, useGetHolidaysQuery, useGetMyTasksQuery, useGetAllTasksQuery, useGetAllMyReportsQuery, useGetActiveAnnouncementQuery, useGetEmployeeEOMHistoryQuery, useProcessPastDueTasksMutation, useUpdateEmployeeMutation, useCreateMultipleTasksMutation, useUpdateTaskMutation, useGetReportsByEmployeeQuery } from '../services/EmployeApi';
 import { apiSlice, useLogoutMutation } from '../services/apiSlice';
 import toast from 'react-hot-toast';
-import { ArrowPathIcon, PaperAirplaneIcon, DocumentTextIcon, BriefcaseIcon, CheckCircleIcon, HomeIcon, ChartBarIcon, UserGroupIcon, InformationCircleIcon, CalendarDaysIcon, ClipboardDocumentListIcon, CheckBadgeIcon, ArchiveBoxIcon, TrophyIcon, StarIcon, ShieldCheckIcon, ExclamationTriangleIcon, ClockIcon, CalendarIcon, ChevronDoubleLeftIcon, ChevronDownIcon, ArrowRightOnRectangleIcon, Cog8ToothIcon, ArrowDownTrayIcon, ChevronRightIcon, CameraIcon, TrashIcon, UserIcon, EnvelopeIcon, MapPinIcon, BuildingOfficeIcon, AcademicCapIcon, GlobeAltIcon, PlusIcon } from '@heroicons/react/24/outline';
-import { EyeIcon, XMarkIcon } from '@heroicons/react/24/solid';
+import { ArrowPathIcon, PaperAirplaneIcon, DocumentTextIcon, BriefcaseIcon, CheckCircleIcon, HomeIcon, ChartBarIcon, UserGroupIcon, InformationCircleIcon, CalendarDaysIcon, ClipboardDocumentListIcon, CheckBadgeIcon, ArchiveBoxIcon, TrophyIcon, StarIcon, ShieldCheckIcon, ExclamationTriangleIcon, ClockIcon, CalendarIcon, ChevronDoubleLeftIcon, ChevronDownIcon, ArrowRightOnRectangleIcon, Cog8ToothIcon, ArrowDownTrayIcon, ChevronRightIcon, CameraIcon, TrashIcon, UserIcon, EnvelopeIcon, MapPinIcon, BuildingOfficeIcon, AcademicCapIcon, GlobeAltIcon, PlusIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, XMarkIcon, FlagIcon, CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentUser, setCredentials, selectCurrentToken } from '../app/authSlice'; // Removed useForgotPasswordMutation as it's not used here
 import PastReportsList from './PastReports';
@@ -539,28 +539,38 @@ export const Dashboard = ({ user, onNavigate }) => {
 
       {/* Attendance Row */}
       <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
-          <div className="flex-1 w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-base font-bold text-slate-800">Personal Attendance Tracker</h3>
-              <button onClick={() => onNavigate('attendance')} className="text-xs font-bold px-3 py-1 rounded-lg text-white transition" style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>View All</button>
-            </div>
-            <div className="flex justify-between items-center w-full px-2 overflow-x-auto pb-2">
-              {attendanceData?.days?.map((day, idx) => (
-                <div key={idx} className="flex flex-col items-center gap-2 flex-shrink-0 px-2">
-                  <div className={`h-10 w-10 rounded-full border-2 flex items-center justify-center ${day.isPresent ? 'border-purple-400 bg-purple-50' : day.isFuture ? 'border-slate-200 border-dashed' : 'border-slate-200 border-dashed'}`}>
-                    {day.isPresent && <CheckCircleIcon className="h-5 w-5 text-purple-500" />}
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">{day.label}</span>
-                </div>
-              ))}
-            </div>
+        {/* Header */}
+        <div className="flex justify-between items-center mb-5">
+          <h3 className="text-base font-bold text-slate-800">Personal Attendance Tracker</h3>
+          <button onClick={() => onNavigate('attendance')} className="text-xs font-bold px-3 py-1 rounded-lg text-white transition" style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>View All</button>
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-3 gap-3 mb-5">
+          <div className="bg-purple-50 rounded-xl p-3 text-center border border-purple-100">
+            <p className="text-lg font-black text-purple-600 leading-tight">{attendanceData?.presentCount || 0}<span className="text-sm font-bold text-purple-400">/{attendanceData?.totalDays || 0}</span></p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Present</p>
           </div>
-          <div className="w-full lg:w-auto lg:border-l border-purple-100 lg:pl-8 grid grid-cols-3 gap-4 min-w-[240px]">
-            <div><p className="text-xl font-black text-purple-600">{attendanceData?.presentCount || 0}/{attendanceData?.totalDays || 0}</p><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Present</p></div>
-            <div><p className="text-xl font-black text-slate-800">{(attendanceData?.presentCount || 0) * 8}h</p><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Hours</p></div>
-            <div><p className="text-xl font-black text-orange-500">0</p><p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Leaves</p></div>
+          <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+            <p className="text-lg font-black text-slate-700 leading-tight">{(attendanceData?.presentCount || 0) * 8}<span className="text-sm font-bold text-slate-400">h</span></p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Hours</p>
           </div>
+          <div className="bg-orange-50 rounded-xl p-3 text-center border border-orange-100">
+            <p className="text-lg font-black text-orange-500 leading-tight">0</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Leaves</p>
+          </div>
+        </div>
+
+        {/* Day circles strip */}
+        <div className="flex justify-between items-center w-full overflow-x-auto pb-1 gap-1">
+          {attendanceData?.days?.map((day, idx) => (
+            <div key={idx} className="flex flex-col items-center gap-1.5 flex-shrink-0">
+              <div className={`h-9 w-9 rounded-full border-2 flex items-center justify-center ${day.isPresent ? 'border-purple-400 bg-purple-50' : day.isFuture ? 'border-slate-200 border-dashed' : 'border-slate-200 border-dashed'}`}>
+                {day.isPresent && <CheckCircleIcon className="h-4.5 w-4.5 text-purple-500" />}
+              </div>
+              <span className="text-[9px] font-bold text-slate-400 uppercase">{day.label}</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -1143,14 +1153,23 @@ export const MyTasks = () => {
                       Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
                       {isOverdue && ' · Overdue'}
                     </span>
+                    {/* Approved / Rejected by */}
+                    {['Completed', 'Not Completed'].includes(task.status) && (() => {
+                      const approver = task.approvedBy;
+                      const fallback = task.comments?.find(c =>
+                        c.text?.startsWith('Approval comment:') ||
+                        c.text?.startsWith("Task graded as 'Not Completed'")
+                      )?.author?.name;
+                      const name = approver?.name || fallback;
+                      if (!name) return null;
+                      return (
+                        <p className={`text-[10px] font-semibold mt-0.5 ${task.status === 'Completed' ? 'text-emerald-600' : 'text-red-500'}`}>
+                          {task.status === 'Completed' ? '✓ Approved' : '✗ Rejected'} by {name}
+                          {approver?.role && <span className="font-normal text-slate-400"> ({approver.role})</span>}
+                        </p>
+                      );
+                    })()}
                   </div>
-                </div>
-                <div className="flex items-center gap-2 w-full md:w-40 flex-shrink-0">
-                  <div className="flex-1 h-2 rounded-full bg-purple-100 overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${task.progress || 0}%`, background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
-                  </div>
-                  <span className="text-xs font-bold text-slate-600 w-8 text-right">{task.progress || 0}%</span>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide whitespace-nowrap ${statusStyles[task.status] || ''}`}>
@@ -1186,69 +1205,8 @@ export const MyTasks = () => {
 
 export const MyReportHistory = ({ employeeId }) => {
   const { data: reports = [], isLoading } = useGetAllMyReportsQuery(employeeId);
-  const [expandedReportId, setExpandedReportId] = useState(null);
   const [viewingTask, setViewingTask] = useState(null);
   const [viewingTaskNumber, setViewingTaskNumber] = useState(null);
-
-  useEffect(() => {
-    if (reports.length > 0 && !expandedReportId) {
-      setExpandedReportId(reports[0]._id);
-    }
-  }, [reports, expandedReportId]);
-
-  const renderReportContent = (content) => {
-    try {
-      const data = JSON.parse(content);
-      if (data.taskUpdates) {
-        return (
-          <div className="px-6 pb-6 space-y-3">
-            {data.reportNote && (
-              <div className="bg-purple-50 border border-purple-100 rounded-xl px-4 py-3">
-                <h4 className="text-[10px] font-bold text-purple-400 uppercase tracking-wider mb-1">Employee Notes</h4>
-                <p className="text-sm text-slate-700 whitespace-pre-wrap">{data.reportNote}</p>
-              </div>
-            )}
-            {data.taskUpdates.map((update, i) => (
-              <div key={i} className="bg-slate-50 border border-purple-100 rounded-xl p-4">
-                {/* Title + Details button */}
-                <div className="flex justify-between items-center mb-2">
-                  <p className="font-bold text-sm text-slate-800 flex-1 min-w-0 pr-3 truncate">
-                    Task {i + 1}: {update.taskId?.title || 'Unknown Task'}
-                  </p>
-                  {update.taskId && (
-                    <button onClick={() => { setViewingTask(update.taskId); setViewingTaskNumber(i + 1); }}
-                      className="text-[10px] font-bold px-2.5 py-1 rounded-lg text-white transition flex-shrink-0"
-                      style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
-                      Details
-                    </button>
-                  )}
-                </div>
-                {/* Progress bar */}
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="flex-1 h-2 rounded-full bg-purple-100 overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-300"
-                      style={{ width: `${update.completion}%`, background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
-                  </div>
-                  <span className="text-sm font-extrabold flex-shrink-0 w-10 text-right"
-                    style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                    {update.completion}%
-                  </span>
-                </div>
-                {update.note && (
-                  <div className="mt-2 bg-white rounded-lg border border-purple-100 px-3 py-2">
-                    <p className="text-xs text-slate-600"><span className="font-bold text-slate-700">Note: </span>{update.note}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        );
-      }
-      return <p className="px-6 pb-6 text-sm text-slate-600 whitespace-pre-wrap">{JSON.stringify(data, null, 2)}</p>;
-    } catch {
-      return <p className="px-6 pb-6 text-sm text-slate-600 whitespace-pre-wrap">{content}</p>;
-    }
-  };
 
   if (isLoading) return <div className="p-8 text-center text-slate-500">Loading report history...</div>;
 
@@ -1261,49 +1219,141 @@ export const MyReportHistory = ({ employeeId }) => {
         <p className="text-sm text-slate-500 mt-1">Review your previously submitted daily progress reports</p>
       </div>
 
-      {/* Report count */}
-      <div className="flex items-center justify-between mb-4 px-1">
-        <p className="text-sm font-bold text-slate-600">{reports.length} report{reports.length !== 1 ? 's' : ''} found</p>
-      </div>
-
       {/* Report list */}
-      <div className="space-y-3">
-        {reports.length > 0 ? reports.map(report => (
-          <div key={report._id} className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
-            {/* Accordion header */}
-            <button
-              onClick={() => setExpandedReportId(expandedReportId === report._id ? null : report._id)}
-              className="w-full text-left px-6 py-4 flex items-center justify-between hover:bg-purple-50/50 transition">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
-                  <DocumentTextIcon className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <p className="font-bold text-sm text-slate-800">
-                    {new Date(report.reportDate).toLocaleDateString('en-US', { dateStyle: 'full' })}
-                  </p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">
-                    {(() => { try { const d = JSON.parse(report.content); return `${(d.taskUpdates || []).length} task update${(d.taskUpdates || []).length !== 1 ? 's' : ''}`; } catch { return ''; } })()}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${report.status === 'Submitted' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+      <div className="space-y-4 pb-8">
+        {reports.length > 0 ? reports.map(report => {
+          let taskUpdates = [];
+          let reportNote = '';
+          try {
+            const data = JSON.parse(report.content);
+            taskUpdates = data.taskUpdates || [];
+            reportNote = data.reportNote || '';
+          } catch { /* ignore */ }
+
+          return (
+            <div key={report._id} className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+
+              {/* Report header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                <h3 className="text-base font-bold text-slate-800">
+                  {new Date(report.reportDate).toLocaleDateString('en-US', { dateStyle: 'full' })}
+                </h3>
+                <span className={`self-start sm:self-auto text-xs font-bold px-3 py-1 rounded-full ${
+                  report.status === 'Submitted'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                }`}>
                   {report.status}
                 </span>
-                <ChevronDownIcon className={`h-4 w-4 text-slate-400 transition-transform ${expandedReportId === report._id ? 'rotate-180' : ''}`} />
               </div>
-            </button>
 
-            {/* Accordion body */}
-            {expandedReportId === report._id && (
-              <div className="border-t border-purple-50 pt-4">
-                {renderReportContent(report.content)}
+              {/* Report content */}
+              <div className="space-y-3">
+                {reportNote && (
+                  <div className="bg-purple-50 border border-purple-100 rounded-xl px-4 py-3">
+                    <h4 className="text-[10px] font-bold text-purple-400 uppercase tracking-wider mb-1">My Notes</h4>
+                    <p className="text-sm text-slate-700 whitespace-pre-wrap">{reportNote}</p>
+                  </div>
+                )}
+                {taskUpdates.map((update, i) => {
+                  const task = update.taskId;
+                  const isCompleted = task?.status === 'Completed';
+                  const isNotCompleted = task?.status === 'Not Completed';
+                  const isPendingVerification = task?.status === 'Pending Verification';
+                  const isFinalized = isCompleted || isNotCompleted;
+
+                  // Status display config
+                  const statusConfig = {
+                    'Completed':            { label: 'Approved',          bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
+                    'Not Completed':        { label: 'Rejected',          bg: 'bg-red-50',     text: 'text-red-700',     border: 'border-red-200',     dot: 'bg-red-500' },
+                    'Pending Verification': { label: 'Awaiting Approval', bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200',   dot: 'bg-amber-400' },
+                    'In Progress':          { label: 'In Progress',       bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200',    dot: 'bg-blue-500' },
+                    'Pending':              { label: 'Pending',           bg: 'bg-slate-50',   text: 'text-slate-500',   border: 'border-slate-200',   dot: 'bg-slate-400' },
+                  };
+                  const sc = task?.status ? (statusConfig[task.status] || statusConfig['Pending']) : null;
+
+                  return (
+                  <div key={i} className="bg-slate-50 border border-purple-100 rounded-xl overflow-hidden">
+                    {/* Task header */}
+                    <div className="flex justify-between items-center px-4 py-2.5 bg-purple-50 border-b border-purple-100 gap-2">
+                      <p className="font-bold text-slate-800 text-sm truncate">
+                        Task {i + 1}: {task?.title || 'Unknown Task'}
+                      </p>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {sc && (
+                          <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${sc.bg} ${sc.text} ${sc.border}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${sc.dot}`} />
+                            {sc.label}
+                          </span>
+                        )}
+                        {task && (
+                          <button
+                            onClick={() => { setViewingTask(task); setViewingTaskNumber(i + 1); }}
+                            className="text-xs font-bold px-3 py-1 rounded-lg text-white transition"
+                            style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}
+                          >
+                            Details
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    {update.note ? (
+                      <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap px-4 py-3">{update.note}</p>
+                    ) : (
+                      <p className="text-xs text-slate-400 italic px-4 py-3">No description submitted for this task.</p>
+                    )}
+
+                    {/* Approval / Rejection info */}
+                    {isFinalized && (
+                      <div className={`flex items-center justify-between px-4 py-2.5 border-t ${isCompleted ? 'border-emerald-100 bg-emerald-50/60' : 'border-red-100 bg-red-50/60'}`}>
+                        <div className="flex items-center gap-2">
+                          {isCompleted ? (
+                            <CheckCircleIcon className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                          ) : (
+                            <XCircleIcon className="h-4 w-4 text-red-500 flex-shrink-0" />
+                          )}
+                          <span className={`text-xs font-bold ${isCompleted ? 'text-emerald-700' : 'text-red-700'}`}>
+                            {isCompleted ? 'Approved' : 'Rejected'}
+                            {task?.approvedBy?.name ? (
+                              <span className="font-normal text-slate-500"> by {task.approvedBy.name}
+                                {task.approvedBy.role && <span className="text-slate-400"> ({task.approvedBy.role})</span>}
+                              </span>
+                            ) : task?.assignedBy?.name ? (
+                              <span className="font-normal text-slate-500"> by {task.assignedBy.name}</span>
+                            ) : null}
+                          </span>
+                        </div>
+                        {isCompleted && task?.progress !== undefined && (
+                          <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
+                            {task.progress}% · {task.completionCategory || 'Completed'}
+                          </span>
+                        )}
+                        {isNotCompleted && task?.rejectionReason && (
+                          <span className="text-xs text-red-600 italic max-w-[200px] truncate" title={task.rejectionReason}>
+                            "{task.rejectionReason}"
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {isPendingVerification && (
+                      <div className="flex items-center gap-2 px-4 py-2.5 border-t border-amber-100 bg-amber-50/60">
+                        <ClockIcon className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                        <span className="text-xs font-semibold text-amber-700">Waiting for admin/manager approval</span>
+                      </div>
+                    )}
+                  </div>
+                  );
+                })}
+                {taskUpdates.length === 0 && !reportNote && (
+                  <p className="text-sm text-slate-400 italic">No content in this report.</p>
+                )}
               </div>
-            )}
-          </div>
-        )) : (
+            </div>
+          );
+        }) : (
           <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-purple-100 shadow-sm text-slate-400">
             <ArchiveBoxIcon className="h-12 w-12 text-purple-200 mb-3" />
             <p className="font-bold text-slate-500 text-base">No Report History Found</p>
@@ -1425,8 +1475,10 @@ export const MyDailyReport = ({ employeeId }) => {
   const { data: assignedTasks = [], isLoading: isLoadingTasks } = useGetMyTasksQuery(undefined, { refetchOnMountOrArgChange: true });
   const { data: todaysReport, isLoading: isLoadingReport } = useGetTodaysReportQuery(employeeId);
   const [updateTodaysReport, { isLoading: isUpdating }] = useUpdateTodaysReportMutation();
-  const [progress, setProgress] = useState({});
+  const [updateTask] = useUpdateTaskMutation();
+  const [requestingTaskId, setRequestingTaskId] = useState(null);
   const [taskNotes, setTaskNotes] = useState({});
+  const [selectedTasks, setSelectedTasks] = useState(new Set());
   const [reportNote, setReportNote] = useState('');
   
   const isReadOnly = useMemo(() => {
@@ -1444,16 +1496,16 @@ export const MyDailyReport = ({ employeeId }) => {
 
   useEffect(() => {
     // Initialize or update progress state when tasks or the report status changes
-    const initialProgress = {};
     const initialNotes = {};
+    const initialSelected = new Set();
     if (todaysReport?.status === 'Submitted') {
       // If already submitted, try to parse and show the submitted values
       try {
         const content = JSON.parse(todaysReport.content);
         if (content.taskUpdates) {
           content.taskUpdates.forEach(update => {
-            initialProgress[update.taskId] = update.completion;
             initialNotes[update.taskId] = update.note || '';
+            initialSelected.add(update.taskId);
           });
         }
         if (content.reportNote) {
@@ -1461,26 +1513,69 @@ export const MyDailyReport = ({ employeeId }) => {
         }
       } catch { /* ignore parsing errors */ }
     } else {
-      // If not submitted or reopened, initialize from the task's last known progress
+      // If not submitted or reopened, initialize empty notes, nothing pre-selected
       assignedTasks.forEach(task => {
-        initialProgress[task._id] = task.progress || 0;
         initialNotes[task._id] = '';
       });
     } 
-    setProgress(initialProgress);
     setTaskNotes(initialNotes);
+    setSelectedTasks(initialSelected);
   }, [assignedTasks, todaysReport]);
 
-  const handleProgressChange = (taskId, value) => {
-    setProgress(prev => ({ ...prev, [taskId]: parseInt(value, 10) || 0 }));
+  const countWords = (text) => text.trim().split(/\s+/).filter(Boolean).length;
+
+  const handleRequestCompletion = async (task) => {
+    setRequestingTaskId(task._id);
+    try {
+      await updateTask({ id: task._id, status: 'Pending Verification' }).unwrap();
+      toast.success(`Completion request sent for "${task.title}". Awaiting approval.`);
+      // Deselect the task since it's now pending verification
+      setSelectedTasks(prev => { const next = new Set(prev); next.delete(task._id); return next; });
+    } catch (err) {
+      toast.error(err.data?.message || 'Failed to send completion request.');
+    } finally {
+      setRequestingTaskId(null);
+    }
+  };
+
+  const toggleTaskSelection = (taskId) => {
+    setSelectedTasks(prev => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
   };
 
   const handleSubmit = async () => {
-    const taskUpdates = Object.entries(progress)
-      .map(([taskId, completion]) => ({ taskId, completion, note: taskNotes[taskId] || '' }));
+    const tasksToSubmit = tasksToDisplay.filter(t => selectedTasks.has(t._id));
+
+    // Must select at least one task (unless there are no tasks — attendance only)
+    if (tasksToDisplay.length > 0 && tasksToSubmit.length === 0) {
+      toast.error('Please select at least one task to report on.');
+      return;
+    }
+
+    // Validate every selected task has a note with at least 10 words
+    for (const task of tasksToSubmit) {
+      const note = taskNotes[task._id] || '';
+      if (!note.trim()) {
+        toast.error(`Please fill in the task description for "${task.title}".`);
+        return;
+      }
+      if (countWords(note) < 10) {
+        toast.error(`The description for "${task.title}" must be at least 10 words.`);
+        return;
+      }
+    }
+
+    const taskUpdates = tasksToSubmit.map(task => ({
+      taskId: task._id,
+      completion: task.progress || 0,
+      note: taskNotes[task._id] || '',
+    }));
 
     if (taskUpdates.length === 0 && !reportNote.trim()) {
-      // If there are no tasks to report on, still allow submitting an empty report for attendance.
       toast.info('Submitting attendance for today.', { icon: '👍' });
     }
 
@@ -1520,14 +1615,21 @@ export const MyDailyReport = ({ employeeId }) => {
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-800 uppercase tracking-wide">Today's Progress Report</h1>
-          <p className="text-sm text-slate-500 mt-1">Update the completion status for your active tasks</p>
+          <p className="text-sm text-slate-500 mt-1">
+            Select the tasks you worked on today and describe your progress
+          </p>
+          {!isReadOnly && tasksToDisplay.length > 0 && (
+            <p className="text-xs font-semibold mt-1.5" style={{ color: selectedTasks.size > 0 ? '#8E5FD0' : '#94a3b8' }}>
+              {selectedTasks.size} of {tasksToDisplay.length} task{tasksToDisplay.length !== 1 ? 's' : ''} selected
+            </p>
+          )}
         </div>
         {!isReadOnly && tasksToDisplay.length > 0 && (
           <button onClick={handleSubmit} disabled={isUpdating}
             className="flex items-center gap-2 font-bold py-2.5 px-6 rounded-xl text-white shadow-sm transition text-sm disabled:opacity-60 whitespace-nowrap"
-            style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
-            {isUpdating ? <ArrowPathIcon className="animate-spin h-4 w-4" /> : <PaperAirplaneIcon className="h-4 w-4" />}
-            Submit Progress
+            style={{ background: 'linear-gradient(135deg,#059669,#10b981)' }}>
+            {isUpdating ? <ArrowPathIcon className="animate-spin h-4 w-4" /> : <FlagIcon className="h-4 w-4" />}
+            Request Completion
           </button>
         )}
       </div>
@@ -1543,57 +1645,128 @@ export const MyDailyReport = ({ employeeId }) => {
         </div>
       )}
 
+      {/* Tasks awaiting admin approval */}
+      {(() => {
+        const pendingVerificationTasks = assignedTasks.filter(t => t.status === 'Pending Verification');
+        if (pendingVerificationTasks.length === 0) return null;
+        return (
+          <div className="space-y-3 mb-2">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">Awaiting Approval</p>
+            {pendingVerificationTasks.map(task => (
+              <div key={task._id} className="bg-amber-50 rounded-2xl border border-amber-200 shadow-sm p-5 flex items-center gap-4">
+                <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <CheckCircleIconSolid className="h-5 w-5 text-amber-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm text-slate-800 truncate">{task.title}</p>
+                  <p className="text-xs text-amber-600 font-semibold mt-0.5">Completion request sent — pending admin review</p>
+                </div>
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-2.5 py-1 flex-shrink-0 whitespace-nowrap">
+                  Pending Review
+                </span>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* Task Cards */}
       <div className="space-y-4">
-        {tasksToDisplay.map((task, index) => (
-          <div key={task._id} className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6 hover:shadow-md transition">
+        {tasksToDisplay.map((task, index) => {
+          const isSelected = selectedTasks.has(task._id);
+          const isReadOnlyTask = isTaskReadOnly(task);
+          const wc = (taskNotes[task._id] || '').trim().split(/\s+/).filter(Boolean).length;
+          return (
+          <div key={task._id}
+            className={`bg-white rounded-2xl border shadow-sm p-6 transition ${isSelected ? 'border-purple-400 shadow-purple-100' : 'border-purple-100 hover:shadow-md'}`}>
 
-            {/* Task header */}
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex-1 min-w-0 pr-4">
-                <h3 className="font-bold text-base text-slate-800 truncate">{task.title}</h3>
+            {/* Task header with checkbox */}
+            <div className="flex items-start gap-3 mb-2">
+              {/* Checkbox */}
+              {!isReadOnlyTask && (
+                <button
+                  onClick={() => toggleTaskSelection(task._id)}
+                  className={`mt-0.5 flex-shrink-0 h-5 w-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                    isSelected
+                      ? 'border-purple-600 bg-purple-600'
+                      : 'border-slate-300 bg-white hover:border-purple-400'
+                  }`}
+                  aria-label={isSelected ? 'Deselect task' : 'Select task'}
+                >
+                  {isSelected && (
+                    <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 12 12" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2 6l3 3 5-5" />
+                    </svg>
+                  )}
+                </button>
+              )}
+              <div className="flex-1 min-w-0">
+                <h3 className={`font-bold text-base truncate ${isSelected ? 'text-slate-800' : 'text-slate-400'}`}>{task.title}</h3>
                 <p className="text-xs text-slate-400 mt-0.5">Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}</p>
               </div>
-              <span className="text-2xl font-extrabold flex-shrink-0" style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                {progress[task._id] || 0}%
-              </span>
+              {!isReadOnlyTask && !isSelected && (
+                <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 rounded-full px-2.5 py-1 flex-shrink-0">
+                  Not reporting
+                </span>
+              )}
+              {isSelected && (
+                <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded-full px-2.5 py-1 flex-shrink-0">
+                  Reporting today
+                </span>
+              )}
             </div>
 
-            {/* Progress bar + slider */}
-            <div className="relative w-full mb-4">
-              <div className="h-3 w-full bg-purple-100 rounded-full overflow-hidden">
-                <div className="h-full rounded-full transition-all duration-300"
-                  style={{ width: `${progress[task._id] || 0}%`, background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
-              </div>
-              <input type="range" min="0" max="100" step="5"
-                value={progress[task._id] ?? 0}
-                onChange={(e) => handleProgressChange(task._id, e.target.value)}
-                disabled={isTaskReadOnly(task)}
-                className="absolute inset-0 w-full opacity-0 cursor-pointer disabled:cursor-not-allowed h-3"
-                style={{ top: 0 }}
-              />
-            </div>
+            {/* Expandable content — only when selected */}
+            {isSelected && (
+              <div className="mt-4 space-y-3">
+                {/* Description */}
+                {task.description && (
+                  <div className="bg-purple-50 rounded-xl px-4 py-3 border border-purple-100">
+                    <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider mb-1">Task Description</p>
+                    <p className="text-xs text-slate-500 leading-relaxed whitespace-pre-wrap">{task.description}</p>
+                  </div>
+                )}
 
-            {/* Description */}
-            {task.description && (
-              <div className="bg-purple-50 rounded-xl px-4 py-3 border border-purple-100 mb-4">
-                <p className="text-xs text-slate-500 leading-relaxed whitespace-pre-wrap">{task.description}</p>
+                {/* Task note — required, min 10 words */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-600">
+                      Today's Task Description <span className="text-red-500">*</span>
+                    </label>
+                    {!isReadOnlyTask && (
+                      <span className={`text-xs font-semibold ${wc >= 10 ? 'text-emerald-500' : 'text-red-400'}`}>
+                        {wc}/10 words {wc >= 10 ? '✓' : 'required'}
+                      </span>
+                    )}
+                  </div>
+                  <textarea
+                    placeholder="Describe what you worked on today, progress made, and next steps... (minimum 10 words)"
+                    value={taskNotes[task._id] || ''}
+                    onChange={(e) => setTaskNotes(prev => ({ ...prev, [task._id]: e.target.value }))}
+                    disabled={isReadOnlyTask}
+                    rows={4}
+                    className="w-full text-sm border border-purple-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400 transition resize-none disabled:opacity-60 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white text-slate-700 placeholder:text-slate-300 leading-relaxed"
+                  />
+                </div>
+
+                {/* Submit Progress — moved inside card */}
+                {!isReadOnlyTask && (
+                  <div className="flex items-center justify-between pt-1 border-t border-purple-100 mt-1">
+                    <p className="text-xs text-slate-400">Submit today's progress for this task?</p>
+                    <button onClick={handleSubmit} disabled={isUpdating}
+                      className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl text-white transition disabled:opacity-60"
+                      style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+                      {isUpdating ? <ArrowPathIcon className="animate-spin h-3.5 w-3.5" /> : <PaperAirplaneIcon className="h-3.5 w-3.5" />}
+                      Submit Progress
+                    </button>
+                  </div>
+                )}
+
               </div>
             )}
-
-            {/* Task note */}
-            <div>
-              <label className="block text-xs font-bold text-slate-500 mb-1.5">Task Update Note <span className="font-normal text-slate-400">(Optional)</span></label>
-              <input type="text"
-                placeholder="E.g., Finished the first draft, waiting on review..."
-                value={taskNotes[task._id] || ''}
-                onChange={(e) => setTaskNotes(prev => ({ ...prev, [task._id]: e.target.value }))}
-                disabled={isTaskReadOnly(task)}
-                className="w-full text-sm border border-purple-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400 transition disabled:opacity-60 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white text-slate-700 placeholder:text-slate-300"
-              />
-            </div>
           </div>
-        ))}
+          );
+        })}
 
         {tasksToDisplay.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-purple-100 shadow-sm text-slate-400">
@@ -1617,17 +1790,6 @@ export const MyDailyReport = ({ employeeId }) => {
           </div>
         )}
 
-        {/* Bottom submit button */}
-        {!isReadOnly && tasksToDisplay.length > 0 && (
-          <div className="flex justify-end pt-2">
-            <button onClick={handleSubmit} disabled={isUpdating}
-              className="flex items-center gap-2 font-bold py-2.5 px-8 rounded-xl text-white shadow-sm transition text-sm disabled:opacity-60"
-              style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
-              {isUpdating ? <ArrowPathIcon className="animate-spin h-4 w-4" /> : <PaperAirplaneIcon className="h-4 w-4" />}
-              Submit Progress
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

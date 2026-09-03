@@ -216,25 +216,25 @@ export const TeamReports = ({ seniorId }) => {
               </div>
             ) : null}
             {data.taskUpdates.map((update, i) => (
-              <div key={i} className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-semibold text-slate-800 dark:text-white">
-                      Task {i + 1}: {update.taskId?.title || 'Unknown Task'}
-                    </p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Progress Submitted: <span className="font-bold text-blue-600 dark:text-blue-400">{update.completion}%</span></p>
-                  </div>
+              <div key={i} className="bg-slate-50 border border-purple-100 rounded-xl overflow-hidden">
+                <div className="flex justify-between items-center px-4 py-2.5 bg-purple-50 border-b border-purple-100">
+                  <p className="font-bold text-slate-800 text-sm">
+                    Task {i + 1}: {update.taskId?.title || 'Unknown Task'}
+                  </p>
                   {update.taskId && (
                     <button onClick={() => {
                       setViewingTask(update.taskId);
                       setViewingTaskNumber(i + 1);
-                    }} className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mt-1">Details</button>
+                    }} className="text-xs font-bold px-3 py-1 rounded-lg text-white transition flex-shrink-0 ml-2"
+                      style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+                      Details
+                    </button>
                   )}
                 </div>
-                {update.note && (
-                  <div className="mt-3 bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <p className="text-sm text-slate-600 dark:text-slate-400"><span className="font-semibold text-slate-700 dark:text-slate-300">Note:</span> {update.note}</p>
-                  </div>
+                {update.note ? (
+                  <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap px-4 py-3">{update.note}</p>
+                ) : (
+                  <p className="text-xs text-slate-400 italic px-4 py-3">No description submitted for this task.</p>
                 )}
               </div>
             ))}
@@ -387,31 +387,25 @@ export const TeamReports = ({ seniorId }) => {
                               </div>
                             )}
                             {data.taskUpdates.map((update, i) => (
-                              <div key={i} className="bg-slate-50 border border-purple-100 rounded-xl p-4">
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <p className="font-bold text-slate-800 text-sm">
-                                      Task {i + 1}: {update.taskId?.title || 'Unknown Task'}
-                                    </p>
-                                    <p className="text-xs text-slate-500 mt-0.5">
-                                      Progress: <span className="font-bold text-purple-600">{update.completion}%</span>
-                                    </p>
-                                  </div>
+                              <div key={i} className="bg-slate-50 border border-purple-100 rounded-xl overflow-hidden">
+                                <div className="flex justify-between items-center px-4 py-2.5 bg-purple-50 border-b border-purple-100">
+                                  <p className="font-bold text-slate-800 text-sm">
+                                    Task {i + 1}: {update.taskId?.title || 'Unknown Task'}
+                                  </p>
                                   {update.taskId && (
                                     <button
                                       onClick={() => { setViewingTask(update.taskId); setViewingTaskNumber(i + 1); }}
-                                      className="text-xs font-bold text-purple-600 hover:text-purple-700 px-3 py-1 rounded-lg bg-purple-50 border border-purple-200 transition"
+                                      className="text-xs font-bold px-3 py-1 rounded-lg text-white transition flex-shrink-0 ml-2"
+                                      style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}
                                     >
                                       Details
                                     </button>
                                   )}
                                 </div>
-                                {update.note && (
-                                  <div className="mt-2 bg-white p-3 rounded-xl border border-purple-100">
-                                    <p className="text-xs text-slate-600">
-                                      <span className="font-bold text-slate-700">Note: </span>{update.note}
-                                    </p>
-                                  </div>
+                                {update.note ? (
+                                  <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap px-4 py-3">{update.note}</p>
+                                ) : (
+                                  <p className="text-xs text-slate-400 italic px-4 py-3">No description submitted for this task.</p>
                                 )}
                               </div>
                             ))}

@@ -81,10 +81,11 @@ export const TaskDetailsModal = ({ isOpen, onClose, task, taskNumber }) => {
               <div className="flex items-center gap-2 mb-2 border-b border-purple-200 pb-2">
                 <ChatBubbleLeftEllipsisIcon className="h-5 w-5 text-purple-500" />
                 <h5 className="font-bold text-slate-700 text-sm">Comments</h5>
-                <span className="ml-auto text-xs text-slate-400">{task.comments?.length || 0}</span>
+                <span className="ml-auto text-xs text-slate-400">{task.comments?.filter(c => !c.text.startsWith('Progress update (')).length || 0}</span>
               </div>
               <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-                {task.comments?.length > 0 ? task.comments.map(c => (
+                {task.comments?.filter(c => !c.text.startsWith('Progress update (')).length > 0
+                  ? task.comments.filter(c => !c.text.startsWith('Progress update (')).map(c => (
                   <div key={c._id} className="flex items-start gap-2 bg-white rounded-xl p-2 border border-purple-100 shadow-sm">
                     <img
                       src={c.author.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.author.name)}&background=8E5FD0&color=fff`}
