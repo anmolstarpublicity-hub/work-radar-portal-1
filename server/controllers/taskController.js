@@ -93,7 +93,6 @@ class TaskController {
     try {
       const tasks = await Task.find({ assignedTo: req.user._id })
         .populate('assignedBy', 'name')
-        .populate('approvedBy', 'name role')
         .populate({
           path: 'comments',
           populate: {
@@ -114,7 +113,6 @@ class TaskController {
       const tasks = await Task.find({})
         .populate('assignedTo', 'name employeeId')
         .populate('assignedBy', 'name employeeId')
-        .populate('approvedBy', 'name role')
         .populate({
           path: 'comments',
           populate: {
@@ -303,9 +301,8 @@ class TaskController {
         task.status = 'Completed'; // Requirement: If approved at 100%, status is Completed
       }
       task.completionDate = task.submittedForCompletionDate || new Date();
-      task.progress = finalProgress;
-      task.rejectionReason = '';
-      task.approvedBy = approverId;
+      task.progress = finalProgress; // Correctly assign the final progress
+      task.rejectionReason = ''; // Clear any previous rejection reason
 
       // If there's a comment, add it to the task
       if (comment && comment.trim() !== '') {
@@ -381,10 +378,9 @@ class TaskController {
 
       // Set the status to 'Not Completed' to finalize the task as incomplete.
       task.status = 'Not Completed';
-      task.completionDate = new Date();
+      task.completionDate = new Date(); // Record the date of this final decision
       task.rejectionReason = reason;
-      task.submittedForCompletionDate = task.submittedForCompletionDate || new Date();
-      task.approvedBy = rejectorId; // record who made the final decision
+      task.submittedForCompletionDate = task.submittedForCompletionDate || new Date(); // Ensure submission date is set
 
       // Set completion category based on the final percentage
       if (task.progress >= 80) {
@@ -435,34 +431,6 @@ class TaskController {
 
       if (!task) {
         return res.status(404).json({ message: 'Task not found.' });
-      }
-
-      // Remove this task's entry from all report contents that reference it
-      const reports = await Report.find({ employee: task.assignedTo });
-      for (const report of reports) {
-        try {
-          const contentString = typeof report.content === 'string'
-            ? report.content
-            : JSON.stringify(report.content);
-          const data = JSON.parse(contentString);
-          if (data.taskUpdates && Array.isArray(data.taskUpdates)) {
-            const before = data.taskUpdates.length;
-            data.taskUpdates = data.taskUpdates.filter(u => {
-              // taskId can be a plain string ID, an ObjectId, or a populated object with _id
-              const tid = u.taskId && typeof u.taskId === 'object' && u.taskId._id
-                ? String(u.taskId._id)
-                : String(u.taskId);
-              return tid !== String(id);
-            });
-            if (data.taskUpdates.length !== before) {
-              await Report.findByIdAndUpdate(report._id, {
-                content: JSON.stringify(data),
-              });
-            }
-          }
-        } catch (e) {
-          console.error(`Failed to clean task ${id} from report ${report._id}:`, e);
-        }
       }
 
       await task.deleteOne();
