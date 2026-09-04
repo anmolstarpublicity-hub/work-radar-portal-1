@@ -1,104 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useGetAllTasksQuery, useGetEmployeesQuery, useUpdateTaskMutation, useDeleteTaskMutation, useGetReportsByEmployeeQuery } from '../services/EmployeApi';
+import { useGetAllTasksQuery, useGetEmployeesQuery, useUpdateTaskMutation, useDeleteTaskMutation } from '../services/EmployeApi';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../app/authSlice';
 import toast from 'react-hot-toast';
-import { MagnifyingGlassIcon, XMarkIcon, PencilIcon, ArrowPathIcon, TrashIcon, ExclamationTriangleIcon, EyeIcon, ArrowLeftIcon, FunnelIcon, ClockIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, XMarkIcon, PencilIcon, ArrowPathIcon, TrashIcon, ExclamationTriangleIcon, EyeIcon, ArrowLeftIcon, FunnelIcon } from '@heroicons/react/24/outline';
 import { TaskDetailsModal } from './TaskOverview.jsx';
-
-// ── Task Description History Modal ────────────────────────────────────────────
-
-const TaskDescriptionModal = ({ isOpen, onClose, task, employeeId }) => {
-  const { data: reports = [], isLoading } = useGetReportsByEmployeeQuery(employeeId, {
-    skip: !isOpen || !employeeId,
-  });
-
-  const taskHistory = useMemo(() => {
-    if (!task || !reports.length) return [];
-    const entries = [];
-    reports.forEach(report => {
-      try {
-        const content = JSON.parse(report.content);
-        if (content.taskUpdates && Array.isArray(content.taskUpdates)) {
-          const update = content.taskUpdates.find(u => {
-            const id = typeof u.taskId === 'object' ? u.taskId?._id : u.taskId;
-            return String(id) === String(task._id);
-          });
-          if (update && update.note && update.note.trim()) {
-            entries.push({ date: report.reportDate, note: update.note.trim() });
-          }
-        }
-      } catch { /* ignore */ }
-    });
-    return entries.sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [reports, task]);
-
-  if (!isOpen || !task) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-purple-100 overflow-hidden flex flex-col max-h-[85vh]">
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
-          <div className="flex items-center gap-3 min-w-0">
-            <DocumentTextIcon className="h-5 w-5 text-white/80 flex-shrink-0" />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">Description History</p>
-              <p className="font-bold text-white text-sm truncate">{task.title}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="text-white/70 hover:text-white transition ml-3 flex-shrink-0">
-            <XMarkIcon className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-3">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <ArrowPathIcon className="animate-spin h-6 w-6 text-purple-400" />
-            </div>
-          ) : taskHistory.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-14 text-center">
-              <ClockIcon className="h-10 w-10 text-purple-200 mb-3" />
-              <p className="font-bold text-slate-500 text-sm">No descriptions yet</p>
-              <p className="text-xs text-slate-400 mt-1">The employee hasn't submitted any descriptions for this task.</p>
-            </div>
-          ) : (
-            <>
-              <p className="text-xs text-slate-400 font-semibold px-1">{taskHistory.length} description{taskHistory.length !== 1 ? 's' : ''} submitted</p>
-              {taskHistory.map((entry, i) => (
-                <div key={i} className="bg-slate-50 rounded-xl border border-purple-100 overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-2.5 bg-purple-50 border-b border-purple-100">
-                    <div className="flex items-center gap-2">
-                      <ClockIcon className="h-3.5 w-3.5 text-purple-400" />
-                      <span className="text-xs font-bold text-purple-700">
-                        {new Date(entry.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}
-                      </span>
-                    </div>
-                    {i === 0 && <span className="text-[10px] font-bold bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full">Latest</span>}
-                  </div>
-                  <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap px-4 py-3">{entry.note}</p>
-                </div>
-              ))}
-            </>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-purple-100 flex justify-end flex-shrink-0">
-          <button onClick={onClose}
-            className="px-5 py-2 text-sm font-bold text-white rounded-xl transition"
-            style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const EditTaskModal = ({ isOpen, onClose, task, onUpdate }) => {
   const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
@@ -209,7 +115,6 @@ const ViewAllTasks = ({ initialFilters = {} }) => {
   const [deletingTask, setDeletingTask] = useState(null);
   const [viewingTask, setViewingTask] = useState(null);
   const [viewingTaskNumber, setViewingTaskNumber] = useState(null);
-  const [descTask, setDescTask] = useState(null);
   const currentUser = useSelector(selectCurrentUser);
 
   useEffect(() => {
@@ -369,7 +274,6 @@ const ViewAllTasks = ({ initialFilters = {} }) => {
                 <th className="text-left px-6 py-3 font-semibold">Status</th>
                 <th className="text-left px-6 py-3 font-semibold">Priority</th>
                 <th className="text-left px-6 py-3 font-semibold">Grade</th>
-                <th className="text-left px-6 py-3 font-semibold">Approved By</th>
                 <th className="text-right px-6 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
@@ -401,58 +305,17 @@ const ViewAllTasks = ({ initialFilters = {} }) => {
                     ) : <span className="text-slate-300 text-xs">—</span>}
                   </td>
                   <td className="px-6 py-3">
-                    {['Completed', 'Not Completed'].includes(task.status) ? (() => {
-                      // Primary: use approvedBy field (set on new approvals)
-                      // Fallback: extract from approval/rejection comment author
-                      const approver = task.approvedBy;
-                      const fallbackComment = task.comments?.find(c =>
-                        c.text?.startsWith('Approval comment:') ||
-                        c.text?.startsWith("Task graded as 'Not Completed'")
-                      );
-                      const fallbackName = fallbackComment?.author?.name;
-
-                      if (approver?.name) {
-                        return (
-                          <div>
-                            <p className="text-xs font-semibold text-slate-700">{approver.name}</p>
-                            {approver.role && <p className="text-[10px] text-slate-400">{approver.role}</p>}
-                          </div>
-                        );
-                      }
-                      if (fallbackName) {
-                        return (
-                          <div>
-                            <p className="text-xs font-semibold text-slate-700">{fallbackName}</p>
-                            <p className="text-[10px] text-slate-400 italic">via comment</p>
-                          </div>
-                        );
-                      }
-                      return <span className="text-[10px] text-slate-400 italic">Not recorded</span>;
-                    })() : (
-                      <span className="text-slate-300 text-xs">—</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      {/* View — shows description history */}
-                      <button onClick={() => setDescTask(task)}
-                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-blue-50 hover:bg-blue-100 transition" title="View Descriptions">
+                      <button onClick={() => { setViewingTask(task); setViewingTaskNumber(index + 1); }}
+                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-blue-50 hover:bg-blue-100 transition" title="View">
                         <EyeIcon className="h-4 w-4 text-blue-500" />
                       </button>
-                      {/* Edit — disabled for finalized tasks */}
                       {(currentUser?._id === task.assignedBy?._id || currentUser?.role === 'Admin') && (
-                        ['Completed', 'Not Completed'].includes(task.status) ? (
-                          <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 opacity-30 cursor-not-allowed" title="Task is finalized">
-                            <PencilIcon className="h-4 w-4 text-slate-400" />
-                          </div>
-                        ) : (
-                          <button onClick={() => setEditingTask(task)}
-                            className="h-8 w-8 flex items-center justify-center rounded-lg bg-purple-50 hover:bg-purple-100 transition" title="Edit">
-                            <PencilIcon className="h-4 w-4 text-purple-500" />
-                          </button>
-                        )
+                        <button onClick={() => setEditingTask(task)}
+                          className="h-8 w-8 flex items-center justify-center rounded-lg bg-purple-50 hover:bg-purple-100 transition" title="Edit">
+                          <PencilIcon className="h-4 w-4 text-purple-500" />
+                        </button>
                       )}
-                      {/* Delete — always enabled */}
                       <button onClick={() => setDeletingTask(task)}
                         className="h-8 w-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition" title="Delete">
                         <TrashIcon className="h-4 w-4 text-red-500" />
@@ -462,7 +325,7 @@ const ViewAllTasks = ({ initialFilters = {} }) => {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan="9" className="text-center p-16 text-slate-400">
+                  <td colSpan="8" className="text-center p-16 text-slate-400">
                     <MagnifyingGlassIcon className="h-12 w-12 mx-auto text-purple-200 mb-4" />
                     <p className="font-bold text-slate-600">No Tasks Found</p>
                     <p className="text-sm mt-1">Try adjusting your filters or date range.</p>
@@ -476,7 +339,7 @@ const ViewAllTasks = ({ initialFilters = {} }) => {
 
       <EditTaskModal isOpen={!!editingTask} onClose={() => setEditingTask(null)} task={editingTask} onUpdate={refetch} />
       <DeleteConfirmationModal isOpen={!!deletingTask} onClose={() => setDeletingTask(null)} onConfirm={handleConfirmDelete} task={deletingTask} isDeleting={isDeleting} />
-      <TaskDescriptionModal isOpen={!!descTask} onClose={() => setDescTask(null)} task={descTask} employeeId={selectedEmployee?._id} />
+      <TaskDetailsModal isOpen={!!viewingTask} onClose={() => setViewingTask(null)} task={viewingTask} taskNumber={viewingTaskNumber} />
     </div>
   );
 };
