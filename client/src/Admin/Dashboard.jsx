@@ -354,7 +354,7 @@ const Dashboard = ({ onNavigate = () => {} }) => {
                     </div>
                   </td>
                   <td className="text-slate-600 dark:text-slate-300 font-medium truncate max-w-[80px]">{t.title}</td>
-                  <td className="text-slate-400 whitespace-nowrap">{safeDate(t.submittedForCompletionDate || t.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                  <td className="text-slate-400 whitespace-nowrap">{safeDate(t.submittedForCompletionDate || t.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}</td>
                 </tr>
               ))}
               {approvalTasks.length === 0 && <tr><td colSpan={3} className="py-4 text-center text-slate-400">No pending approvals</td></tr>}

@@ -404,7 +404,7 @@ const ViewAllTasks = ({ initialFilters = {} }) => {
                     {task.status === 'Not Completed' ? (
                       <span className="text-orange-600 font-semibold">Incomplete</span>
                     ) : task.status === 'Completed' && task.completionDate ? (
-                      <span className="text-slate-600">{new Date(task.completionDate).toLocaleDateString()}</span>
+                      <span className="text-slate-600">{new Date(task.completionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}</span>
                     ) : <span className="text-slate-300">—</span>}
                   </td>
                   <td className="px-6 py-3">

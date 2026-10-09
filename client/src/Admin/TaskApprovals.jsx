@@ -726,7 +726,7 @@ const TaskApprovals = () => {
                 </span>
                 {task.submittedForCompletionDate && (
                   <span className="text-[11px] text-slate-400">
-                    Submitted {new Date(task.submittedForCompletionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    Submitted {new Date(task.submittedForCompletionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
                   </span>
                 )}
                 <span className={`inline-flex items-center text-[10px] font-bold px-2.5 py-0.5 rounded-full ml-auto ${

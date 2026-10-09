@@ -452,7 +452,7 @@ const ManagerDashboardContent = ({ user, onNavigate }) => {
                     onError={e => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(task.assignedTo?.name || 'User')}&background=8E5FD0&color=fff`; }} />
                   <div>
                     <p className="font-bold text-sm text-slate-800 truncate max-w-[130px]">{task.assignedTo?.name}</p>
-                    <p className="text-[10px] text-slate-400">{safeDate(task.submittedForCompletionDate || task.updatedAt || task.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                    <p className="text-[10px] text-slate-400">{safeDate(task.submittedForCompletionDate || task.updatedAt || task.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}</p>
                   </div>
                 </div>
                 <span className="text-xs font-bold text-purple-600 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full">Review</span>
