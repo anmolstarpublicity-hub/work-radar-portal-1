@@ -11,8 +11,10 @@ class AuthController {
       const user = await Employee.findOne({ employeeId });
 
       if (user && (await user.matchPassword(password))) {
+        if (user.isArchived) {
+          return res.status(403).json({ message: 'This account has been archived. Please contact your administrator.' });
+        }
         return res.json({
-          // Return the user object, but exclude the password
           user: await Employee.findById(user._id).select('-password'),
           token: generateToken(user._id),
         });

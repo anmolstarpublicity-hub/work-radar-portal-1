@@ -146,6 +146,14 @@ const employeeSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  isArchived: {
+    type: Boolean,
+    default: false,
+  },
+  archivedAt: {
+    type: Date,
+    default: null,
+  },
   manualAttendanceStatus: {
     type: String,
     enum: ['Present', 'Absent', ''],

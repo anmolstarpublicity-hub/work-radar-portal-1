@@ -18,6 +18,18 @@ export const extendedApi = apiSlice.injectEndpoints({
       query: () => '/employees',
       providesTags: ['Employee'],
     }),
+    getArchivedEmployees: builder.query({
+      query: () => '/employees?archived=true',
+      providesTags: ['Employee'],
+    }),
+    archiveEmployee: builder.mutation({
+      query: (id) => ({ url: `/employees/${id}/archive`, method: 'PUT' }),
+      invalidatesTags: ['Employee'],
+    }),
+    restoreEmployee: builder.mutation({
+      query: (id) => ({ url: `/employees/${id}/restore`, method: 'PUT' }),
+      invalidatesTags: ['Employee'],
+    }),
     getEmployeeById: builder.query({
       query: (id) => `/employees/${id}`,
       providesTags: (result, error, id) => [{ type: 'Employee', id }],
@@ -391,6 +403,9 @@ export const extendedApi = apiSlice.injectEndpoints({
 export const {
   useLoginMutation, // Exported
   useGetEmployeesQuery,
+  useGetArchivedEmployeesQuery,
+  useArchiveEmployeeMutation,
+  useRestoreEmployeeMutation,
   useGetEmployeeByIdQuery,
   useAddEmployeeMutation,
   useUpdateEmployeeMutation,

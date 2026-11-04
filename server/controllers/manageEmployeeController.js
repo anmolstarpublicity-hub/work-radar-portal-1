@@ -202,6 +202,46 @@ class ManageEmployeeController {
   };
 
   /**
+   * @description Archive an employee (soft delete)
+   * @route PUT /api/employees/:id/archive
+   */
+  static archiveEmployee = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const employee = await Employee.findByIdAndUpdate(
+        id,
+        { isArchived: true, archivedAt: new Date() },
+        { new: true }
+      ).select('-password');
+      if (!employee) return res.status(404).json({ message: 'Employee not found.' });
+      res.status(200).json({ message: `${employee.name} has been archived.`, employee });
+    } catch (error) {
+      console.error('Error archiving employee:', error);
+      res.status(500).json({ message: 'Server error while archiving employee.' });
+    }
+  };
+
+  /**
+   * @description Restore an archived employee
+   * @route PUT /api/employees/:id/restore
+   */
+  static restoreEmployee = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const employee = await Employee.findByIdAndUpdate(
+        id,
+        { isArchived: false, archivedAt: null },
+        { new: true }
+      ).select('-password');
+      if (!employee) return res.status(404).json({ message: 'Employee not found.' });
+      res.status(200).json({ message: `${employee.name} has been restored.`, employee });
+    } catch (error) {
+      console.error('Error restoring employee:', error);
+      res.status(500).json({ message: 'Server error while restoring employee.' });
+    }
+  };
+
+  /**
    * @description Delete an employee
    * @route DELETE /api/employees/:id
    * @access Admin
@@ -313,12 +353,13 @@ class ManageEmployeeController {
    * @access Admin
    */
   static getAllEmployees = async (req, res) => {
+    const showArchived = req.query.archived === 'true';
     try {
       // Use aggregation to join employees with their assignments
       const employees = await Employee.aggregate([
-        // Stage 1: Filter out the admin user
+        // Stage 1: Filter based on archive status + exclude admin
         {
-          $match: { role: { $ne: 'Admin' } }
+          $match: { role: { $ne: 'Admin' }, isArchived: showArchived ? true : { $ne: true } }
         },
         {
           $project: { password: 0 }
@@ -352,6 +393,7 @@ class ManageEmployeeController {
             profilePicture: 1, address: 1, gender: 1, country: 1, city: 1, qualification: 1, dashboardAccess: 1, department: 1, experience: 1, workType: 1, company: 1, joiningDate: 1, workLocation: 1, shift: 1, 
             canEditProfile: 1, canViewTeam: 1, canUpdateTask: 1, canApproveTask: 1, canAssignTask: 1, canDeleteTask: 1, canViewAnalytics: 1,
             hasAttendancePower: 1, manualAttendanceStatus: 1, manualAttendanceDate: 1, monitoringName: 1, requiresScreenshot: 1,
+            isArchived: 1, archivedAt: 1,
             assignmentInfo: 1, // Include the full assignmentInfo object
             // Optionally, you can still have a top-level 'department' and 'teamLead' for convenience if needed elsewhere
             department: { $ifNull: ['$assignmentInfo.department', '$department'] }, 

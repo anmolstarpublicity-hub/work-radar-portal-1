@@ -1,20 +1,20 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  UserPlusIcon, MagnifyingGlassIcon, PencilIcon, TrashIcon, XMarkIcon, ArrowPathIcon, ExclamationTriangleIcon, AtSymbolIcon, BuildingOffice2Icon, UserCircleIcon, EyeIcon, KeyIcon, CalendarIcon
+  UserPlusIcon, MagnifyingGlassIcon, PencilIcon, TrashIcon, XMarkIcon, ArrowPathIcon, ExclamationTriangleIcon, AtSymbolIcon, BuildingOffice2Icon, UserCircleIcon, EyeIcon, KeyIcon, CalendarIcon, ArchiveBoxArrowDownIcon, ArrowUturnLeftIcon, ClipboardDocumentListIcon, DocumentTextIcon
 } from '@heroicons/react/24/outline';
-import { useAddEmployeeMutation, useGetEmployeesQuery, useGetEmployeeEOMHistoryQuery } from '../services/EmployeApi';
+import { useAddEmployeeMutation, useGetEmployeesQuery, useGetEmployeeEOMHistoryQuery, useGetArchivedEmployeesQuery, useArchiveEmployeeMutation, useRestoreEmployeeMutation, useGetAllTasksQuery, useGetReportsByEmployeeQuery } from '../services/EmployeApi';
 import { useUpdateEmployeeMutation, useUpdateEmployeePermissionsMutation, useDeleteEmployeeMutation} from '../services/EmployeApi';
 import toast from 'react-hot-toast'; // Removed unused import of LeaveManagementModal
 import LeaveManagementModal from './LeaveManagementModal';
 
 const ActionBtn = ({ onClick, title, bg, children }) => (
-  <button onClick={onClick} title={title}
+  <button type="button" onClick={onClick} title={title} aria-label={title}
     className={`h-9 w-9 rounded-xl flex items-center justify-center transition hover:opacity-80 ${bg}`}>
     {children}
   </button>
 );
 
-const EmployeeCard = ({ user, onEdit, onDelete, onView, onPermissions, onLeave }) => (
+const EmployeeCard = ({ user, onEdit, onDelete, onView, onPermissions, onLeave, onArchive }) => (
   <div className="bg-white rounded-2xl border border-purple-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col">
     {/* Top gradient banner */}
     <div className="h-24 w-full relative flex-shrink-0" style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
@@ -59,6 +59,9 @@ const EmployeeCard = ({ user, onEdit, onDelete, onView, onPermissions, onLeave }
         <ActionBtn onClick={() => onEdit(user)} title="Edit" bg="bg-purple-50">
           <PencilIcon className="h-4 w-4 text-purple-500" />
         </ActionBtn>
+        <ActionBtn onClick={() => onArchive(user)} title="Archive" bg="bg-orange-50">
+          <ArchiveBoxArrowDownIcon className="h-4 w-4 text-orange-500" />
+        </ActionBtn>
         <ActionBtn onClick={() => onDelete(user)} title="Delete" bg="bg-red-50">
           <TrashIcon className="h-4 w-4 text-red-500" />
         </ActionBtn>
@@ -75,6 +78,175 @@ const EmployeeCardGrid = ({ users, ...actions }) => (
   </div>
 );
 
+const TaskHistoryModal = ({ isOpen, onClose, employee }) => {
+  const { data: allTasks = [], isLoading: isLoadingTasks } = useGetAllTasksQuery(undefined, { skip: !isOpen || !employee });
+  const { data: reports = [], isLoading: isLoadingReports } = useGetReportsByEmployeeQuery(employee?._id, { skip: !isOpen || !employee });
+  const [activeTab, setActiveTab] = useState('tasks');
+
+  const employeeTasks = allTasks.filter(t =>
+    String(t.assignedTo?._id || t.assignedTo) === String(employee?._id)
+  );
+
+  const statusColors = {
+    'Pending': 'bg-amber-50 text-amber-700 border border-amber-200',
+    'In Progress': 'bg-blue-50 text-blue-700 border border-blue-200',
+    'Completed': 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+    'Pending Verification': 'bg-purple-50 text-purple-700 border border-purple-200',
+    'Not Completed': 'bg-red-50 text-red-700 border border-red-200',
+  };
+
+  if (!isOpen || !employee) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col border border-purple-100">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-purple-100 flex-shrink-0"
+          style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+          <div className="flex items-center gap-3">
+            <img src={employee.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name)}&background=8E5FD0&color=fff`}
+              alt={employee.name} className="h-9 w-9 rounded-full object-cover border-2 border-white/30"/>
+            <div>
+              <h3 className="text-base font-bold text-white">{employee.name}'s History</h3>
+              <p className="text-xs text-white/60">{employee.role} · {employee.employeeId}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-white/70 hover:text-white transition">
+            <XMarkIcon className="h-5 w-5"/>
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border-b border-purple-100 px-6 pt-3 gap-4 flex-shrink-0 bg-white">
+          {[
+            { id: 'tasks', label: `Tasks (${employeeTasks.length})` },
+            { id: 'reports', label: `Reports (${reports.length})` },
+          ].map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              className={`pb-3 text-sm font-bold border-b-2 transition-colors ${activeTab === tab.id ? 'border-purple-600 text-purple-700' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-3 bg-slate-50/40">
+          {activeTab === 'tasks' ? (
+            isLoadingTasks ? (
+              <p className="text-center text-slate-400 py-8">Loading tasks...</p>
+            ) : employeeTasks.length === 0 ? (
+              <div className="text-center py-12">
+                <ClipboardDocumentListIcon className="h-10 w-10 mx-auto text-purple-200 mb-2"/>
+                <p className="text-slate-400 font-medium">No tasks found</p>
+              </div>
+            ) : employeeTasks.map(task => (
+              <div key={task._id} className="bg-white rounded-xl border border-purple-100 p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-bold text-slate-800 text-sm truncate">{task.title}</p>
+                    {task.description && <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{task.description}</p>}
+                    <div className="flex items-center gap-3 mt-1.5">
+                      <span className="text-[10px] text-slate-400">
+                        Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
+                      </span>
+                      {task.completionDate && (
+                        <span className="text-[10px] text-slate-400">
+                          Done: {new Date(task.completionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColors[task.status] || 'bg-slate-100 text-slate-500'}`}>{task.status}</span>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${task.priority === 'High' ? 'bg-red-50 text-red-600' : task.priority === 'Medium' ? 'bg-amber-50 text-amber-600' : 'bg-green-50 text-green-600'}`}>{task.priority}</span>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            isLoadingReports ? (
+              <p className="text-center text-slate-400 py-8">Loading reports...</p>
+            ) : reports.length === 0 ? (
+              <div className="text-center py-12">
+                <DocumentTextIcon className="h-10 w-10 mx-auto text-purple-200 mb-2"/>
+                <p className="text-slate-400 font-medium">No reports found</p>
+              </div>
+            ) : reports.map(report => {
+              let taskUpdates = [], reportNote = '';
+              try { const d = JSON.parse(report.content); taskUpdates = d.taskUpdates || []; reportNote = d.reportNote || ''; } catch {}
+              return (
+                <div key={report._id} className="bg-white rounded-xl border border-purple-100 p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-bold text-slate-800 text-sm">
+                      {new Date(report.reportDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                    </p>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${report.status === 'Submitted' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>{report.status}</span>
+                  </div>
+                  {reportNote && <p className="text-xs text-slate-500 italic mb-2">"{reportNote}"</p>}
+                  {taskUpdates.length > 0 && (
+                    <div className="space-y-1">
+                      {taskUpdates.map((u, i) => (
+                        <div key={i} className="flex items-start gap-2 bg-slate-50 rounded-lg px-3 py-2">
+                          <span className="text-[10px] font-black text-purple-500 flex-shrink-0 mt-0.5">T{i+1}</span>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-slate-700 truncate">{u.taskId?.title || 'Task'}</p>
+                            {u.note && <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-2">{u.note}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ArchivedEmployeeCard = ({ user, onRestore, onDelete, onView, onHistory }) => (
+  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col opacity-80 hover:opacity-100 transition-opacity">
+    <div className="h-24 w-full relative flex-shrink-0" style={{ background: 'linear-gradient(135deg,#94a3b8,#cbd5e1)' }}>
+      <div className="absolute top-2 right-2">
+        <span className="text-[10px] font-bold bg-orange-100 text-orange-600 border border-orange-200 px-2 py-0.5 rounded-full">Archived</span>
+      </div>
+      <div className="absolute -bottom-14 left-1/2 -translate-x-1/2">
+        <img
+          src={user.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=94a3b8&color=fff`}
+          alt={user.name}
+          className="h-28 w-28 rounded-full object-cover border-4 border-white shadow-md grayscale"
+        />
+      </div>
+    </div>
+    <div className="flex flex-col items-center pt-16 px-5 pb-5">
+      <h3 className="mt-2 text-base font-bold text-slate-600 text-center">{user.name}</h3>
+      <p className="text-xs text-slate-400 font-semibold">{user.role}</p>
+      <p className="text-[11px] text-slate-300 font-mono mt-0.5">{user.employeeId}</p>
+      {user.archivedAt && (
+        <p className="text-[10px] text-slate-400 mt-1">
+          Archived {new Date(user.archivedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </p>
+      )}
+      {/* Action buttons */}
+      <div className="flex items-center justify-center gap-2 mt-4">
+        <ActionBtn onClick={() => onView(user)} title="View Details" bg="bg-purple-50">
+          <EyeIcon className="h-4 w-4 text-purple-600" />
+        </ActionBtn>
+        <ActionBtn onClick={() => onHistory(user)} title="Task History" bg="bg-blue-50">
+          <ClipboardDocumentListIcon className="h-4 w-4 text-blue-600" />
+        </ActionBtn>
+        <ActionBtn onClick={() => onRestore(user)} title="Restore" bg="bg-emerald-50">
+          <ArrowUturnLeftIcon className="h-4 w-4 text-emerald-600" />
+        </ActionBtn>
+        <ActionBtn onClick={() => onDelete(user)} title="Permanently Delete" bg="bg-red-50">
+          <TrashIcon className="h-4 w-4 text-red-600" />
+        </ActionBtn>
+      </div>
+    </div>
+  </div>
+);
 const ViewEmployeeModal = ({ isOpen, onClose, employee }) => {
   const { data: eomHistory = [] } = useGetEmployeeEOMHistoryQuery(employee?._id, {
     skip: !isOpen || !employee,
@@ -232,7 +404,7 @@ const PermissionsModal = ({ isOpen, onClose, employee, onSave, isSaving }) => {
   );
 };
 
-const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, isDeleting }) => {
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, isDeleting, confirmText = 'Confirm Delete', confirmLoadingText = 'Deleting...', confirmColor = 'bg-red-600 hover:bg-red-700 disabled:bg-red-400' }) => {
   if (!isOpen) return null;
 
   return (
@@ -249,9 +421,9 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, isDelet
           <button type="button" onClick={onClose} className="bg-white hover:bg-slate-100 text-slate-700 font-bold py-2 px-4 rounded-lg border border-slate-300 text-sm">
             Cancel
           </button>
-          <button type="button" onClick={onConfirm} disabled={isDeleting} className="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-sm disabled:bg-red-400">
+          <button type="button" onClick={onConfirm} disabled={isDeleting} className={`inline-flex items-center justify-center text-white font-bold py-2 px-4 rounded-lg text-sm ${confirmColor}`}>
             {isDeleting && <ArrowPathIcon className="animate-spin h-4 w-4 mr-2" />}
-            {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+            {isDeleting ? confirmLoadingText : confirmText}
           </button>
         </div>
       </div>
@@ -566,15 +738,22 @@ const EmployeeTable = ({ users, onEdit, onDelete, onView, onPermissions, onLeave
 export default function EmployeeManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
+  const [activeTab, setActiveTab] = useState('active'); // 'active' | 'archived'
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
+  const [archivingUser, setArchivingUser] = useState(null);
+  const [restoringUser, setRestoringUser] = useState(null);
+  const [deletingArchivedUser, setDeletingArchivedUser] = useState(null);
+  const [historyUser, setHistoryUser] = useState(null);
   const [viewingUser, setViewingUser] = useState(null);
   const [permissionsUser, setPermissionsUser] = useState(null);
   const [leaveUser, setLeaveUser] = useState(null);
 
-  // RTK Query hook for fetching employees
   const { data: users = [], isLoading, isError, error, refetch: refetchUsers } = useGetEmployeesQuery();
+  const { data: archivedUsers = [], refetch: refetchArchived } = useGetArchivedEmployeesQuery();
+  const [archiveEmployee, { isLoading: isArchiving }] = useArchiveEmployeeMutation();
+  const [restoreEmployee, { isLoading: isRestoring }] = useRestoreEmployeeMutation();
 
   // RTK Query mutation hook for adding an employee
   const [addEmployee, { isLoading: isAdding }] = useAddEmployeeMutation();
@@ -666,10 +845,43 @@ export default function EmployeeManagement() {
     if (!deletingUser) return;
     try {
       await deleteEmployee(deletingUser._id).unwrap();
-      setDeletingUser(null); // Close the modal
+      setDeletingUser(null);
       toast.success(`Employee "${deletingUser?.name}" deleted.`);
     } catch (err) {
       console.error('Failed to delete the employee: ', err);
+      toast.error(err.data?.message || 'Failed to delete employee.');
+    }
+  };
+
+  const handleConfirmArchive = async () => {
+    if (!archivingUser) return;
+    try {
+      await archiveEmployee(archivingUser._id).unwrap();
+      setArchivingUser(null);
+      toast.success(`"${archivingUser.name}" has been archived.`);
+    } catch (err) {
+      toast.error(err.data?.message || 'Failed to archive employee.');
+    }
+  };
+
+  const handleConfirmRestore = async () => {
+    if (!restoringUser) return;
+    try {
+      await restoreEmployee(restoringUser._id).unwrap();
+      setRestoringUser(null);
+      toast.success(`"${restoringUser.name}" has been restored.`);
+    } catch (err) {
+      toast.error(err.data?.message || 'Failed to restore employee.');
+    }
+  };
+
+  const handleConfirmDeleteArchived = async () => {
+    if (!deletingArchivedUser) return;
+    try {
+      await deleteEmployee(deletingArchivedUser._id).unwrap();
+      setDeletingArchivedUser(null);
+      toast.success(`"${deletingArchivedUser.name}" permanently deleted.`);
+    } catch (err) {
       toast.error(err.data?.message || 'Failed to delete employee.');
     }
   };
@@ -683,6 +895,15 @@ export default function EmployeeManagement() {
       (!deptFilter || user.department === deptFilter)
     ), [users, searchTerm, deptFilter]);
 
+  const filteredArchived = useMemo(() =>
+    archivedUsers.filter(user =>
+      user?.name &&
+      (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       user.role?.toLowerCase().includes(searchTerm.toLowerCase())) &&
+      (!deptFilter || user.department === deptFilter)
+    ), [archivedUsers, searchTerm, deptFilter]);
+
   if (isLoading) return <div className="p-8 text-center text-slate-500">Loading employees...</div>;
   if (isError) return <div className="p-8 text-center text-red-500">Error: {error.toString()}</div>;
 
@@ -695,17 +916,31 @@ export default function EmployeeManagement() {
         <p className="text-slate-500 dark:text-slate-400 text-sm">Manage Your Team Member Roles And Their Information</p>
       </div>
 
+      {/* Tabs */}
+      <div className="flex items-center gap-2 mb-6">
+        <button onClick={() => setActiveTab('active')}
+          className={`px-5 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'active' ? 'text-white shadow-sm' : 'bg-white text-slate-500 hover:text-slate-700'}`}
+          style={activeTab === 'active' ? { background: 'linear-gradient(135deg,#48306A,#8E5FD0)' } : {}}>
+          Active <span className="ml-1 text-xs font-semibold opacity-70">({users.length})</span>
+        </button>
+        <button onClick={() => setActiveTab('archived')}
+          className={`px-5 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'archived' ? 'text-white shadow-sm' : 'bg-white text-slate-500 hover:text-slate-700'}`}
+          style={activeTab === 'archived' ? { background: 'linear-gradient(135deg,#ea580c,#fb923c)' } : {}}>
+          Archived <span className="ml-1 text-xs font-semibold opacity-70">({archivedUsers.length})</span>
+        </button>
+      </div>
+
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 my-6">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
         <div className="relative w-full sm:w-80">
           <MagnifyingGlassIcon className="h-4 w-4 text-slate-400 absolute top-1/2 left-3 -translate-y-1/2" />
           <input type="text" placeholder="Search Employee By Name, Role & Email...." value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-purple-200 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-300 shadow-sm" />
+            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-purple-200 bg-white focus:outline-none focus:ring-2 focus:ring-purple-300 shadow-sm" />
         </div>
         <div className="flex items-center gap-3">
           <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)}
-            className="text-sm border border-purple-200 rounded-xl px-4 py-2.5 bg-white dark:bg-slate-800 dark:border-slate-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-300 shadow-sm font-medium">
+            className="text-sm border border-purple-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-300 shadow-sm font-medium">
             <option value="">All Departments</option>
             <option value="Corporate management">Corporate management</option>
             <option value="Human Resource">Human Resource</option>
@@ -715,24 +950,55 @@ export default function EmployeeManagement() {
             <option value="Sales & Marketing">Sales & Marketing</option>
             <option value="Tech & Development">Tech & Development</option>
           </select>
-          <button onClick={handleOpenAddModal}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm transition hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
-            <UserPlusIcon className="h-4 w-4" /> Add Employee
-          </button>
+          {activeTab === 'active' && (
+            <button onClick={handleOpenAddModal}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm transition hover:opacity-90"
+              style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}>
+              <UserPlusIcon className="h-4 w-4" /> Add Employee
+            </button>
+          )}
         </div>
       </div>
 
       {/* Grid */}
       <div className="pb-8">
-        <EmployeeCardGrid
-          users={filteredUsers}
-          onEdit={handleOpenEditModal}
-          onDelete={handleOpenDeleteModal}
-          onView={handleOpenViewModal}
-          onPermissions={handleOpenPermissionsModal}
-          onLeave={handleOpenLeaveModal}
-        />
+        {activeTab === 'active' ? (
+          filteredUsers.length > 0 ? (
+            <EmployeeCardGrid
+              users={filteredUsers}
+              onEdit={handleOpenEditModal}
+              onDelete={handleOpenDeleteModal}
+              onView={handleOpenViewModal}
+              onPermissions={handleOpenPermissionsModal}
+              onLeave={handleOpenLeaveModal}
+              onArchive={(user) => setArchivingUser(user)}
+            />
+          ) : (
+            <div className="bg-white rounded-2xl border border-purple-100 p-16 text-center">
+              <p className="font-bold text-slate-600">No employees found</p>
+              <p className="text-sm text-slate-400 mt-1">Try adjusting your search or filters.</p>
+            </div>
+          )
+        ) : (
+          filteredArchived.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredArchived.map(user => (
+                <ArchivedEmployeeCard key={user._id} user={user}
+                  onRestore={(u) => setRestoringUser(u)}
+                  onDelete={(u) => setDeletingArchivedUser(u)}
+                  onView={handleOpenViewModal}
+                  onHistory={(u) => setHistoryUser(u)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-orange-100 p-16 text-center">
+              <ArchiveBoxArrowDownIcon className="h-12 w-12 mx-auto text-orange-200 mb-4" />
+              <p className="font-bold text-slate-600">No archived employees</p>
+              <p className="text-sm text-slate-400 mt-1">Archived employees will appear here.</p>
+            </div>
+          )
+        )}
       </div>
       <EmployeeFormModal
         isOpen={isModalOpen} 
@@ -747,7 +1013,40 @@ export default function EmployeeManagement() {
         onConfirm={handleConfirmDelete}
         isDeleting={isDeleting}
         title="Confirm Deletion"
-        message={`Are you sure you want to delete the employee "${deletingUser?.name}"? This action cannot be undone.`}
+        message={`Are you sure you want to permanently delete "${deletingUser?.name}"? This action cannot be undone.`}
+      />
+      <ConfirmationModal
+        isOpen={!!archivingUser}
+        onClose={() => setArchivingUser(null)}
+        onConfirm={handleConfirmArchive}
+        isDeleting={isArchiving}
+        title="Archive Employee"
+        message={`Archive "${archivingUser?.name}"? They will lose portal access but all their data will be preserved. You can restore them later.`}
+        confirmText="Confirm Archive"
+        confirmLoadingText="Archiving..."
+        confirmColor="bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300"
+      />
+      <ConfirmationModal
+        isOpen={!!restoringUser}
+        onClose={() => setRestoringUser(null)}
+        onConfirm={handleConfirmRestore}
+        isDeleting={isRestoring}
+        title="Restore Employee"
+        message={`Restore "${restoringUser?.name}"? They will regain portal access immediately.`}
+        confirmText="Confirm Restore"
+        confirmLoadingText="Restoring..."
+        confirmColor="bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300"
+      />
+      <ConfirmationModal
+        isOpen={!!deletingArchivedUser}
+        onClose={() => setDeletingArchivedUser(null)}
+        onConfirm={handleConfirmDeleteArchived}
+        isDeleting={isDeleting}
+        title="Permanently Delete"
+        message={`Permanently delete "${deletingArchivedUser?.name}"? This cannot be undone and all their data will be removed.`}
+        confirmText="Permanently Delete"
+        confirmLoadingText="Deleting..."
+        confirmColor="bg-red-600 hover:bg-red-700 disabled:bg-red-400"
       />
       <ViewEmployeeModal
         isOpen={!!viewingUser}
@@ -760,6 +1059,11 @@ export default function EmployeeManagement() {
         employee={users?.find(u => u._id === permissionsUser?._id) || permissionsUser}
         onSave={handleSavePermissions}
         isSaving={isSavingPerms}
+      />
+      <TaskHistoryModal
+        isOpen={!!historyUser}
+        onClose={() => setHistoryUser(null)}
+        employee={historyUser}
       />
       <LeaveManagementModal
         isOpen={!!leaveUser}

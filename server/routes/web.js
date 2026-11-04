@@ -38,6 +38,8 @@ router.put('/employees/:id/assign', protect, AssignmentController.assignEmployee
 router.delete('/employees/:id/unassign', protect, AssignmentController.unassignEmployee);
 router.get('/stats', protect, ManageEmployeeController.getDashboardStats);
 router.get('/manager-stats/:managerId', protect, ManageEmployeeController.getManagerDashboardStats);
+router.put('/employees/:id/archive', protect, ManageEmployeeController.archiveEmployee);
+router.put('/employees/:id/restore', protect, ManageEmployeeController.restoreEmployee);
 router.get('/employees', protect, ManageEmployeeController.getAllEmployees);
 router.get('/employees/employee-of-the-month', protect, ManageEmployeeController.getEmployeeOfTheMonthCandidates);
 router.post('/employees/employee-of-the-month', protect, ManageEmployeeController.setEmployeeOfTheMonth);
