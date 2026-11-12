@@ -8,6 +8,7 @@ import { selectCurrentUser } from '../app/authSlice';
 import { useGetEmployeesQuery, useGetReportsByEmployeeQuery, useDeleteReportMutation, useProcessPastDueTasksMutation } from '../services/EmployeApi';
 import Sidebar from '../shared/Sidebar.jsx';
 import AppHeader from '../app/AppHeader.jsx';
+import DurationFilter from '../shared/DurationFilter.jsx';
 // useLogoutMutation removed (unused)
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
@@ -68,6 +69,8 @@ export const TeamReports = ({ seniorId }) => {
   const [viewingTaskNumber, setViewingTaskNumber] = useState(null);
   const [expandedReportId, setExpandedReportId] = useState(null);
   const [lightboxUrl, setLightboxUrl] = useState(null);
+  const [filterType, setFilterType] = useState('month');
+  const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
   const [deleteReport, { isLoading: isDeleting }] = useDeleteReportMutation();
 
   const { data: reports, isLoading: isLoadingReports } = useGetReportsByEmployeeQuery(selectedEmployee?._id, {
@@ -106,6 +109,45 @@ export const TeamReports = ({ seniorId }) => {
       employee.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [employees, searchTerm, seniorId]);
+
+  // Set default filter to current month
+  useEffect(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    setDateRange({
+      startDate: start.toISOString().split('T')[0],
+      endDate: end.toISOString().split('T')[0],
+    });
+  }, []);
+
+  // Update date range when filterType changes
+  useEffect(() => {
+    if (filterType === 'week') {
+      const now = new Date();
+      const day = now.getDay();
+      const start = new Date(now); start.setDate(now.getDate() - day);
+      const end = new Date(start); end.setDate(start.getDate() + 6);
+      setDateRange({ startDate: start.toISOString().split('T')[0], endDate: end.toISOString().split('T')[0] });
+    } else if (filterType === 'month') {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      setDateRange({ startDate: start.toISOString().split('T')[0], endDate: end.toISOString().split('T')[0] });
+    }
+  }, [filterType]);
+
+  const filteredReports = useMemo(() => {
+    if (!reports) return [];
+    if (!dateRange.startDate || !dateRange.endDate) return reports;
+    const start = new Date(dateRange.startDate);
+    const end = new Date(dateRange.endDate);
+    end.setHours(23, 59, 59, 999);
+    return reports.filter(r => {
+      const d = new Date(r.reportDate);
+      return d >= start && d <= end;
+    });
+  }, [reports, dateRange]);
 
   const handleDownloadSheet = async () => {
     if (!selectedEmployee || !reports || reports.length === 0) {
@@ -326,15 +368,18 @@ export const TeamReports = ({ seniorId }) => {
                 <div className="h-1 w-12 rounded-full mt-1" style={{ background: 'linear-gradient(90deg,#48306A,#8E5FD0)' }} />
               </div>
             </div>
-            <button
-              onClick={handleDownloadSheet}
-              disabled={!reports || reports.length === 0}
-              className="inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-2.5 rounded-xl shadow-sm transition hover:opacity-90 disabled:opacity-40"
-              style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}
-            >
-              <ArrowDownTrayIcon className="h-4 w-4" />
-              Download Sheet
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <DurationFilter filterType={filterType} setFilterType={setFilterType} dateRange={dateRange} setDateRange={setDateRange} variant="theme" />
+              <button
+                onClick={handleDownloadSheet}
+                disabled={!reports || reports.length === 0}
+                className="inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-2.5 rounded-xl shadow-sm transition hover:opacity-90 disabled:opacity-40"
+                style={{ background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }}
+              >
+                <ArrowDownTrayIcon className="h-4 w-4" />
+                Download Sheet
+              </button>
+            </div>
           </div>
 
           {isLoadingReports && (
@@ -343,7 +388,7 @@ export const TeamReports = ({ seniorId }) => {
 
           {/* Report accordion cards */}
           <div className="space-y-3 pb-8">
-            {reports?.length > 0 ? reports.map(report => {
+            {filteredReports.length > 0 ? filteredReports.map(report => {
               let taskUpdates = [];
               let reportNote = '';
               try {
@@ -484,7 +529,11 @@ export const TeamReports = ({ seniorId }) => {
               <div className="bg-white rounded-2xl border border-purple-100 p-16 text-center">
                 <DocumentTextIcon className="h-12 w-12 mx-auto text-purple-200 mb-4" />
                 <p className="font-bold text-slate-600">No Reports Found</p>
-                <p className="text-sm text-slate-400 mt-1">This employee has not submitted any reports yet.</p>
+                <p className="text-sm text-slate-400 mt-1">
+                  {reports && reports.length > 0
+                    ? 'No reports match the selected date range.'
+                    : 'This employee has not submitted any reports yet.'}
+                </p>
               </div>
             )}
           </div>

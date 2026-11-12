@@ -593,9 +593,16 @@ class TaskController {
       let tasksForApproval = [];
       const approverId = req.user._id;
 
+      // Pre-fetch archived employee IDs to exclude from results
+      const archivedEmployees = await Employee.find({ isArchived: true }).select('_id');
+      const archivedIds = archivedEmployees.map(e => e._id);
+
       if (req.user.role === 'Admin') {
-        // Admins can see all tasks pending verification
-        tasksForApproval = await Task.find({ status: 'Pending Verification' })
+        // Admins can see all tasks pending verification — exclude archived employees
+        tasksForApproval = await Task.find({
+          status: 'Pending Verification',
+          assignedTo: { $nin: archivedIds },
+        })
           .populate('assignedTo', 'name profilePicture employeeId')
           .sort({ submittedForCompletionDate: 1 });
       } else {
@@ -621,9 +628,10 @@ class TaskController {
 
         tasksForApproval = await Task.find({
           status: 'Pending Verification',
+          assignedTo: { $nin: archivedIds },
           $or: [
-            { assignedTo: { $in: Array.from(teamMemberIds) } }, // Task is assigned to a team member
-            { assignedBy: approverId } // Task was assigned by the current manager
+            { assignedTo: { $in: Array.from(teamMemberIds) } },
+            { assignedBy: approverId }
           ]
         })
           .populate('assignedTo', 'name profilePicture employeeId')

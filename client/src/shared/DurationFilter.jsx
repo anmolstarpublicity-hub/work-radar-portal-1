@@ -45,7 +45,7 @@ function DateRow({ label, value, onChange }) {
   );
 }
 
-export default function DurationFilter({ filterType, setFilterType, dateRange, setDateRange }) {
+export default function DurationFilter({ filterType, setFilterType, dateRange, setDateRange, variant = 'light' }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -66,18 +66,32 @@ export default function DurationFilter({ filterType, setFilterType, dateRange, s
       })()
     : null;
 
+  /* ── Trigger styles per variant ── */
+  const triggerClass = variant === 'theme'
+    ? 'flex items-center gap-2 text-sm font-bold text-white px-4 py-2.5 rounded-xl shadow-sm transition hover:opacity-90 cursor-pointer'
+    : 'flex items-center gap-2 bg-white/10 hover:bg-white/20 transition-colors rounded-xl px-4 py-2.5 cursor-pointer';
+
+  const triggerStyle = variant === 'theme'
+    ? { background: 'linear-gradient(135deg,#48306A,#8E5FD0)' }
+    : {};
+
+  const iconClass   = variant === 'theme' ? 'h-4 w-4 text-white/80 flex-shrink-0' : 'h-4 w-4 text-purple-200 flex-shrink-0';
+  const labelClass  = variant === 'theme' ? 'text-sm font-bold text-white whitespace-nowrap' : 'text-sm font-semibold text-white whitespace-nowrap';
+  const chevronClass = variant === 'theme' ? 'h-4 w-4 text-white/80 flex-shrink-0' : 'h-4 w-4 text-purple-200 flex-shrink-0';
+
   return (
     <div ref={ref} className="relative">
       {/* Trigger pill */}
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 bg-white/10 hover:bg-white/20 transition-colors rounded-xl px-4 py-2.5 cursor-pointer"
+        className={triggerClass}
+        style={triggerStyle}
       >
-        <CalendarDaysIcon className="h-4 w-4 text-purple-200 flex-shrink-0" />
-        <span className="text-sm font-semibold text-white whitespace-nowrap">
+        <CalendarDaysIcon className={iconClass} />
+        <span className={labelClass}>
           {displayRange || activeLabel}
         </span>
-        <ChevronDownIcon className={`h-4 w-4 text-purple-200 transition-transform flex-shrink-0 ${open ? 'rotate-180' : ''}`} />
+        <ChevronDownIcon className={`${chevronClass} transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {/* Dropdown */}

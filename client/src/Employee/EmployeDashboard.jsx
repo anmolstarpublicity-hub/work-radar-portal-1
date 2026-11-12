@@ -1309,6 +1309,46 @@ export const MyReportHistory = ({ employeeId }) => {
   const [viewingTask, setViewingTask] = useState(null);
   const [viewingTaskNumber, setViewingTaskNumber] = useState(null);
   const [lightboxUrl, setLightboxUrl] = useState(null);
+  const [filterType, setFilterType] = useState('month');
+  const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
+
+  // Set default to current month
+  useEffect(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    setDateRange({
+      startDate: start.toISOString().split('T')[0],
+      endDate: end.toISOString().split('T')[0],
+    });
+  }, []);
+
+  // Update date range when filterType changes
+  useEffect(() => {
+    if (filterType === 'week') {
+      const now = new Date();
+      const day = now.getDay();
+      const start = new Date(now); start.setDate(now.getDate() - day);
+      const end = new Date(start); end.setDate(start.getDate() + 6);
+      setDateRange({ startDate: start.toISOString().split('T')[0], endDate: end.toISOString().split('T')[0] });
+    } else if (filterType === 'month') {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      setDateRange({ startDate: start.toISOString().split('T')[0], endDate: end.toISOString().split('T')[0] });
+    }
+  }, [filterType]);
+
+  const filteredReports = useMemo(() => {
+    if (!dateRange.startDate || !dateRange.endDate) return reports;
+    const start = new Date(dateRange.startDate);
+    const end = new Date(dateRange.endDate);
+    end.setHours(23, 59, 59, 999);
+    return reports.filter(r => {
+      const d = new Date(r.reportDate);
+      return d >= start && d <= end;
+    });
+  }, [reports, dateRange]);
 
   const renderScreenshots = (update) => {
     const urls = update.screenshotUrls?.length ? update.screenshotUrls
@@ -1335,14 +1375,17 @@ export const MyReportHistory = ({ employeeId }) => {
     <div className="min-h-screen p-6 lg:p-8 font-manrope" style={{ backgroundColor: '#DFCDFE' }}>
 
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-extrabold text-slate-800 uppercase tracking-wide">My Report History</h1>
-        <p className="text-sm text-slate-500 mt-1">Click on a date card to view tasks for that day</p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-800 uppercase tracking-wide">My Report History</h1>
+          <p className="text-sm text-slate-500 mt-1">Click on a date card to view tasks for that day</p>
+        </div>
+        <DurationFilter filterType={filterType} setFilterType={setFilterType} dateRange={dateRange} setDateRange={setDateRange} variant="theme" />
       </div>
 
       {/* Report accordion list */}
       <div className="space-y-3 pb-8">
-        {reports.length > 0 ? reports.map(report => {
+        {filteredReports.length > 0 ? filteredReports.map(report => {
           let taskUpdates = [];
           let reportNote = '';
           try {
@@ -1516,8 +1559,8 @@ export const MyReportHistory = ({ employeeId }) => {
         }) : (
           <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-purple-100 shadow-sm text-slate-400">
             <ArchiveBoxIcon className="h-12 w-12 text-purple-200 mb-3" />
-            <p className="font-bold text-slate-500 text-base">No Report History Found</p>
-            <p className="text-sm mt-1">You have not submitted any reports yet.</p>
+            <p className="font-bold text-slate-500 text-base">No Reports Found</p>
+            <p className="text-sm mt-1">{reports.length > 0 ? 'No reports match the selected date range.' : 'You have not submitted any reports yet.'}</p>
           </div>
         )}
       </div>
